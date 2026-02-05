@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { UnifiedMap } from '../components/UnifiedMap';
 import { SOSConfigSheet, type SOSConfigData } from '../components/SOSConfigSheet';
 import { DraggableSheet } from '../components/layout/DraggableSheet';
+import { type POI, formatPOIDistance } from '../services/poiService';
 
 // Datos de miembros de la familia
 const familyMembers = [
@@ -63,7 +64,8 @@ export const Home: React.FC = () => {
     const [selectedMember, setSelectedMember] = useState<number | null>(null);
     const [showSOSConfig, setShowSOSConfig] = useState(false);
     const [sosConfig, setSOSConfig] = useState<SOSConfigData | null>(null);
-    const [sheetHeight, setSheetHeight] = useState(45); // Track sheet height for button positioning
+    const [, setSheetHeight] = useState(45);
+    const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
 
     return (
         <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display">
@@ -93,7 +95,12 @@ export const Home: React.FC = () => {
 
             {/* Map Section - Más grande como Life360 */}
             <div className="relative flex-1 min-h-0">
-                <UnifiedMap showMarkers={true} showDangerZones={true}>
+                <UnifiedMap
+                    showMarkers={true}
+                    showDangerZones={true}
+                    showPOIs={true}
+                    onPOIClick={(poi) => setSelectedPOI(poi)}
+                >
 
                     {/* Avatares de familia en el mapa - z-30 to stay above map markers */}
                     <div className="absolute top-4 right-4 flex flex-col gap-2 z-30">
@@ -425,6 +432,87 @@ export const Home: React.FC = () => {
                 onSave={setSOSConfig}
                 currentConfig={sosConfig || undefined}
             />
+
+            {/* POI Detail Modal */}
+            {selectedPOI && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center">
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setSelectedPOI(null)}
+                    />
+                    <div className="relative w-full max-w-lg bg-background-dark rounded-t-3xl p-6 pb-10 border-t border-white/10 animate-slide-up">
+                        {/* Close button */}
+                        <button
+                            onClick={() => setSelectedPOI(null)}
+                            className="absolute top-4 right-4 size-8 rounded-full bg-white/10 flex items-center justify-center"
+                        >
+                            <span className="material-symbols-outlined text-lg">close</span>
+                        </button>
+
+                        {/* POI Header */}
+                        <div className="flex items-start gap-4 mb-6">
+                            <div className="size-14 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
+                                <span
+                                    className="material-symbols-outlined text-primary text-2xl"
+                                    style={{ fontVariationSettings: "'FILL' 1" }}
+                                >
+                                    {selectedPOI.categoryIcon}
+                                </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-xl font-bold truncate">{selectedPOI.name}</h3>
+                                <p className="text-white/50 text-sm">{selectedPOI.address}</p>
+                                {selectedPOI.distance && (
+                                    <p className="text-primary text-sm font-semibold mt-1">
+                                        {formatPOIDistance(selectedPOI.distance)}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Quick Info */}
+                        <div className="flex gap-3 mb-6">
+                            <div className="flex-1 p-3 rounded-xl bg-white/5 text-center">
+                                <span className="material-symbols-outlined text-white/60 text-xl">schedule</span>
+                                <p className="text-xs text-white/40 mt-1">Abierto</p>
+                            </div>
+                            <div className="flex-1 p-3 rounded-xl bg-white/5 text-center">
+                                <span className="material-symbols-outlined text-white/60 text-xl">star</span>
+                                <p className="text-xs text-white/40 mt-1">4.5 ★</p>
+                            </div>
+                            <div className="flex-1 p-3 rounded-xl bg-white/5 text-center">
+                                <span className="material-symbols-outlined text-white/60 text-xl">euro</span>
+                                <p className="text-xs text-white/40 mt-1">€€</p>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setSelectedPOI(null);
+                                    navigate('/route', {
+                                        state: {
+                                            destination: { lat: selectedPOI.lat, lng: selectedPOI.lng },
+                                            destinationName: selectedPOI.name
+                                        }
+                                    });
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30"
+                            >
+                                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
+                                Cómo llegar
+                            </button>
+                            <button className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-white/80">bookmark</span>
+                            </button>
+                            <button className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-white/80">share</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

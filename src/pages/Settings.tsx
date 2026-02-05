@@ -30,6 +30,14 @@ export const Settings: React.FC = () => {
                 { icon: "verified_user", label: "Políticas de privacidad", path: "/privacy" },
                 { icon: "description", label: "Condiciones de uso", path: "/terms" },
             ]
+        },
+        {
+            title: "🛠️ DEBUG (DEMO)",
+            items: [
+                { icon: "waving_hand", label: "Ver Onboarding", subLabel: "Demo para clientes", path: "/onboarding", iconColor: "text-purple-400" },
+                { icon: "login", label: "Ver Login", subLabel: "Pantalla de autenticación", path: "/login", iconColor: "text-blue-400" },
+                { icon: "restart_alt", label: "Reiniciar Onboarding", subLabel: "Borrar estado guardado", action: "reset-onboarding", iconColor: "text-amber-400" },
+            ]
         }
     ];
 
@@ -80,6 +88,11 @@ export const Settings: React.FC = () => {
                                         onClick={() => {
                                             if ((item as any).email) {
                                                 window.location.href = `mailto:${(item as any).email}`;
+                                            } else if ((item as any).action === 'reset-onboarding') {
+                                                localStorage.removeItem('onboarding_complete');
+                                                localStorage.removeItem('usage_type');
+                                                localStorage.removeItem('relationship_type');
+                                                alert('✅ Onboarding reiniciado. Ahora puedes verlo de nuevo.');
                                             } else if (item.path) {
                                                 navigate(item.path);
                                             }

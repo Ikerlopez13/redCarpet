@@ -56,12 +56,15 @@ export const MobileShell: React.FC = () => {
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-8 pb-[84px] bg-background-dark">
+                        <div className={clsx(
+                            "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-8 bg-background-dark",
+                            !['/login', '/onboarding'].includes(location.pathname) && "pb-[84px]"
+                        )}>
                             <Outlet />
                         </div>
 
                         {/* Bottom Navigation */}
-                        <BottomNav />
+                        {!['/login', '/onboarding'].includes(location.pathname) && <BottomNav />}
                     </div>
 
                     {/* Hardware Buttons */}

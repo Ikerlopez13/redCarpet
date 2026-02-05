@@ -5,71 +5,77 @@ import clsx from 'clsx';
 interface Plan {
     id: string;
     name: string;
-    children: string;
+    subtitle: string;
     price: string;
     priceValue: number;
     features: string[];
     popular?: boolean;
     savings?: string;
+    members?: string;
 }
 
 const plans: Plan[] = [
     {
-        id: '1-child',
-        name: 'Plan Parental',
-        children: '1 hijo',
-        price: '12,99€',
-        priceValue: 12.99,
+        id: 'individual',
+        name: 'Premium Individual',
+        subtitle: 'Solo tú',
+        price: '4,99€',
+        priceValue: 4.99,
+        members: '1 persona',
         features: [
             'Localización en tiempo real',
-            'Zonas de seguridad',
-            'Alertas de peligro',
             'Rutas seguras GPS',
-            'Historial de ubicación',
+            'Alertas de zonas peligrosas',
+            'Historial de ubicación (7 días)',
+            'SOS de emergencia',
         ],
     },
     {
-        id: '2-children',
-        name: 'Plan Parental',
-        children: '2 hijos',
-        price: '17,99€',
-        priceValue: 17.99,
+        id: 'familiar',
+        name: 'Plan Familiar',
+        subtitle: 'Hasta 6 personas',
+        price: '9,99€',
+        priceValue: 9.99,
         popular: true,
-        savings: 'Ahorra 8€/mes',
+        savings: 'Mejor valor',
+        members: 'Hasta 6 miembros',
         features: [
-            'Todo del plan 1 hijo',
-            'Localización de 2 dispositivos',
+            'Todo del plan Individual',
+            'Localización de toda la familia',
+            'Roles: Administrador + Miembros',
             'Alertas cruzadas familiares',
             'Chat familiar seguro',
-            'Informes de seguridad',
+            'Historial ilimitado',
         ],
     },
     {
-        id: 'unlimited',
-        name: 'Plan Parental',
-        children: 'Ilimitado',
-        price: '24,99€',
-        priceValue: 24.99,
-        savings: '3+ hijos',
+        id: 'familiar-plus',
+        name: 'Plan Familiar+',
+        subtitle: 'Familias grandes',
+        price: '14,99€',
+        priceValue: 14.99,
+        savings: 'Miembros extra',
+        members: 'Hasta 12 miembros',
         features: [
-            'Todo del plan 2 hijos',
-            'Dispositivos ilimitados',
+            'Todo del Plan Familiar',
+            'Hasta 12 miembros',
             'Soporte prioritario 24/7',
             'Funciones exclusivas beta',
-            'Sin límites de historial',
+            'Informes de seguridad',
+            'Geofencing avanzado',
         ],
     },
 ];
 
 export const Subscription: React.FC = () => {
     const navigate = useNavigate();
-    const [selectedPlan, setSelectedPlan] = useState<string>('2-children');
+    const [selectedPlan, setSelectedPlan] = useState<string>('familiar');
     const [isLoading, setIsLoading] = useState(false);
 
     // Debug state
     const [debugMode, setDebugMode] = useState(false);
     const [isSubscribed, setIsSubscribed] = useState(false);
-    const [currentPlanId, setCurrentPlanId] = useState<string>('2-children');
+    const [currentPlanId, setCurrentPlanId] = useState<string>('familiar');
     const [showCancelPopup, setShowCancelPopup] = useState(false);
     const [showRetentionOffer, setShowRetentionOffer] = useState(false);
 
@@ -127,7 +133,7 @@ export const Subscription: React.FC = () => {
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <p className="text-xs text-primary font-bold uppercase tracking-wider">Plan Activo</p>
-                                <h2 className="text-2xl font-bold mt-1">{currentPlan?.children}</h2>
+                                <h2 className="text-2xl font-bold mt-1">{currentPlan?.subtitle}</h2>
                             </div>
                             <div className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
                                 ACTIVO
@@ -218,7 +224,7 @@ export const Subscription: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-purple-400 text-sm">bug_report</span>
-                            <span className="text-xs text-purple-400 font-bold">DEBUG: Suscrito a {currentPlan?.children}</span>
+                            <span className="text-xs text-purple-400 font-bold">DEBUG: Suscrito a {currentPlan?.name}</span>
                         </div>
                         <button
                             onClick={() => setDebugMode(false)}
@@ -285,7 +291,7 @@ export const Subscription: React.FC = () => {
                                 <div className="w-full p-4 rounded-2xl bg-primary/10 border border-primary/30 mb-6">
                                     <p className="text-primary font-black text-3xl mb-1">7 DÍAS GRATIS</p>
                                     <p className="text-white/60 text-sm">
-                                        Disfruta de tu plan {currentPlan?.children} sin coste durante una semana más
+                                        Disfruta de tu plan {currentPlan?.name} sin coste durante una semana más
                                     </p>
                                 </div>
 
@@ -377,12 +383,12 @@ export const Subscription: React.FC = () => {
                 <div className="flex flex-col items-center px-6 pt-4 pb-8 text-center">
                     <div className="size-20 rounded-full bg-primary/20 flex items-center justify-center mb-4">
                         <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            family_restroom
+                            groups
                         </span>
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">Protege a toda tu familia</h2>
+                    <h2 className="text-2xl font-bold mb-2">Protege a los que más quieres</h2>
                     <p className="text-white/60 text-sm max-w-xs">
-                        Elige el plan que mejor se adapte a tu familia y mantén a todos seguros
+                        Elige el plan perfecto para ti y tu familia. Parejas, padres, hijos o convivientes.
                     </p>
                 </div>
 
@@ -409,7 +415,7 @@ export const Subscription: React.FC = () => {
                             <div className="flex items-start justify-between mb-3">
                                 <div>
                                     <p className="text-xs text-white/40 uppercase tracking-wider font-bold">{plan.name}</p>
-                                    <h3 className="text-xl font-bold">{plan.children}</h3>
+                                    <h3 className="text-xl font-bold">{plan.subtitle}</h3>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-2xl font-black">{plan.price}</p>

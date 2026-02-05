@@ -6,8 +6,10 @@ import { MapMarker } from './map/MapMarker';
 import { DangerZones } from './map/DangerZone';
 import { RouteLine, ROUTE_COLORS } from './map/RouteLine';
 import { TransitLayer } from './map/TransitMarkers';
+import { POILayer } from './map/POIMarker';
 import { LOCATIONS } from '../services/directionsService';
 import { getNearbyBusStops, getNearbyMetroStations, type BusStop, type MetroStation } from '../services/tmbService';
+import { getNearbyPOIs, type POI } from '../services/poiService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -77,6 +79,8 @@ interface UnifiedMapProps {
     showDangerZones?: boolean;
     showRoutes?: boolean;
     showTransit?: boolean;
+    showPOIs?: boolean;
+    onPOIClick?: (poi: POI) => void;
     transportMode?: 'walking' | 'cycling' | 'transit';
     selectedRoute?: 'safe' | 'balanced' | 'fast' | null;
     routeGeometry?: RouteGeometry;
@@ -91,6 +95,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     showDangerZones = true,
     showRoutes = false,
     showTransit = false,
+    showPOIs = false,
+    onPOIClick,
     transportMode = 'walking',
     selectedRoute = 'safe',
     routeGeometry,
@@ -98,9 +104,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     destination
 }) => {
     const [viewState, setViewState] = useState(DEFAULT_VIEW);
-    const [selectedMember, setSelectedMember] = useState<number | null>(null);
     const [busStops, setBusStops] = useState<BusStop[]>([]);
     const [metroStations, setMetroStations] = useState<MetroStation[]>([]);
+    const [pois, setPois] = useState<POI[]>([]);
 
     // Fetch transit stops when showTransit is enabled
     useEffect(() => {
@@ -117,8 +123,20 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         }
     }, [showTransit, transportMode]);
 
+    // Fetch POIs when showPOIs is enabled
+    useEffect(() => {
+        if (showPOIs) {
+            const fetchPOIs = async () => {
+                const nearbyPOIs = await getNearbyPOIs(DEFAULT_VIEW.latitude, DEFAULT_VIEW.longitude, 800);
+                setPois(nearbyPOIs);
+            };
+            fetchPOIs();
+        }
+    }, [showPOIs]);
+
     const handleMarkerClick = useCallback((memberId: number) => {
-        setSelectedMember(prev => prev === memberId ? null : memberId);
+        // Handle family member marker click
+        console.log('Member clicked:', memberId);
     }, []);
 
     return (
@@ -153,6 +171,11 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                         showBus={true}
                         showMetro={true}
                     />
+                )}
+
+                {/* POI Layer - Points of Interest */}
+                {showPOIs && pois.length > 0 && onPOIClick && (
+                    <POILayer pois={pois} onPOIClick={onPOIClick} />
                 )}
 
                 {/* Route Lines from Directions API */}

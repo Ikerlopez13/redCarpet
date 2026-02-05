@@ -1,8 +1,8 @@
 // Transit Routing Service for Barcelona
 // Combines TMB data with walking directions for multi-modal routes
 
-import { getNearbyBusStops, getNearbyMetroStations, METRO_COLORS, type BusStop, type MetroStation } from './tmbService';
-import { getRoute, formatDistance, formatDuration, type Coordinate } from './directionsService';
+import { getNearbyBusStops, getNearbyMetroStations } from './tmbService';
+import { formatDistance, formatDuration, type Coordinate } from './directionsService';
 
 export interface TransitLeg {
     type: 'walk' | 'metro' | 'bus';
@@ -36,7 +36,7 @@ const METRO_LINES = [
 ];
 
 // Find the best metro line connecting two areas
-function findMetroConnection(originLat: number, originLng: number, destLat: number, destLng: number): { line: typeof METRO_LINES[0]; fromStation: string; toStation: string; stops: number } | null {
+function findMetroConnection(_originLat: number, _originLng: number, _destLat: number, _destLng: number): { line: typeof METRO_LINES[0]; fromStation: string; toStation: string; stops: number } | null {
     // Simple heuristic: find line with stations near both origin and destination
     for (const line of METRO_LINES) {
         // Check if this line serves both areas (simplified)
@@ -82,7 +82,7 @@ export async function getTransitRoute(
 ): Promise<TransitRoute | null> {
     try {
         // Find nearby transit stops
-        const [nearbyBusStops, nearbyMetroStations] = await Promise.all([
+        const [_nearbyBusStops, _nearbyMetroStations] = await Promise.all([
             getNearbyBusStops(origin.lat, origin.lng, 400),
             getNearbyMetroStations(origin.lat, origin.lng, 600)
         ]);
