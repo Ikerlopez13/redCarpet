@@ -32,7 +32,7 @@ export const DangerZones: React.FC<DangerZonesProps> = ({ zones }) => {
         }))
     };
 
-    const outerLayer: CircleLayer = {
+    const outerLayer: Omit<CircleLayer, 'source'> = {
         id: 'danger-zones-outer',
         type: 'circle',
         paint: {
@@ -44,7 +44,7 @@ export const DangerZones: React.FC<DangerZonesProps> = ({ zones }) => {
         }
     };
 
-    const innerLayer: CircleLayer = {
+    const innerLayer: Omit<CircleLayer, 'source'> = {
         id: 'danger-zones-inner',
         type: 'circle',
         paint: {
@@ -54,7 +54,7 @@ export const DangerZones: React.FC<DangerZonesProps> = ({ zones }) => {
         }
     };
 
-    const pulseLayer: CircleLayer = {
+    const pulseLayer: Omit<CircleLayer, 'source'> = {
         id: 'danger-zones-pulse',
         type: 'circle',
         paint: {

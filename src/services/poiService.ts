@@ -25,112 +25,105 @@ const categoryConfig: Record<POICategory, { icon: string; label: string; types: 
     hotel: { icon: 'hotel', label: 'Hotel', types: ['hotel', 'lodging'] },
 };
 
-// Barcelona sample POIs near Felipe II area (for demo - would use API in production)
-const samplePOIs: POI[] = [
-    {
-        id: 'poi-1',
-        name: 'La Pepita',
-        category: 'restaurant',
-        categoryIcon: 'restaurant',
-        address: 'Carrer del Clot, 188',
-        lat: 41.4095,
-        lng: 2.1875,
-    },
-    {
-        id: 'poi-2',
-        name: 'Parc del Clot',
-        category: 'park',
-        categoryIcon: 'park',
-        address: 'C/ dels Escultors Claperós',
-        lat: 41.4085,
-        lng: 2.1920,
-    },
-    {
-        id: 'poi-3',
-        name: 'Mercadona',
-        category: 'shop',
-        categoryIcon: 'shopping_bag',
-        address: 'C/ de Rogent, 102',
-        lat: 41.4070,
-        lng: 2.1860,
-    },
-    {
-        id: 'poi-4',
-        name: 'Farmacia Clot',
-        category: 'pharmacy',
-        categoryIcon: 'medication',
-        address: 'Plaça del Clot, 5',
-        lat: 41.4100,
-        lng: 2.1900,
-    },
-    {
-        id: 'poi-5',
-        name: 'CAP Clot',
-        category: 'hospital',
-        categoryIcon: 'local_hospital',
-        address: 'Av. Meridiana, 428',
-        lat: 41.4115,
-        lng: 2.1880,
-    },
-    {
-        id: 'poi-6',
-        name: 'Cafè del Bon Pastor',
-        category: 'cafe',
-        categoryIcon: 'local_cafe',
-        address: 'C/ del Clot, 142',
-        lat: 41.4078,
-        lng: 2.1892,
-    },
-    {
-        id: 'poi-7',
-        name: 'Holmes Place Clot',
-        category: 'gym',
-        categoryIcon: 'fitness_center',
-        address: 'Gran Via de les Corts, 671',
-        lat: 41.4055,
-        lng: 2.1905,
-    },
-    {
-        id: 'poi-8',
-        name: 'Hotel Catalonia Clot',
-        category: 'hotel',
-        categoryIcon: 'hotel',
-        address: 'C/ de Mallorca, 585',
-        lat: 41.4050,
-        lng: 2.1870,
-    },
-];
+// Deterministic pseudo-random number generator
+function pseudoRandom(seed: number) {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
+// Generate a deterministic ID based on grid coordinates
+function generateId(latGrid: number, lngGrid: number, index: number): string {
+    return `poi_${latGrid}_${lngGrid}_${index}`;
+}
+
+const CATEGORIES: POICategory[] = ['restaurant', 'cafe', 'shop', 'park', 'hospital', 'pharmacy', 'gym', 'bar', 'hotel'];
+const NAMES_PREFIX = ['Gran', 'Royal', 'City', 'Blue', 'Red', 'Golden', 'Silver', 'Central', 'Urban', 'Local'];
+const NAMES_SUFFIX = ['Place', 'Spot', 'Corner', 'Hub', 'Point', 'Center', 'Station', 'Lounge', 'Garden', 'Market'];
 
 /**
- * Get nearby POIs (using sample data for demo)
- * In production, this would call Mapbox Places API
+ * Get nearby POIs (Procedurally generated for infinite map coverage)
  */
 export async function getNearbyPOIs(
     lat: number,
     lng: number,
-    radiusMeters: number = 500,
+    radiusMeters: number = 800,
     category?: POICategory
 ): Promise<POI[]> {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Calculate distance for each POI
-    const poisWithDistance = samplePOIs.map(poi => ({
-        ...poi,
-        distance: calculateDistance(lat, lng, poi.lat, poi.lng),
-    }));
+    const pois: POI[] = [];
 
-    // Filter by radius and optionally by category
-    let filtered = poisWithDistance.filter(poi => poi.distance <= radiusMeters);
+    // Grid size roughly 200 meters (0.002 degrees approx)
+    const gridSize = 0.002;
+    const searchRadiusGrid = Math.ceil((radiusMeters / 111000) / gridSize) + 1;
 
-    if (category) {
-        filtered = filtered.filter(poi => poi.category === category);
+    const centerLatGrid = Math.floor(lat / gridSize);
+    const centerLngGrid = Math.floor(lng / gridSize);
+
+    for (let x = -searchRadiusGrid; x <= searchRadiusGrid; x++) {
+        for (let y = -searchRadiusGrid; y <= searchRadiusGrid; y++) {
+            const currentLatGrid = centerLatGrid + x;
+            const currentLngGrid = centerLngGrid + y;
+
+            // Seed based on grid coordinates to be deterministic
+            // We mix the bits to avoid patterns
+            const seed = (currentLatGrid * 13371337) ^ (currentLngGrid * 73317331);
+
+            // Should this grid cell have a POI? (70% chance)
+            if (pseudoRandom(seed) > 0.3) {
+                // Determine number of POIs in this cell (0-2)
+                const numPOIs = Math.floor(pseudoRandom(seed + 1) * 3);
+
+                for (let i = 0; i < numPOIs; i++) {
+                    const poiSeed = seed + (i + 1) * 1000;
+
+                    // Generate position within the cell
+                    const latOffset = pseudoRandom(poiSeed) * gridSize;
+                    const lngOffset = pseudoRandom(poiSeed + 1) * gridSize;
+
+                    const poiLat = (currentLatGrid * gridSize) + latOffset;
+                    const poiLng = (currentLngGrid * gridSize) + lngOffset;
+
+                    // Filter by actual distance radius
+                    const distance = calculateDistance(lat, lng, poiLat, poiLng);
+                    if (distance > radiusMeters) continue;
+
+                    // Generate random category
+                    const catIndex = Math.floor(pseudoRandom(poiSeed + 2) * CATEGORIES.length);
+                    const poiCategory = CATEGORIES[catIndex];
+
+                    if (category && poiCategory !== category) continue;
+
+                    // Generate Name
+                    const prefix = NAMES_PREFIX[Math.floor(pseudoRandom(poiSeed + 3) * NAMES_PREFIX.length)];
+                    const suffix = NAMES_SUFFIX[Math.floor(pseudoRandom(poiSeed + 4) * NAMES_SUFFIX.length)];
+                    const label = categoryConfig[poiCategory].label;
+                    const name = `${prefix} ${label} ${suffix}`;
+
+                    pois.push({
+                        id: generateId(currentLatGrid, currentLngGrid, i),
+                        name: name,
+                        category: poiCategory,
+                        categoryIcon: categoryConfig[poiCategory].icon,
+                        address: `${label} Street, ${Math.floor(pseudoRandom(poiSeed + 5) * 100)}`,
+                        lat: poiLat,
+                        lng: poiLng,
+                        distance
+                    });
+                }
+            }
+        }
     }
 
-    // Sort by distance
-    return filtered.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    return pois.sort((a, b) => (a.distance || 0) - (b.distance || 0));
 }
 
+/**
+ * Search POIs by query text
+ */
 /**
  * Search POIs by query text
  */
@@ -139,19 +132,18 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
 
     const lowerQuery = query.toLowerCase();
 
-    const poisWithDistance = samplePOIs
+    // Generate POIs in a wider area for search
+    const nearbyPOIs = await getNearbyPOIs(lat, lng, 2000);
+
+    const filtered = nearbyPOIs
         .filter(poi =>
             poi.name.toLowerCase().includes(lowerQuery) ||
             poi.address.toLowerCase().includes(lowerQuery) ||
             poi.category.toLowerCase().includes(lowerQuery)
         )
-        .map(poi => ({
-            ...poi,
-            distance: calculateDistance(lat, lng, poi.lat, poi.lng),
-        }))
         .sort((a, b) => (a.distance || 0) - (b.distance || 0));
 
-    return poisWithDistance;
+    return filtered;
 }
 
 /**
@@ -168,7 +160,7 @@ export function getPOICategories(): { id: POICategory; icon: string; label: stri
 /**
  * Calculate distance between two points in meters (Haversine formula)
  */
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;

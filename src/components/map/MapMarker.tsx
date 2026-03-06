@@ -2,9 +2,10 @@ import React from 'react';
 import { Marker } from 'react-map-gl/mapbox';
 
 interface FamilyMember {
-    id: number;
+    id: string | number;
     name: string;
     avatar: string;
+    avatarUrl?: string | null;
     lat: number;
     lng: number;
     isEmergency?: boolean;
@@ -40,13 +41,17 @@ export const MapMarker: React.FC<MapMarkerProps> = ({ member, onClick }) => {
 
                     {/* Avatar */}
                     <div className={`
-                        relative size-12 rounded-full border-[3px] flex items-center justify-center text-xl shadow-lg transition-transform group-hover:scale-110
+                        relative size-12 rounded-full border-[3px] flex items-center justify-center text-xl shadow-lg transition-transform group-hover:scale-110 overflow-hidden
                         ${member.isEmergency
                             ? 'border-primary bg-background-dark shadow-[0_0_15px_rgba(255,49,49,0.5)]'
                             : 'border-white bg-gray-200'
                         }
                     `}>
-                        <span className="text-2xl">{member.avatar}</span>
+                        {member.avatarUrl ? (
+                            <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-2xl">{member.avatar}</span>
+                        )}
                     </div>
 
                     {/* Pin point */}

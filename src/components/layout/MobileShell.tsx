@@ -1,15 +1,52 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Map, Settings, BatteryFull, Wifi, Signal, Users } from 'lucide-react';
+import { Map, Settings, BatteryFull, Wifi, Signal, Users, Crown } from 'lucide-react';
 import clsx from 'clsx';
 import { SplashScreen } from './SplashScreen';
+import { useAuth } from '../../contexts/AuthContext';
+
+import { Capacitor } from '@capacitor/core';
+
+import { DeepLinkHandler } from '../auth/DeepLinkHandler';
+import { VisualDebugger } from '../common/VisualDebugger';
+import { OfflineBanner } from '../common/OfflineBanner';
 
 export const MobileShell: React.FC = () => {
-    const [loading, setLoading] = useState(true);
+    const { isLoading: isAuthLoading } = useAuth();
+    const [splashAnimationFinished, setSplashAnimationFinished] = useState(false);
+    const location = useLocation();
+    const isNative = Capacitor.isNativePlatform();
+
+    // Show splash if animation hasn't finished OR auth is still loading
+    const showSplash = !splashAnimationFinished || isAuthLoading;
+
+    // If native (iOS/Android), disable the mock shell and render full screen
+    if (isNative) {
+        return (
+            <div className="h-screen w-screen bg-background-dark overflow-hidden flex flex-col relative">
+                <VisualDebugger />
+                <DeepLinkHandler />
+                <OfflineBanner />
+                {/* Content Area */}
+                <div className={clsx(
+                    "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-safe-top bg-background-dark",
+                    !['/login', '/onboarding'].includes(location.pathname) && "pb-[84px] pb-safe-bottom"
+                )}>
+                    <Outlet />
+                </div>
+
+                {/* Bottom Navigation */}
+                {!['/login', '/onboarding'].includes(location.pathname) && <BottomNav />}
+            </div>
+        );
+    }
 
     return (
         // Main Container - Black Background with Blurred Effects
         <div className="min-h-screen w-full bg-[#050505] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden relative selection:bg-primary selection:text-white">
+            <VisualDebugger />
+            <DeepLinkHandler />
+            <OfflineBanner />
 
             {/* Ambient Background Effects */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -35,8 +72,8 @@ export const MobileShell: React.FC = () => {
                     {/* Inner Screen Container */}
                     <div className="h-full w-full overflow-hidden rounded-[2rem] bg-background-dark relative z-20 flex flex-col">
 
-                        {/* Splash Screen */}
-                        {loading && <SplashScreen onFinish={() => setLoading(false)} />}
+                        {/* Splash Screen - Show until BOTH animation finishes AND auth is ready */}
+                        {showSplash && <SplashScreen onFinish={() => setSplashAnimationFinished(true)} />}
 
                         {/* Dynamic Island / Notch */}
                         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 h-[35px] w-[120px] bg-black rounded-b-[18px] z-50 pointer-events-none mt-[11px] flex items-center justify-center">
@@ -47,7 +84,10 @@ export const MobileShell: React.FC = () => {
 
                         {/* Status Bar */}
                         <div className="absolute top-0 left-0 w-full h-12 px-6 flex justify-between items-center z-40 pointer-events-none text-white mix-blend-difference">
-                            <span className="text-sm font-semibold pl-4">9:41</span>
+                            <div className="flex items-center gap-1.5 pl-4">
+                                <span className="text-sm font-semibold">9:41</span>
+                                <span className="material-symbols-outlined text-[14px] animate-pulse" title="Ubicación monitoreada para tu seguridad">near_me</span>
+                            </div>
                             <div className="flex gap-1.5 items-center pr-4">
                                 <Signal size={16} fill="currentColor" />
                                 <Wifi size={16} />
@@ -97,6 +137,7 @@ const BottomNav = () => {
     const tabs = [
         { icon: Map, label: 'Mapa', path: '/' },
         { icon: Users, label: 'Contactos', path: '/contacts' },
+        { icon: Crown, label: 'Premium', path: '/subscription' },
         { icon: Settings, label: 'Ajustes', path: '/settings' },
     ];
 
@@ -116,7 +157,7 @@ const BottomNav = () => {
                         <tab.icon size={24} strokeWidth={isActive ? 2.5 : 2} fill={isActive ? "currentColor" : "none"} fillOpacity={0.2} />
                         <span className="text-[10px] font-medium">{tab.label}</span>
                     </button>
-                )
+                );
             })}
         </div>
     );

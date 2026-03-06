@@ -38,33 +38,16 @@ const barcelonaDangerZones = [
     }
 ];
 
-// Family members near Felipe II, Barcelona
-const familyMembersOnMap = [
-    {
-        id: 1,
-        name: 'Ana',
-        avatar: '👩',
-        lat: 41.4095,
-        lng: 2.1870,
-        lastUpdate: 'Hace 5 min'
-    },
-    {
-        id: 2,
-        name: 'Carlos',
-        avatar: '👨',
-        lat: 41.4060,
-        lng: 2.1910,
-        isEmergency: true
-    },
-    {
-        id: 3,
-        name: 'María',
-        avatar: '👧',
-        lat: 41.4110,
-        lng: 2.1860,
-        lastUpdate: 'Hace 2 min'
-    }
-];
+export interface MapMember {
+    id: string; // Changed from string | number to string to match FamilyMember
+    name: string;
+    avatar: string;
+    avatarUrl?: string | null;
+    lat: number;
+    lng: number;
+    lastUpdate?: string;
+    isEmergency?: boolean;
+}
 
 export interface RouteGeometry {
     safe: [number, number][] | null;
@@ -76,11 +59,13 @@ interface UnifiedMapProps {
     children?: React.ReactNode;
     className?: string;
     showMarkers?: boolean;
+    familyMembers?: MapMember[];
     showDangerZones?: boolean;
     showRoutes?: boolean;
     showTransit?: boolean;
     showPOIs?: boolean;
     onPOIClick?: (poi: POI) => void;
+    onMemberClick?: (memberId: string) => void;
     transportMode?: 'walking' | 'cycling' | 'transit';
     selectedRoute?: 'safe' | 'balanced' | 'fast' | null;
     routeGeometry?: RouteGeometry;
@@ -92,11 +77,13 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     children,
     className,
     showMarkers = true,
+    familyMembers = [],
     showDangerZones = true,
     showRoutes = false,
     showTransit = false,
     showPOIs = false,
     onPOIClick,
+    onMemberClick,
     transportMode = 'walking',
     selectedRoute = 'safe',
     routeGeometry,
@@ -123,21 +110,26 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         }
     }, [showTransit, transportMode]);
 
-    // Fetch POIs when showPOIs is enabled
+    // Fetch POIs when showPOIs is enabled (Dynamic loading)
     useEffect(() => {
         if (showPOIs) {
-            const fetchPOIs = async () => {
-                const nearbyPOIs = await getNearbyPOIs(DEFAULT_VIEW.latitude, DEFAULT_VIEW.longitude, 800);
+            const timer = setTimeout(async () => {
+                // Fetch using current view center, not default
+                console.log('Fetching POIs for:', viewState.latitude, viewState.longitude);
+                const nearbyPOIs = await getNearbyPOIs(viewState.latitude, viewState.longitude, 1500); // Increased radius to 1.5km
+                console.log('Fetched POIs:', nearbyPOIs.length);
                 setPois(nearbyPOIs);
-            };
-            fetchPOIs();
-        }
-    }, [showPOIs]);
+            }, 300); // Debounce 300ms
 
-    const handleMarkerClick = useCallback((memberId: number) => {
+            return () => clearTimeout(timer);
+        }
+    }, [showPOIs, viewState.latitude, viewState.longitude]); // Depend on view center
+
+    const handleMarkerClick = useCallback((memberId: string) => {
         // Handle family member marker click
         console.log('Member clicked:', memberId);
-    }, []);
+        onMemberClick?.(memberId);
+    }, [onMemberClick]);
 
     return (
         <div className={clsx("relative w-full h-full overflow-hidden", className)}>
@@ -212,7 +204,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 )}
 
                 {/* Origin Marker */}
-                {showRoutes && origin && (
+                {showRoutes && origin && origin.lat && origin.lng && (
                     <Marker latitude={origin.lat} longitude={origin.lng} anchor="center">
                         <div className="relative">
                             <div className="size-4 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
@@ -222,7 +214,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 )}
 
                 {/* Destination Marker */}
-                {showRoutes && destination && (
+                {showRoutes && destination && destination.lat && destination.lng && (
                     <Marker latitude={destination.lat} longitude={destination.lng} anchor="bottom">
                         <div className="flex flex-col items-center">
                             <div className="size-8 bg-primary rounded-full border-3 border-white shadow-lg flex items-center justify-center">
@@ -236,7 +228,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 )}
 
                 {/* Family Member Markers */}
-                {showMarkers && familyMembersOnMap.map(member => (
+                {showMarkers && familyMembers.map(member => (
                     <MapMarker
                         key={member.id}
                         member={member}

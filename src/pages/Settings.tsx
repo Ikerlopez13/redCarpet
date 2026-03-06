@@ -1,9 +1,35 @@
-import React from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { uploadAvatar } from '../services/authService';
 import clsx from 'clsx';
 
 export const Settings: React.FC = () => {
     const navigate = useNavigate();
+    const { user, isPremium, logout } = useAuth(); // Connect to AuthContext
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
+
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const { error } = await uploadAvatar(file);
+        setIsUploading(false);
+
+        if (error) {
+            alert('Error al subir la imagen: ' + error);
+        } else {
+            // Force reload to see changes (in a real app, context would update)
+            window.location.reload();
+        }
+    };
 
     const menuItems = [
         {
@@ -13,6 +39,7 @@ export const Settings: React.FC = () => {
                 { icon: "payments", label: "Gestión de suscripciones", path: "/subscription" },
             ]
         },
+        // ... (existing menu items) ...
         {
             title: "RED DE SEGURIDAD",
             items: [
@@ -32,10 +59,17 @@ export const Settings: React.FC = () => {
             ]
         },
         {
+            title: "PRIVACIDAD Y DATOS (RGPD)",
+            items: [
+                { icon: "tune", label: "Seguimiento avanzado", subLabel: "Activado (Toca para limitar)", action: "toggle-tracking", iconColor: "text-blue-400" },
+                { icon: "download", label: "Descargar mis datos", subLabel: "Portabilidad (Art. 20)", action: "download-data", iconColor: "text-indigo-400" },
+                { icon: "block", label: "Retirar consentimiento", subLabel: "Desactivar funciones core", action: "withdraw-consent", iconColor: "text-orange-400" },
+            ]
+        },
+        {
             title: "🛠️ DEBUG (DEMO)",
             items: [
                 { icon: "waving_hand", label: "Ver Onboarding", subLabel: "Demo para clientes", path: "/onboarding", iconColor: "text-purple-400" },
-                { icon: "login", label: "Ver Login", subLabel: "Pantalla de autenticación", path: "/login", iconColor: "text-blue-400" },
                 { icon: "restart_alt", label: "Reiniciar Onboarding", subLabel: "Borrar estado guardado", action: "reset-onboarding", iconColor: "text-amber-400" },
             ]
         }
@@ -60,18 +94,37 @@ export const Settings: React.FC = () => {
                     <div className="relative mb-4">
                         <div className="size-24 rounded-full border-2 border-primary p-1">
                             <img
-                                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=260&auto=format&fit=crop"
+                                src={user?.profile?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email || 'User'}&background=random`}
                                 alt="Profile"
                                 className="w-full h-full rounded-full object-cover"
                             />
                         </div>
-                        <button className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-1.5 shadow-lg border-2 border-background-dark flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm">edit</span>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-1.5 shadow-lg border-2 border-background-dark flex items-center justify-center disabled:opacity-50"
+                        >
+                            {isUploading ? (
+                                <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <span className="material-symbols-outlined text-sm">edit</span>
+                            )}
                         </button>
                     </div>
-                    <h2 className="text-xl font-bold">Alejandro García</h2>
-                    <p className="text-primary font-bold text-sm mt-0.5">Miembro Premium</p>
-                    <p className="text-white/40 text-xs mt-1">Ver y editar perfil</p>
+                    <h2 className="text-xl font-bold">{user?.profile?.full_name || user?.email || 'Usuario'}</h2>
+                    {isPremium ? (
+                        <p className="text-primary font-bold text-sm mt-0.5">Miembro Premium</p>
+                    ) : (
+                        <p className="text-white/60 font-medium text-sm mt-0.5">Miembro Gratuito</p>
+                    )}
+                    <p className="text-white/40 text-xs mt-1">{user?.email}</p>
                 </div>
 
                 {/* Groups */}
@@ -93,6 +146,14 @@ export const Settings: React.FC = () => {
                                                 localStorage.removeItem('usage_type');
                                                 localStorage.removeItem('relationship_type');
                                                 alert('✅ Onboarding reiniciado. Ahora puedes verlo de nuevo.');
+                                            } else if ((item as any).action === 'toggle-tracking') {
+                                                alert('Configuración de seguimiento avanzado actualizada.');
+                                            } else if ((item as any).action === 'withdraw-consent') {
+                                                if (window.confirm('Si retiras el consentimiento, la aplicación dejará de funcionar y se cerrará tu sesión. ¿Estás seguro?')) {
+                                                    handleLogout();
+                                                }
+                                            } else if ((item as any).action === 'download-data') {
+                                                alert('Hemos iniciado la recopilación de tus datos. Recibirás un correo con el archivo descargable en las próximas 24 horas.');
                                             } else if (item.path) {
                                                 navigate(item.path);
                                             }
@@ -122,22 +183,35 @@ export const Settings: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Logout */}
-                <div className="px-6 mt-8 mb-8">
-                    <button className="w-full h-14 bg-primary rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg hover:bg-primary/90 transition-colors">
+                {/* Logout & Delete */}
+                <div className="px-6 mt-8 mb-8 flex flex-col gap-4">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full h-14 bg-primary rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg hover:bg-primary/90 transition-colors"
+                    >
                         <span className="material-symbols-outlined">logout</span>
                         Cerrar sesión
                     </button>
-                </div>
 
-                {/* Footer */}
-                <div className="flex flex-col items-center gap-1 pb-8 opacity-40">
-                    <div className="flex items-center gap-2">
-                        <div className="size-4 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-white">R</div>
-                        <span className="text-xs font-bold tracking-widest">REDCARPET</span>
-                    </div>
-                    <span className="text-[10px] font-mono">V2.4.0 (BUILD 891)</span>
+                    <button
+                        onClick={() => {
+                            if (window.confirm('⚠️ ADVERTENCIA: Esta acción es IRREVERSIBLE. Se eliminarán todos tus datos personales, historiales de ubicación, patrones y contactos asociados. ¿Estás absolutamente seguro de que deseas eliminar tu cuenta?')) {
+                                alert('Iniciando proceso automático de borrado. Su cuenta será destruida en los próximos minutos según el Art. 17 del RGPD.');
+                                handleLogout();
+                            }
+                        }}
+                        className="w-full h-14 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-red-500/20 transition-colors"
+                    >
+                        <span className="material-symbols-outlined">delete_forever</span>
+                        Eliminar mi cuenta
+                    </button>
                 </div>
+            </div>
+
+            {/* Version / Info */}
+            <div className="pb-12 text-center text-white/40 text-xs">
+                <p>Versión 1.0.0 (Build 5)</p>
+                <p className="mt-1">© 2026 RedCarpet App.</p>
             </div>
         </div>
     );

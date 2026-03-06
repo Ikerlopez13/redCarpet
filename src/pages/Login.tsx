@@ -3,21 +3,71 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
 
-type AuthMode = 'login' | 'register';
+type AuthMode = 'login' | 'register' | 'forgot-password';
 
 export const Login: React.FC = () => {
     const navigate = useNavigate();
-    const { login, register, loginWithGoogle, loginWithApple, loginAsDemo, isLoading } = useAuth();
+    const { user, login, register, loginWithGoogle, loginWithApple, loginAsDemo, isLoading } = useAuth();
+    // Simple import of authService to call resetPassword directly or add it to context. 
+    // Since it's not in useAuth destructuring, I'll import it directly or assume useAuth needs update.
+    // Actually, looking at previous files, resetPassword is in authService. 
+    // Let's check if useAuth exposes it. The context file showed it might not.
+    // I will use direct import for now to avoid modifying Context if not needed, 
+    // OR better, I'll see if I can add it to the component.
+    // Wait, I can't see the imports in this Replace block.
+    // I will assume I need to handle the logic here.
+
+    // ... (imports are above, I can't change them easily with this block unless I target strictly)
+
+    // Let's just modify the component logic.
+
+    // Redirect if already logged in
+    React.useEffect(() => {
+        if (user) {
+            navigate('/');
+        }
+    }, [user, navigate]);
 
     const [mode, setMode] = useState<AuthMode>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+    // GDPR Consent States
+    const [acceptTerms, setAcceptTerms] = useState(false);
+    const [acceptLocation, setAcceptLocation] = useState(false);
+    const [acceptAnalytics, setAcceptAnalytics] = useState(false);
+
+    const validateConsent = () => {
+        if (mode === 'forgot-password') return true;
+        if (!acceptTerms || !acceptLocation) {
+            setError('Obligatorio: Debes aceptar los Términos de Uso, Política de Privacidad y la Geolocalización para utilizar el servicio.');
+            return false;
+        }
+        return true;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setSuccessMessage(null);
+
+        if (!validateConsent()) return;
+
+        if (mode === 'forgot-password') {
+            // Dynamic import to avoid changing top imports
+            const { resetPassword } = await import('../services/authService');
+            const { error } = await resetPassword(email);
+            if (error) {
+                setError(error);
+            } else {
+                setSuccessMessage('Si el email existe, recibirás instrucciones para recuperar tu cuenta.');
+                // Optional: switch back to login after delay
+            }
+            return;
+        }
 
         let result;
         if (mode === 'login') {
@@ -39,12 +89,14 @@ export const Login: React.FC = () => {
 
     const handleGoogleLogin = async () => {
         setError(null);
+        if (!validateConsent()) return;
         const { error } = await loginWithGoogle();
         if (error) setError(error);
     };
 
     const handleAppleLogin = async () => {
         setError(null);
+        if (!validateConsent()) return;
         const { error } = await loginWithApple();
         if (error) setError(error);
     };
@@ -71,26 +123,42 @@ export const Login: React.FC = () => {
             {/* Form */}
             <div className="flex-1 px-6 overflow-y-auto">
                 {/* Mode Toggle */}
-                <div className="flex bg-white/5 rounded-xl p-1 mb-6">
-                    <button
-                        onClick={() => setMode('login')}
-                        className={clsx(
-                            "flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all",
-                            mode === 'login' ? "bg-primary text-white" : "text-white/50"
-                        )}
-                    >
-                        Iniciar sesión
-                    </button>
-                    <button
-                        onClick={() => setMode('register')}
-                        className={clsx(
-                            "flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all",
-                            mode === 'register' ? "bg-primary text-white" : "text-white/50"
-                        )}
-                    >
-                        Crear cuenta
-                    </button>
-                </div>
+                {mode !== 'forgot-password' && (
+                    <div className="flex bg-white/5 rounded-xl p-1 mb-6">
+                        <button
+                            onClick={() => setMode('login')}
+                            className={clsx(
+                                "flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all",
+                                mode === 'login' ? "bg-primary text-white" : "text-white/50"
+                            )}
+                        >
+                            Iniciar sesión
+                        </button>
+                        <button
+                            onClick={() => setMode('register')}
+                            className={clsx(
+                                "flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all",
+                                mode === 'register' ? "bg-primary text-white" : "text-white/50"
+                            )}
+                        >
+                            Crear cuenta
+                        </button>
+                    </div>
+                )}
+
+                {mode === 'forgot-password' && (
+                    <div className="mb-6">
+                        <button
+                            onClick={() => setMode('login')}
+                            className="flex items-center gap-2 text-white/60 hover:text-white mb-4"
+                        >
+                            <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            <span className="text-sm">Volver a iniciar sesión</span>
+                        </button>
+                        <h2 className="text-xl font-bold mb-2">Recuperar cuenta</h2>
+                        <p className="text-white/60 text-sm">Te enviaremos un enlace para restablecer tu contraseña.</p>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     {mode === 'register' && (
@@ -122,25 +190,43 @@ export const Login: React.FC = () => {
                         />
                     </div>
 
-                    <div>
-                        <label className="text-xs text-white/50 uppercase tracking-wider font-bold mb-1 block">
-                            Contraseña
-                        </label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-primary"
-                            required
-                            minLength={6}
-                        />
-                    </div>
+                    {mode !== 'forgot-password' && (
+                        <div>
+                            <label className="text-xs text-white/50 uppercase tracking-wider font-bold mb-1 block">
+                                Contraseña
+                            </label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-primary"
+                                required
+                                minLength={6}
+                            />
+                            {mode === 'login' && (
+                                <button
+                                    type="button"
+                                    onClick={() => setMode('forgot-password')}
+                                    className="text-primary text-xs font-semibold mt-2 hover:underline"
+                                >
+                                    ¿Has olvidado tu contraseña?
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     {error && (
                         <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
                             <span className="material-symbols-outlined text-lg">error</span>
                             {error}
+                        </div>
+                    )}
+
+                    {successMessage && (
+                        <div className="flex items-center gap-2 p-3 bg-green-500/20 border border-green-500/30 rounded-xl text-green-400 text-sm">
+                            <span className="material-symbols-outlined text-lg">check_circle</span>
+                            {successMessage}
                         </div>
                     )}
 
@@ -154,7 +240,7 @@ export const Login: React.FC = () => {
                                 <span className="material-symbols-outlined animate-spin">progress_activity</span>
                                 Cargando...
                             </span>
-                        ) : mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+                        ) : mode === 'login' ? 'Iniciar sesión' : mode === 'register' ? 'Crear cuenta' : 'Enviar enlace'}
                     </button>
                 </form>
 
@@ -198,13 +284,49 @@ export const Login: React.FC = () => {
                     🚀 Probar demo sin cuenta
                 </button>
 
-                {/* Terms */}
-                <p className="text-center text-white/30 text-xs mt-6 mb-8">
-                    Al continuar, aceptas nuestros{' '}
-                    <a href="/terms" className="text-primary">Términos de uso</a>
-                    {' '}y{' '}
-                    <a href="/privacy" className="text-primary">Política de privacidad</a>
-                </p>
+                {/* GDPR Consent Checkboxes */}
+                {mode !== 'forgot-password' && (
+                    <div className="flex flex-col gap-4 mt-6 mb-8 text-sm">
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={acceptTerms}
+                                onChange={(e) => setAcceptTerms(e.target.checked)}
+                                className="mt-1 min-w-5 h-5 rounded border border-white/30 bg-white/5 text-primary focus:ring-primary focus:ring-offset-background-dark appearance-none checked:bg-primary checked:border-primary relative
+                                after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-2 after:h-3 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 transition-all"
+                            />
+                            <span className="text-white/70 group-hover:text-white transition-colors">
+                                He leído y acepto expresamente las <a href="/terms" className="text-primary hover:underline">Condiciones de Uso</a> y la <a href="/privacy" className="text-primary hover:underline">Política de Privacidad</a>.*
+                            </span>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={acceptLocation}
+                                onChange={(e) => setAcceptLocation(e.target.checked)}
+                                className="mt-1 min-w-5 h-5 rounded border border-white/30 bg-white/5 text-primary focus:ring-primary focus:ring-offset-background-dark appearance-none checked:bg-primary checked:border-primary relative
+                                after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-2 after:h-3 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 transition-all"
+                            />
+                            <span className="text-white/70 group-hover:text-white transition-colors">
+                                Acepto el uso de mi ubicación en tiempo real exclusivamente para las funciones de seguridad, seguimiento y alertas de la aplicación.*
+                            </span>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={acceptAnalytics}
+                                onChange={(e) => setAcceptAnalytics(e.target.checked)}
+                                className="mt-1 min-w-5 h-5 rounded border border-white/30 bg-white/5 text-primary focus:ring-primary focus:ring-offset-background-dark appearance-none checked:bg-primary checked:border-primary relative
+                                after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-2 after:h-3 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 transition-all"
+                            />
+                            <span className="text-white/70 group-hover:text-white transition-colors">
+                                Acepto el análisis anonimizado de mis patrones y rutinas para la prevención inteligente de riesgos (Opcional).
+                            </span>
+                        </label>
+                    </div>
+                )}
             </div>
         </div>
     );

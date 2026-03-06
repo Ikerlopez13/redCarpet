@@ -1,5 +1,5 @@
 import { PushNotifications } from '@capacitor/push-notifications';
-import { supabase, isMockMode } from './supabaseClient';
+import { supabase } from './supabaseClient';
 
 /**
  * Initialize push notifications
@@ -50,19 +50,23 @@ export async function initPushNotifications(userId: string): Promise<{ success: 
  * Save push token to database
  */
 async function savePushToken(userId: string, token: string): Promise<void> {
-    if (isMockMode) {
-        console.log('💾 Push token saved (mock):', token);
-        localStorage.setItem('push_token', token);
-        return;
-    }
+    try {
+        console.log('💾 Saving push token to Supabase:', token);
 
-    // In production, save to a push_tokens table
-    await supabase.from('push_tokens' as any).upsert({
-        user_id: userId,
-        token,
-        platform: getPlatform(),
-        updated_at: new Date().toISOString(),
-    });
+        const { error } = await (supabase.from('push_tokens') as any).upsert({
+            user_id: userId,
+            token,
+            platform: getPlatform(),
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'token,user_id' }); // Ensure we don't duplicate based on PK
+
+        if (error) {
+            console.error('Error saving push token to DB:', error);
+            // Fallback: still log it
+        }
+    } catch (error) {
+        console.error('Exception saving push token:', error);
+    }
 }
 
 /**
@@ -139,7 +143,7 @@ export function isPushSupported(): boolean {
 export async function getPushPermissionStatus(): Promise<'granted' | 'denied' | 'prompt'> {
     try {
         const status = await PushNotifications.checkPermissions();
-        return status.receive;
+        return status.receive as 'granted' | 'denied' | 'prompt';
     } catch {
         // Fallback for web
         if ('Notification' in window) {

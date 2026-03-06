@@ -28,7 +28,7 @@ export interface RouteStep {
 export interface RouteResult {
     distance: number; // meters
     duration: number; // seconds
-    geometry: GeoJSON.LineString;
+    geometry: any; // GeoJSON.LineString;
     steps: RouteStep[];
 }
 

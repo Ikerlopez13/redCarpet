@@ -12,6 +12,29 @@ export type Json =
 export interface Database {
     public: {
         Tables: {
+            push_tokens: {
+                Row: {
+                    token: string;
+                    user_id: string;
+                    platform: 'ios' | 'android' | 'web' | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    token: string;
+                    user_id: string;
+                    platform?: 'ios' | 'android' | 'web' | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    token?: string;
+                    user_id?: string;
+                    platform?: 'ios' | 'android' | 'web' | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+            };
             profiles: {
                 Row: {
                     id: string;
@@ -151,6 +174,35 @@ export interface Database {
                     created_at?: string;
                 };
             };
+            safe_zones: {
+                Row: {
+                    id: string;
+                    family_id: string;
+                    name: string;
+                    lat: number;
+                    lng: number;
+                    radius: number;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    family_id: string;
+                    name: string;
+                    lat: number;
+                    lng: number;
+                    radius?: number;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    family_id?: string;
+                    name?: string;
+                    lat?: number;
+                    lng?: number;
+                    radius?: number;
+                    created_at?: string;
+                };
+            };
             danger_zones: {
                 Row: {
                     id: string;
@@ -253,6 +305,35 @@ export interface Database {
                     created_at?: string;
                 };
             };
+            family_stats: {
+                Row: {
+                    id: string;
+                    family_id: string;
+                    week_start_date: string;
+                    safe_arrivals_count: number;
+                    risk_alerts_count: number;
+                    routes_completed_count: number;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    family_id: string;
+                    week_start_date: string;
+                    safe_arrivals_count?: number;
+                    risk_alerts_count?: number;
+                    routes_completed_count?: number;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    family_id?: string;
+                    week_start_date?: string;
+                    safe_arrivals_count?: number;
+                    risk_alerts_count?: number;
+                    routes_completed_count?: number;
+                    updated_at?: string;
+                };
+            };
             subscriptions: {
                 Row: {
                     id: string;
@@ -295,6 +376,7 @@ export type FamilyGroup = Database['public']['Tables']['family_groups']['Row'];
 export type FamilyMember = Database['public']['Tables']['family_members']['Row'];
 export type Location = Database['public']['Tables']['locations']['Row'];
 export type SOSAlert = Database['public']['Tables']['sos_alerts']['Row'];
+export type SafeZone = Database['public']['Tables']['safe_zones']['Row'];
 export type DangerZone = Database['public']['Tables']['danger_zones']['Row'];
 export type SavedPlace = Database['public']['Tables']['saved_places']['Row'];
 export type EmergencyContact = Database['public']['Tables']['emergency_contacts']['Row'];

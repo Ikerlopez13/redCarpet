@@ -19,8 +19,12 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, full_name)
-    VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name');
+    INSERT INTO public.profiles (id, full_name, avatar_url)
+    VALUES (
+        NEW.id, 
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.raw_user_meta_data->>'avatar_url'
+    );
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -100,11 +104,11 @@ CREATE POLICY "View family locations" ON locations FOR SELECT USING (
     )
 );
 
--- Auto-cleanup old locations (keep last 7 days)
+-- Auto-cleanup old locations (keep last 30 days for Premium History)
 CREATE OR REPLACE FUNCTION cleanup_old_locations()
 RETURNS void AS $$
 BEGIN
-    DELETE FROM locations WHERE created_at < NOW() - INTERVAL '7 days';
+    DELETE FROM locations WHERE created_at < NOW() - INTERVAL '30 days';
 END;
 $$ LANGUAGE plpgsql;
 

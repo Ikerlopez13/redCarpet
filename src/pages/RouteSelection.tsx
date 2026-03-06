@@ -8,32 +8,13 @@ import {
     formatDistance,
 } from '../services/directionsService';
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
+import { useAuth } from '../contexts/AuthContext';
+import { useSOS } from '../contexts/SOSContext';
+import { canStartRoute, recordRouteStart, getRemainingRoutes } from '../services/routeLimiterService';
+import { isNightTime, analyzeRouteSecurity } from '../services/aiRoutingService';
 
-// Datos de ejemplo de trayectos de familiares
-const familyRoutes = [
-    {
-        id: 1,
-        name: 'María',
-        avatar: '👩',
-        status: 'en_curso',
-        origin: 'Casa',
-        destination: 'Universidad',
-        progress: 65,
-        eta: '12 min',
-        lastUpdate: 'Hace 2 min',
-    },
-    {
-        id: 2,
-        name: 'Carlos',
-        avatar: '👨',
-        status: 'en_curso',
-        origin: 'Oficina',
-        destination: 'Gimnasio',
-        progress: 30,
-        eta: '18 min',
-        lastUpdate: 'Hace 5 min',
-    },
-];
+// Datos de ejemplo de trayectos de familiares (Placeholder for real data)
+const familyRoutes: any[] = [];
 
 // Destinos guardados con coordenadas reales de Barcelona
 const savedDestinations = [
@@ -59,23 +40,57 @@ interface RoutesState {
 export const RouteSelection: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const initialDestination = (location.state as any)?.destination || null;
-    const searchInputRef = useRef<HTMLInputElement>(null);
-    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    const { isPremium } = useAuth();
+    const { openPaywall } = useSOS();
 
-    const [transportMode, setTransportMode] = useState<'walking' | 'cycling' | 'transit'>('walking');
+    // Correctly parse state
+    const state = location.state as {
+        destination?: { lat: number; lng: number };
+        destinationName?: string;
+        initialTransportMode?: 'walking' | 'cycling' | 'transit';
+    } | null;
+
+    const initialDestinationName = state?.destinationName || null;
+    const initialDestinationCoords = state?.destination || null;
+    const initialTransportMode = state?.initialTransportMode || 'walking';
+
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const [transportMode, setTransportMode] = useState<'walking' | 'cycling' | 'transit'>(initialTransportMode);
     const [selectedRoute, setSelectedRoute] = useState<'safe' | 'balanced' | 'fast'>('safe');
-    const [selectedDestination, setSelectedDestination] = useState<string | null>(initialDestination);
+    const [selectedDestination, setSelectedDestination] = useState<string | null>(initialDestinationName);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [routes, setRoutes] = useState<RoutesState>({ safe: null, balanced: null, fast: null });
     const [routeGeometry, setRouteGeometry] = useState<RouteGeometry>({ safe: null, balanced: null, fast: null });
-    const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(initialDestinationCoords);
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     // Autocomplete state
     const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
+
+    // Get user location
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                    // Fallback to default if needed, or keep null to show loading/error
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+    }, []);
 
     // Debounced search for autocomplete
     useEffect(() => {
@@ -91,7 +106,9 @@ export const RouteSelection: React.FC = () => {
 
         setIsSearching(true);
         debounceRef.current = setTimeout(async () => {
-            const results = await searchPlaces(searchQuery, LOCATIONS.HOME);
+            // Use user location for better search results if available
+            const center = userLocation || LOCATIONS.HOME;
+            const results = await searchPlaces(searchQuery, center);
             setSuggestions(results);
             setShowSuggestions(results.length > 0);
             setIsSearching(false);
@@ -102,23 +119,28 @@ export const RouteSelection: React.FC = () => {
                 clearTimeout(debounceRef.current);
             }
         };
-    }, [searchQuery]);
+    }, [searchQuery, userLocation]);
 
     // Fetch routes when destination is selected
     const fetchRoutes = useCallback(async (destCoords: { lat: number; lng: number }) => {
+        if (!userLocation) return; // Wait for user location
+
         setIsLoading(true);
-        const origin = LOCATIONS.HOME;
+        const origin = userLocation;
         const mapboxMode = transportMode === 'transit' ? 'driving' : transportMode;
 
         try {
             const baseRoute = await getRoute(origin, destCoords, mapboxMode);
 
             if (baseRoute) {
+                const aiAnalysis = analyzeRouteSecurity();
+                const isNightMode = isPremium && aiAnalysis.isNightModeActive;
+
                 const safeRoute: RouteData = {
                     time: formatDuration(Math.round(baseRoute.duration * 1.3)),
                     distance: formatDistance(Math.round(baseRoute.distance * 1.2)),
-                    description: 'Calles bien iluminadas y transitadas',
-                    extra: 'Presencia policial frecuente',
+                    description: isNightMode ? aiAnalysis.description : 'Calles bien iluminadas y transitadas',
+                    extra: isNightMode ? 'IA Priorizando cámaras y comercios' : 'Presencia policial frecuente',
                     geometry: baseRoute.geometry.coordinates as [number, number][]
                 };
 
@@ -148,7 +170,7 @@ export const RouteSelection: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [transportMode]);
+    }, [transportMode, userLocation]);
 
     // Effect to refetch when transport mode changes
     useEffect(() => {
@@ -277,7 +299,7 @@ export const RouteSelection: React.FC = () => {
                         transportMode={transportMode}
                         selectedRoute={selectedRoute}
                         routeGeometry={routeGeometry}
-                        origin={selectedDestination ? LOCATIONS.HOME : undefined}
+                        origin={selectedDestination ? (userLocation || undefined) : undefined}
                         destination={destinationCoords || undefined}
                     />
                 </div>
@@ -337,43 +359,45 @@ export const RouteSelection: React.FC = () => {
                     {!selectedDestination ? (
                         <>
                             {/* Family Routes - Compact */}
-                            <div className="mb-4">
-                                <h3 className="text-white text-sm font-bold mb-2 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>family_restroom</span>
-                                    Trayectos de Familiares
-                                </h3>
-                                <div className="flex flex-col gap-2">
-                                    {familyRoutes.map((route) => (
-                                        <div
-                                            key={route.id}
-                                            className={clsx(
-                                                "flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-all",
-                                                route.status === 'en_curso'
-                                                    ? "bg-primary/5 border-primary/30"
-                                                    : "bg-zinc-900 border-white/5 opacity-70"
-                                            )}
-                                        >
-                                            <div className="text-xl size-10 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
-                                                {route.avatar}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-white text-sm font-bold truncate">{route.name}</p>
-                                                    {route.status === 'en_curso' && (
-                                                        <span className="bg-primary/20 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-                                                            En Curso
-                                                        </span>
-                                                    )}
+                            {familyRoutes.length > 0 && (
+                                <div className="mb-4">
+                                    <h3 className="text-white text-sm font-bold mb-2 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>family_restroom</span>
+                                        Trayectos de Familiares
+                                    </h3>
+                                    <div className="flex flex-col gap-2">
+                                        {familyRoutes.map((route) => (
+                                            <div
+                                                key={route.id}
+                                                className={clsx(
+                                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-all",
+                                                    route.status === 'en_curso'
+                                                        ? "bg-primary/5 border-primary/30"
+                                                        : "bg-zinc-900 border-white/5 opacity-70"
+                                                )}
+                                            >
+                                                <div className="text-xl size-10 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
+                                                    {route.avatar}
                                                 </div>
-                                                <p className="text-gray-400 text-xs truncate">{route.origin} → {route.destination}</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-white text-sm font-bold truncate">{route.name}</p>
+                                                        {route.status === 'en_curso' && (
+                                                            <span className="bg-primary/20 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                                                En Curso
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-gray-400 text-xs truncate">{route.origin} → {route.destination}</p>
+                                                </div>
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <p className="text-white text-base font-bold">{route.eta}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col items-end shrink-0">
-                                                <p className="text-white text-base font-bold">{route.eta}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Saved Destinations - Compact */}
                             <div>
@@ -408,27 +432,41 @@ export const RouteSelection: React.FC = () => {
 
                                 {/* Safe Route Card */}
                                 <div
-                                    onClick={() => setSelectedRoute('safe')}
+                                    onClick={() => {
+                                        if (!isPremium) {
+                                            openPaywall('Navegación con Rutas Seguras');
+                                        } else {
+                                            setSelectedRoute('safe');
+                                        }
+                                    }}
                                     className={clsx(
-                                        "flex items-center gap-3 bg-green-500/5 border-2 rounded-xl px-3 py-3 justify-between cursor-pointer transition-colors",
-                                        selectedRoute === 'safe' ? "border-green-500" : "border-white/5 opacity-80"
+                                        "flex items-center gap-3 bg-green-500/5 border-2 rounded-xl px-3 py-3 justify-between cursor-pointer transition-colors relative overflow-hidden",
+                                        selectedRoute === 'safe' ? "border-green-500 shadow-lg shadow-green-500/20" : "border-white/10 opacity-80"
                                     )}
                                 >
+                                    {!isPremium && (
+                                        <div className="absolute top-0 right-0 p-2 text-yellow-500/80">
+                                            <span className="material-symbols-outlined text-[12px] bg-black/50 rounded-full p-1" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-3">
-                                        <div className="text-green-500 flex items-center justify-center rounded-xl bg-green-500/20 shrink-0 size-10">
-                                            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                                        <div className={clsx("flex items-center justify-center rounded-xl shrink-0 size-10", isPremium && isNightTime() ? "text-indigo-400 bg-indigo-500/20" : "text-green-500 bg-green-500/20")}>
+                                            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>{isPremium && isNightTime() ? 'auto_awesome' : 'verified_user'}</span>
                                         </div>
                                         <div className="flex flex-col justify-center">
                                             <div className="flex items-center gap-2">
                                                 <p className="text-white text-sm font-bold leading-tight">Ruta más segura</p>
-                                                <span className="bg-green-500/20 text-green-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Mejor</span>
+                                                {isPremium && isNightTime() && <span className="bg-indigo-500/20 text-indigo-400 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">auto_awesome</span> AI Night</span>}
+                                                {isPremium && !isNightTime() && <span className="bg-green-500/20 text-green-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Mejorada</span>}
                                             </div>
-                                            <p className="text-gray-400 text-xs font-medium line-clamp-1">{routes.safe?.description || 'Calculando...'}</p>
+                                            <p className={clsx("text-xs font-medium line-clamp-1", isPremium && isNightTime() ? "text-indigo-300" : "text-gray-400")}>
+                                                {routes.safe ? routes.safe.description : 'Calculando...'}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end shrink-0">
-                                        <p className="text-white text-base font-bold">{routes.safe?.time || '--'}</p>
-                                        <p className="text-gray-400 text-[10px]">{routes.safe?.distance || '--'}</p>
+                                        <p className="text-white text-base font-bold">{routes.safe ? routes.safe.time : '--'}</p>
+                                        <p className="text-gray-400 text-[10px]">{routes.safe ? routes.safe.distance : '--'}</p>
                                     </div>
                                 </div>
 
@@ -446,12 +484,14 @@ export const RouteSelection: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col justify-center">
                                             <p className="text-white text-sm font-bold leading-tight">Equilibrada</p>
-                                            <p className="text-gray-400 text-xs font-medium line-clamp-1">{routes.balanced?.description || 'Calculando...'}</p>
+                                            <p className="text-gray-400 text-xs font-medium line-clamp-1">
+                                                {routes.balanced ? routes.balanced.description : 'Calculando...'}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end shrink-0">
-                                        <p className="text-white text-base font-bold">{routes.balanced?.time || '--'}</p>
-                                        <p className="text-gray-400 text-[10px]">{routes.balanced?.distance || '--'}</p>
+                                        <p className="text-white text-base font-bold">{routes.balanced ? routes.balanced.time : '--'}</p>
+                                        <p className="text-gray-400 text-[10px]">{routes.balanced ? routes.balanced.distance : '--'}</p>
                                     </div>
                                 </div>
 
@@ -472,12 +512,14 @@ export const RouteSelection: React.FC = () => {
                                                 <p className="text-white text-sm font-bold leading-tight">Más rápida</p>
                                                 <span className="bg-safety-red/20 text-safety-red text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Precaución</span>
                                             </div>
-                                            <p className="text-safety-red/80 text-xs font-medium line-clamp-1">{routes.fast?.description || 'Calculando...'}</p>
+                                            <p className="text-safety-red/80 text-xs font-medium line-clamp-1">
+                                                {routes.fast ? routes.fast.description : 'Calculando...'}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end shrink-0">
-                                        <p className="text-white text-base font-bold">{routes.fast?.time || '--'}</p>
-                                        <p className="text-gray-400 text-[10px]">{routes.fast?.distance || '--'}</p>
+                                        <p className="text-white text-base font-bold">{routes.fast ? routes.fast.time : '--'}</p>
+                                        <p className="text-gray-400 text-[10px]">{routes.fast ? routes.fast.distance : '--'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -485,10 +527,21 @@ export const RouteSelection: React.FC = () => {
                             <div className="mt-4">
                                 <button
                                     onClick={() => {
+                                        if (!canStartRoute(isPremium)) {
+                                            setToastMessage('Límite diario de rutas alcanzado (3/3).');
+                                            setTimeout(() => {
+                                                setToastMessage(null);
+                                                openPaywall('Rutas Ilimitadas');
+                                            }, 2000);
+                                            return;
+                                        }
+
+                                        recordRouteStart(isPremium);
+
                                         if (transportMode === 'transit') {
                                             navigate('/transit-navigate', {
                                                 state: {
-                                                    origin: LOCATIONS.HOME,
+                                                    origin: userLocation || LOCATIONS.HOME,
                                                     destination: destinationCoords,
                                                     destinationName: selectedDestination
                                                 }
@@ -496,7 +549,7 @@ export const RouteSelection: React.FC = () => {
                                         } else {
                                             navigate('/navigate', {
                                                 state: {
-                                                    origin: LOCATIONS.HOME,
+                                                    origin: userLocation || LOCATIONS.HOME,
                                                     destination: destinationCoords,
                                                     destinationName: selectedDestination,
                                                     transportMode: transportMode
@@ -504,16 +557,28 @@ export const RouteSelection: React.FC = () => {
                                             });
                                         }
                                     }}
-                                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-base py-3.5 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-base py-3.5 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] relative overflow-hidden"
                                 >
                                     <span className="material-symbols-outlined">navigation</span>
                                     Iniciar Navegación
+                                    {!isPremium && (
+                                        <div className="absolute top-1 right-2 bg-black/30 rounded-full px-2 py-0.5 text-[10px] font-bold text-white/90">
+                                            {getRemainingRoutes(false)} restantes
+                                        </div>
+                                    )}
                                 </button>
                             </div>
                         </>
                     )}
                 </div>
             </div>
+
+            {/* Simple Toast within RouteSelection */}
+            {toastMessage && (
+                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-4 py-2 rounded-full shadow-lg font-bold text-sm text-center w-max max-w-[90%] animate-in fade-in slide-in-from-top-4">
+                    {toastMessage}
+                </div>
+            )}
         </div>
     );
 };

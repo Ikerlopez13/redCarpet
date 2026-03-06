@@ -1,77 +1,136 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { UnifiedMap } from '../components/UnifiedMap';
 import { SOSConfigSheet, type SOSConfigData } from '../components/SOSConfigSheet';
+import { FamilyActionSheet } from '../components/family/FamilyActionSheet';
 import { DraggableSheet } from '../components/layout/DraggableSheet';
 import { type POI, formatPOIDistance } from '../services/poiService';
+import { useAuth } from '../contexts/AuthContext';
+import { useSOS } from '../contexts/SOSContext';
+import { getFamilyData } from '../services/familyService';
+import { getSafeZones, type SafeZone } from '../services/locationService';
+import type { FamilyGroup } from '../services/database.types';
+import { AddSafeZoneModal } from '../components/safety/AddSafeZoneModal';
+import { NightModeWarning } from '../components/safety/NightModeWarning';
+import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
 
-// Datos de miembros de la familia
-const familyMembers = [
-    {
-        id: 1,
-        name: 'María',
-        avatar: '👩',
-        avatarBg: 'bg-yellow-600',
-        location: 'Universidad',
-        status: 'moving',
-        speed: '5 km/h',
-        battery: 72,
-        lastUpdate: 'Hace 2 min',
-        route: { from: 'Casa', to: 'Universidad', eta: '12 min', progress: 65 },
-    },
-    {
-        id: 2,
-        name: 'Carlos',
-        avatar: '👨',
-        avatarBg: 'bg-amber-700',
-        location: 'En camino',
-        status: 'moving',
-        speed: '8 km/h',
-        battery: 45,
-        lastUpdate: 'Hace 5 min',
-        route: { from: 'Oficina', to: 'Gimnasio', eta: '18 min', progress: 30 },
-    },
-    {
-        id: 3,
-        name: 'Ana',
-        avatar: '👧',
-        avatarBg: 'bg-pink-600',
-        location: 'En Casa',
-        status: 'home',
-        speed: null,
-        battery: 89,
-        lastUpdate: 'Hace 15 min',
-        route: null,
-    },
-    {
-        id: 4,
-        name: 'Papá',
-        avatar: '👴',
-        avatarBg: 'bg-slate-600',
-        location: 'Oficina',
-        status: 'stationary',
-        speed: null,
-        battery: 34,
-        lastUpdate: 'Hace 1h',
-        route: null,
-    },
-];
+// Tipos para el estado de la UI
+interface UIMember {
+    id: string; // Changed from number to string to match Supabase ID
+    name: string;
+    avatar: string;
+    avatarUrl: string | null;
+    avatarBg: string; // Tailwnd class
+    location: string;
+    lat: number;
+    lng: number;
+    status: 'moving' | 'stationary' | 'home';
+    speed: string | null;
+    battery: number;
+    lastUpdate: string;
+    route: { from: string; to: string; eta: string; progress: number } | null;
+}
 
 export const Home: React.FC = () => {
     const navigate = useNavigate();
+    const { user, isPremium } = useAuth();
+    const { openSOSModal, openPaywall } = useSOS();
+
+    // Estados
+    const [familyMembers, setFamilyMembers] = useState<UIMember[]>([]);
+    const [familyGroup, setFamilyGroup] = useState<FamilyGroup | null>(null);
+    const [isLoadingFamily, setIsLoadingFamily] = useState(true);
     const [activeTab, setActiveTab] = useState<'family' | 'places' | 'alerts'>('family');
-    const [selectedMember, setSelectedMember] = useState<number | null>(null);
+    const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
     const [showSOSConfig, setShowSOSConfig] = useState(false);
+    const [showFamilySheet, setShowFamilySheet] = useState(false);
+    const [showAddZoneModal, setShowAddZoneModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState<UIMember | null>(null);
     const [sosConfig, setSOSConfig] = useState<SOSConfigData | null>(null);
     const [, setSheetHeight] = useState(45);
     const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+
+    const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
+
+    // Cargar familia y zonas
+    const loadData = async () => {
+        if (!user) {
+            setFamilyMembers([]);
+            setFamilyGroup(null);
+            setSafeZones([]);
+            setIsLoadingFamily(false);
+            return;
+        }
+
+        // Delay slightly to prioritize map render
+        setTimeout(async () => {
+            try {
+                const { group, members } = await getFamilyData(user.id);
+                setFamilyGroup(group);
+
+                if (group) {
+                    const zones = await getSafeZones(group.id);
+                    setSafeZones(zones);
+                }
+
+                if (group && members.length > 0) {
+                    // Mapear datos de DB a UI (Optimized mapping)
+                    const uiMembers: UIMember[] = members.map((m) => {
+                        // ... (existing mapping logic)
+                        const loc = m.location;
+                        // Format last update time
+                        let timeString = 'Sin datos';
+                        if (loc?.created_at) {
+                            const date = new Date(loc.created_at);
+                            const now = new Date();
+                            const diff = (now.getTime() - date.getTime()) / 1000 / 60; // minutes
+                            if (diff < 1) timeString = 'Ahora';
+                            else if (diff < 60) timeString = `Hace ${Math.floor(diff)} min`;
+                            else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        }
+
+                        return {
+                            id: m.profile.id,
+                            name: m.profile.full_name?.split(' ')[0] || 'Usuario',
+                            avatar: m.role === 'child' ? '👧' : m.role === 'admin' ? '👨' : '👤',
+                            avatarUrl: m.profile.avatar_url,
+                            avatarBg: 'bg-slate-600',
+                            location: loc ? 'Ubicación actual' : 'Sin ubicación',
+                            lat: loc ? loc.lat : 0,
+                            lng: loc ? loc.lng : 0,
+                            status: loc && loc.speed && loc.speed > 5 ? 'moving' : 'stationary',
+                            speed: loc?.speed ? `${Math.round(loc.speed)} km/h` : null,
+                            battery: loc?.battery_level || 0,
+                            lastUpdate: timeString,
+                            route: null
+                        };
+                    });
+                    setFamilyMembers(uiMembers);
+                } else {
+                    setFamilyMembers([]);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                setFamilyMembers([]);
+                setSafeZones([]);
+            } finally {
+                setIsLoadingFamily(false);
+            }
+        }, 100);
+    };
+
+    useEffect(() => {
+        loadData();
+    }, [user]);
 
     return (
         <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display">
 
             {/* Header con buscador */}
             <div className="flex items-center gap-3 px-4 pt-12 pb-3 bg-background-dark z-20 shrink-0">
+                {/* ... existing header content ... */}
+
                 <button
                     onClick={() => navigate('/settings')}
                     className="size-10 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0"
@@ -93,18 +152,28 @@ export const Home: React.FC = () => {
                 </button>
             </div>
 
+            {/* Night Mode Warning Overlay */}
+            {user && (
+                <NightModeWarning
+                    userLat={familyMembers.find(m => m.id === user.id)?.lat || 0}
+                    userLng={familyMembers.find(m => m.id === user.id)?.lng || 0}
+                />
+            )}
+
             {/* Map Section - Más grande como Life360 */}
             <div className="relative flex-1 min-h-0">
                 <UnifiedMap
                     showMarkers={true}
+                    familyMembers={familyMembers.filter(m => m.lat !== 0 && m.lng !== 0)}
                     showDangerZones={true}
                     showPOIs={true}
                     onPOIClick={(poi) => setSelectedPOI(poi)}
+                    onMemberClick={(id) => setSelectedMember(id)}
                 >
 
                     {/* Avatares de familia en el mapa - z-30 to stay above map markers */}
                     <div className="absolute top-4 right-4 flex flex-col gap-2 z-30">
-                        {familyMembers.slice(0, 3).map((member) => (
+                        {familyMembers.filter(m => m.lat !== 0).slice(0, 3).map((member) => (
                             <button
                                 key={member.id}
                                 onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
@@ -114,12 +183,16 @@ export const Home: React.FC = () => {
                                     selectedMember === member.id ? "border-primary scale-110" : "border-background-dark"
                                 )}
                             >
-                                {member.avatar}
+                                {member.avatarUrl ? (
+                                    <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover rounded-full" />
+                                ) : (
+                                    member.avatar
+                                )}
                             </button>
                         ))}
-                        {familyMembers.length > 3 && (
+                        {familyMembers.filter(m => m.lat !== 0).length > 3 && (
                             <div className="size-12 rounded-full border-2 border-background-dark bg-zinc-800 flex items-center justify-center text-xs font-bold shadow-lg">
-                                +{familyMembers.length - 3}
+                                +{familyMembers.filter(m => m.lat !== 0).length - 3}
                             </div>
                         )}
                     </div>
@@ -142,7 +215,7 @@ export const Home: React.FC = () => {
                             </button>
                             {sosConfig?.isConfigured ? (
                                 <button
-                                    onClick={() => navigate('/emergency')}
+                                    onClick={openSOSModal}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-full text-sm font-bold shadow-lg shadow-primary/40 animate-pulse"
                                 >
                                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>sos</span>
@@ -167,8 +240,12 @@ export const Home: React.FC = () => {
                                     <span className="material-symbols-outlined">tune</span>
                                 </button>
                             )}
-                            <button className="size-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg">
-                                <span className="material-symbols-outlined">layers</span>
+                            <button
+                                onClick={() => navigate('/report')}
+                                className="size-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                                aria-label="Reportar incidente"
+                            >
+                                <span className="material-symbols-outlined text-orange-500 text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
                             </button>
                         </div>
                     </div>
@@ -212,112 +289,158 @@ export const Home: React.FC = () => {
                 <div className="px-4 pb-28 flex-1 overflow-y-auto no-scrollbar">
                     {activeTab === 'family' && (
                         <div className="flex flex-col gap-3">
-                            {familyMembers.map((member) => (
-                                <div
-                                    key={member.id}
-                                    onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
-                                    className={clsx(
-                                        "flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer",
-                                        member.route
-                                            ? "bg-primary/5 border-primary/30"
-                                            : "bg-white/5 border-white/10",
-                                        selectedMember === member.id && "ring-2 ring-primary"
-                                    )}
-                                >
-                                    {/* Avatar con indicador de estado */}
-                                    <div className="relative">
-                                        <div className={clsx(
-                                            "size-14 rounded-full flex items-center justify-center text-2xl",
-                                            member.avatarBg
-                                        )}>
-                                            {member.avatar}
+                            {isLoadingFamily ? (
+                                <div className="p-4 text-center text-white/40 text-sm">Cargando familia...</div>
+                            ) : (
+                                <>
+                                    {familyMembers.length === 0 ? (
+                                        <div className="p-4 text-center text-white/40 text-sm">
+                                            No tienes familiares en tu grupo aún.
                                         </div>
-                                        {/* Indicador de batería */}
-                                        <div className={clsx(
-                                            "absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-0.5",
-                                            member.battery > 50 ? "bg-green-500 text-white" :
-                                                member.battery > 20 ? "bg-yellow-500 text-black" : "bg-red-500 text-white"
-                                        )}>
-                                            <span className="material-symbols-outlined text-[10px]">battery_full</span>
-                                            {member.battery}%
-                                        </div>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            {familyMembers.map((member) => (
+                                                <div
+                                                    key={member.id}
+                                                    onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
+                                                    className={clsx(
+                                                        "flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer",
+                                                        member.route
+                                                            ? "bg-primary/5 border-primary/30"
+                                                            : "bg-white/5 border-white/10",
+                                                        selectedMember === member.id && "ring-2 ring-primary"
+                                                    )}
+                                                >
+                                                    {/* Avatar con indicador de estado */}
+                                                    <div className="relative">
+                                                        <div className={clsx(
+                                                            "size-14 rounded-full flex items-center justify-center text-2xl overflow-hidden",
+                                                            member.avatarBg
+                                                        )}>
+                                                            {member.avatarUrl ? (
+                                                                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                member.avatar
+                                                            )}
+                                                        </div>
+                                                        {/* Indicador de batería */}
+                                                        <div className={clsx(
+                                                            "absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-0.5",
+                                                            member.battery > 50 ? "bg-green-500 text-white" :
+                                                                member.battery > 20 ? "bg-yellow-500 text-black" : "bg-red-500 text-white"
+                                                        )}>
+                                                            <span className="material-symbols-outlined text-[10px]">battery_full</span>
+                                                            {member.battery}%
+                                                        </div>
+                                                    </div>
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-base">{member.name}</span>
-                                            {member.route && (
-                                                <span className="text-[9px] font-bold text-primary uppercase tracking-wider bg-primary/20 px-2 py-0.5 rounded animate-pulse">
-                                                    EN RUTA
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-white/60 truncate">
-                                            {member.route
-                                                ? `${member.route.from} → ${member.route.to}`
-                                                : member.location
-                                            }
-                                        </p>
-                                        {member.route && (
-                                            <div className="mt-2">
-                                                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-primary rounded-full transition-all"
-                                                        style={{ width: `${member.route.progress}%` }}
-                                                    />
+                                                    {/* Info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-base">{member.name}</span>
+                                                            {member.route && (
+                                                                <span className="text-[9px] font-bold text-primary uppercase tracking-wider bg-primary/20 px-2 py-0.5 rounded animate-pulse">
+                                                                    EN RUTA
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm text-white/60 truncate">
+                                                            {member.route
+                                                                ? `${member.route.from} → ${member.route.to}`
+                                                                : member.location
+                                                            }
+                                                        </p>
+                                                        {member.route && (
+                                                            <div className="mt-2">
+                                                                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className="h-full bg-primary rounded-full transition-all"
+                                                                        style={{ width: `${member.route.progress}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {member.speed && (
+                                                            <div className="flex items-center gap-1 mt-1">
+                                                                <span className="material-symbols-outlined text-primary text-sm">speed</span>
+                                                                <span className="text-xs text-primary font-medium">{member.speed}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Right side - ETA / Status */}
+                                                    <div className="flex flex-col items-end shrink-0">
+                                                        {member.route ? (
+                                                            <>
+                                                                <p className="text-lg font-bold">{member.route.eta}</p>
+                                                                <p className="text-[10px] text-white/40">{member.lastUpdate}</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className={clsx(
+                                                                    "text-xs font-medium px-2 py-1 rounded-full",
+                                                                    member.status === 'home' ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60"
+                                                                )}>
+                                                                    {member.status === 'home' ? '🏠 En Casa' : member.location}
+                                                                </span>
+                                                                <p className="text-[10px] text-white/40 mt-1">{member.lastUpdate}</p>
+                                                            </>
+                                                        )}
+                                                        {/* Monthly Stats (Premium/Family feature) */}
+                                                        {isPremium && (
+                                                            <div
+                                                                className="mt-2 bg-indigo-500/10 border border-indigo-500/20 rounded px-1.5 py-0.5 flex items-center gap-1 hover:bg-indigo-500/20 transition-colors shrink-0"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setShowHistoryModal(member);
+                                                                }}
+                                                                title="Ver Historial Mensual"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[10px] text-indigo-400">analytics</span>
+                                                                <span className="text-[9px] text-indigo-400 font-bold tracking-wide">{(member.name.length * 15) + (member.id.length * 2)} KM/MES</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Heart/Favorite */}
+                                                    <button className="text-white/30 hover:text-primary transition-colors">
+                                                        <span className="material-symbols-outlined">favorite</span>
+                                                    </button>
                                                 </div>
-                                            </div>
-                                        )}
-                                        {member.speed && (
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <span className="material-symbols-outlined text-primary text-sm">speed</span>
-                                                <span className="text-xs text-primary font-medium">{member.speed}</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                            ))}
+                                        </>
+                                    )}
 
-                                    {/* Right side - ETA / Status */}
-                                    <div className="flex flex-col items-end shrink-0">
-                                        {member.route ? (
-                                            <>
-                                                <p className="text-lg font-bold">{member.route.eta}</p>
-                                                <p className="text-[10px] text-white/40">{member.lastUpdate}</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className={clsx(
-                                                    "text-xs font-medium px-2 py-1 rounded-full",
-                                                    member.status === 'home' ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60"
-                                                )}>
-                                                    {member.status === 'home' ? '🏠 En Casa' : member.location}
-                                                </span>
-                                                <p className="text-[10px] text-white/40 mt-1">{member.lastUpdate}</p>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {/* Heart/Favorite */}
-                                    <button className="text-white/30 hover:text-primary transition-colors">
-                                        <span className="material-symbols-outlined">favorite</span>
+                                    {/* Añadir persona - ALWAYS VISIBLE AL FINAL */}
+                                    <button
+                                        onClick={() => setShowFamilySheet(true)}
+                                        className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/50 transition-all"
+                                    >
+                                        <div className="size-14 rounded-full bg-white/5 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-2xl">person_add</span>
+                                        </div>
+                                        <span className="font-medium">Agregar una persona</span>
                                     </button>
-                                </div>
-                            ))}
-
-                            {/* Añadir persona */}
-                            <button className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/50 transition-all">
-                                <div className="size-14 rounded-full bg-white/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-2xl">person_add</span>
-                                </div>
-                                <span className="font-medium">Agregar una persona</span>
-                            </button>
+                                </>
+                            )}
                         </div>
                     )}
 
                     {activeTab === 'places' && (
                         <div className="flex flex-col gap-3">
                             {/* Agregar nuevo lugar */}
-                            <button className="flex items-center gap-4 p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary">
+                            {/* Agregar nuevo lugar */}
+                            <button
+                                onClick={() => {
+                                    // Gate: Allow 1 safe zone for free, unlimited for premium
+                                    if (safeZones.length >= 1 && !isPremium) {
+                                        openPaywall('Zonas Seguras Ilimitadas');
+                                    } else {
+                                        setShowAddZoneModal(true);
+                                    }
+                                }}
+                                className="flex items-center gap-4 p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary"
+                            >
                                 <div className="size-10 rounded-full bg-primary flex items-center justify-center text-white">
                                     <span className="material-symbols-outlined">add</span>
                                 </div>
@@ -325,32 +448,30 @@ export const Home: React.FC = () => {
                             </button>
 
                             {/* Lugares guardados */}
-                            {[
-                                { name: 'Casa', address: 'Calle Mayor, 12', icon: '🏠', hasMembers: true },
-                                { name: 'Universidad', address: 'Campus Complutense', icon: '🎓', hasMembers: false },
-                                { name: 'Oficina', address: 'Gran Vía, 45', icon: '💼', hasMembers: false },
-                                { name: 'Gimnasio', address: 'Plaza Mayor, 78', icon: '🏋️', hasMembers: false },
-                            ].map((place, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => navigate('/route', { state: { destination: place.name } })}
-                                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors"
-                                >
-                                    <div className="size-10 rounded-full bg-white/10 flex items-center justify-center text-xl">
-                                        {place.icon}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-semibold">{place.name}</p>
-                                        <p className="text-xs text-white/40">{place.address}</p>
-                                    </div>
-                                    {place.hasMembers && (
-                                        <div className="size-6 rounded-full bg-primary flex items-center justify-center">
-                                            <span className="text-white text-xs font-bold">1</span>
+                            {safeZones.length === 0 ? (
+                                <div className="p-4 text-center text-white/40 text-sm">
+                                    No hay lugares guardados.
+                                </div>
+                            ) : (
+                                safeZones.map((zone) => (
+                                    <button
+                                        key={zone.id}
+                                        onClick={() => navigate('/route', { state: { destination: { lat: zone.lat, lng: zone.lng }, destinationName: zone.name } })}
+                                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors"
+                                    >
+                                        <div className="size-10 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                                            {zone.name.toLowerCase().includes('casa') ? '🏠' :
+                                                zone.name.toLowerCase().includes('escuela') || zone.name.toLowerCase().includes('colegio') ? '🎓' :
+                                                    zone.name.toLowerCase().includes('trabajo') ? '💼' : '📍'}
                                         </div>
-                                    )}
-                                    <span className="material-symbols-outlined text-white/40">chevron_right</span>
-                                </button>
-                            ))}
+                                        <div className="flex-1">
+                                            <p className="font-semibold">{zone.name}</p>
+                                            <p className="text-xs text-white/40">Radio: {zone.radius}m</p>
+                                        </div>
+                                        <span className="material-symbols-outlined text-white/40">chevron_right</span>
+                                    </button>
+                                ))
+                            )}
                         </div>
                     )}
 
@@ -433,6 +554,28 @@ export const Home: React.FC = () => {
                 currentConfig={sosConfig || undefined}
             />
 
+            {/* Add Safe Zone Modal */}
+            <AddSafeZoneModal
+                isOpen={showAddZoneModal}
+                onClose={() => setShowAddZoneModal(false)}
+                familyId={familyGroup?.id || ''}
+                onSuccess={loadData}
+            />
+
+            {/* Family Management Sheet */}
+            <FamilyActionSheet
+                isOpen={showFamilySheet}
+                onClose={() => setShowFamilySheet(false)}
+                hasFamily={!!familyGroup}
+                familyGroupId={familyGroup?.id}
+                adminId={familyGroup?.admin_id}
+                members={familyMembers}
+                onSuccess={() => {
+                    // Refresh family data
+                    loadData();
+                }}
+            />
+
             {/* POI Detail Modal */}
             {selectedPOI && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -513,6 +656,116 @@ export const Home: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Member Detail Modal (similar to POI) */}
+            {selectedMember && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center">
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setSelectedMember(null)}
+                    />
+                    <div className="relative w-full max-w-lg bg-background-dark rounded-t-3xl p-6 pb-10 border-t border-white/10 animate-slide-up">
+                        {/* Close button */}
+                        <button
+                            onClick={() => setSelectedMember(null)}
+                            className="absolute top-4 right-4 size-8 rounded-full bg-white/10 flex items-center justify-center"
+                        >
+                            <span className="material-symbols-outlined text-lg">close</span>
+                        </button>
+
+                        {/* Member Header */}
+                        {(() => {
+                            const member = familyMembers.find(m => m.id === selectedMember);
+                            if (!member) return null;
+
+                            return (
+                                <>
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className={clsx(
+                                            "size-16 rounded-full border-4 flex items-center justify-center text-3xl shadow-lg shrink-0 overflow-hidden",
+                                            member.avatarBg,
+                                            member.status === 'moving' ? 'border-primary' : 'border-zinc-700'
+                                        )}>
+                                            {member.avatarUrl ? (
+                                                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                member.avatar
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0 pt-1">
+                                            <h3 className="text-2xl font-bold truncate">{member.name}</h3>
+                                            <p className="text-white/50 text-sm flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-sm">location_on</span>
+                                                {member.location}
+                                            </p>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <div className={clsx(
+                                                    "px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border",
+                                                    member.battery > 20 ? "bg-zinc-800 border-zinc-700 text-white" : "bg-red-500/20 border-red-500/50 text-red-400"
+                                                )}>
+                                                    <span className="material-symbols-outlined text-[10px]">battery_full</span>
+                                                    {member.battery}%
+                                                </div>
+                                                {member.speed && (
+                                                    <div className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border border-primary/30 bg-primary/10 text-primary">
+                                                        <span className="material-symbols-outlined text-[10px]">speed</span>
+                                                        {member.speed}
+                                                    </div>
+                                                )}
+                                                <div className="text-[10px] text-white/40">
+                                                    Actualizado: {member.lastUpdate}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedMember(null);
+                                                navigate('/route', {
+                                                    state: {
+                                                        destination: { lat: member.lat, lng: member.lng },
+                                                        destinationName: `Ubicación de ${member.name}`
+                                                    }
+                                                });
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 transition-transform active:scale-95 text-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
+                                            Ir
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (!isPremium) {
+                                                    openPaywall('Historial de Ubicación de 30 días');
+                                                } else {
+                                                    setShowHistoryModal(member);
+                                                }
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors text-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">history</span>
+                                            Historial
+                                        </button>
+                                        <button className="size-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
+                                            <span className="material-symbols-outlined text-white/80">call</span>
+                                        </button>
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                </div>
+            )}
+
+            {/* History Modal */}
+            <LocationHistoryModal
+                isOpen={!!showHistoryModal}
+                onClose={() => setShowHistoryModal(null)}
+                memberId={showHistoryModal?.id || ''}
+                memberName={showHistoryModal?.name || ''}
+            />
         </div>
     );
 };

@@ -27,7 +27,7 @@ export const RouteLine: React.FC<RouteLineProps> = ({
     };
 
     // Outer glow layer for selected route
-    const glowLayer: LineLayer = {
+    const glowLayer: Omit<LineLayer, 'source'> = {
         id: `${id}-glow`,
         type: 'line',
         paint: {
@@ -43,7 +43,7 @@ export const RouteLine: React.FC<RouteLineProps> = ({
     };
 
     // Main route line
-    const lineLayer: LineLayer = {
+    const lineLayer: Omit<LineLayer, 'source'> = {
         id: `${id}-line`,
         type: 'line',
         paint: {

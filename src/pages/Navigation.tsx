@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import clsx from 'clsx';
+
 import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { RouteLine, ROUTE_COLORS } from '../components/map/RouteLine';
 import { DangerZones } from '../components/map/DangerZone';
-import { getRoute, formatDuration, formatDistance, type RouteStep, LOCATIONS } from '../services/directionsService';
+import { getRoute, formatDuration, formatDistance, type RouteStep } from '../services/directionsService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -210,7 +210,17 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 
                 {/* Report danger/warning button */}
                 <div className="absolute left-4 bottom-4">
-                    <button className="flex items-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-2xl shadow-lg font-semibold">
+                    <button
+                        onClick={() => {
+                            // Pass current location to report incident if needed (future improvement)
+                            window.location.href = '/report';
+                            // Using window.location or navigate depending on if we are in router context. 
+                            // Navigation component is inside BrowserRouter so navigate hook works.
+                            // But wait, 'navigate' is from hook call in 'NavigationView'? No, NavigationView uses useNavigate?
+                            // Let me check if 'navigate' is available in scope.
+                        }}
+                        className="flex items-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-2xl shadow-lg font-semibold transition-transform active:scale-95"
+                    >
                         <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
                         Añadir aviso
                     </button>

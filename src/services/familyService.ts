@@ -1,5 +1,5 @@
 import { supabase, isMockMode } from './supabaseClient';
-import type { FamilyGroup, FamilyMember, Profile } from './database.types';
+import type { FamilyGroup, FamilyMember, Profile, Location } from './database.types';
 
 // Mock data for development
 const mockFamilyGroup: FamilyGroup = {
@@ -61,19 +61,26 @@ const mockMembers: (FamilyMember & { profile: Profile })[] = [
 /**
  * Get user's family group
  */
+
 export async function getFamilyGroup(userId: string): Promise<FamilyGroup | null> {
-    if (isMockMode) {
+    // Only return mock data for specific debug user
+    if (isMockMode && userId === 'debug_user') {
         return mockFamilyGroup;
     }
 
-    // First check if user is a member of any group
-    const { data: membership } = await supabase
-        .from('family_members')
+    if (isMockMode) {
+        // For other users in mock mode, simulate empty state or local storage if we were using it
+        // For now, return null to show empty state
+        return null;
+    }
+
+    const { data: memberships } = await (supabase.from('family_members') as any)
         .select('group_id')
         .eq('user_id', userId)
-        .single();
+        .limit(1);
 
-    if (!membership) return null;
+    if (!memberships || memberships.length === 0) return null;
+    const membership = memberships[0];
 
     const { data: group } = await supabase
         .from('family_groups')
@@ -89,7 +96,11 @@ export async function getFamilyGroup(userId: string): Promise<FamilyGroup | null
  */
 export async function getFamilyMembers(groupId: string): Promise<(FamilyMember & { profile: Profile })[]> {
     if (isMockMode) {
-        return mockMembers;
+        // If the group ID matches our mock group, return mock members
+        if (groupId === mockFamilyGroup.id) {
+            return mockMembers;
+        }
+        return [];
     }
 
     const { data } = await supabase
@@ -101,6 +112,104 @@ export async function getFamilyMembers(groupId: string): Promise<(FamilyMember &
         .eq('group_id', groupId);
 
     return (data || []) as (FamilyMember & { profile: Profile })[];
+}
+
+/**
+ * Optimized function to get all family data for a user in one go
+ */
+
+// ... existing mock data ...
+
+/**
+ * Optimized function to get all family data for a user in one go
+ */
+export async function getFamilyData(userId: string): Promise<{
+    group: FamilyGroup | null;
+    members: (FamilyMember & { profile: Profile; location?: Location })[]
+}> {
+    if (isMockMode && userId === 'debug_user') {
+        // Return mock data with mock locations
+        const membersWithLoc = mockMembers.map((m, i) => ({
+            ...m,
+            location: {
+                id: `loc-${i}`,
+                user_id: m.user_id,
+                lat: i === 0 ? 41.4095 : i === 1 ? 41.4060 : 41.4110,
+                lng: i === 0 ? 2.1870 : i === 1 ? 2.1910 : 2.1860,
+                accuracy: 10,
+                battery_level: 100,
+                speed: 0,
+                heading: 0,
+                created_at: new Date().toISOString()
+            } as Location
+        }));
+        return { group: mockFamilyGroup, members: membersWithLoc };
+    }
+
+    if (isMockMode) {
+        // Only return mock data if specifically requested for debug, otherwise clean slate
+        return { group: null, members: [] };
+    }
+
+    // 1. Get user's group ID safely (in case they got duplicate memberships somehow)
+    const { data: memberships } = await (supabase.from('family_members') as any)
+        .select('group_id')
+        .eq('user_id', userId)
+        .limit(1);
+
+    if (!memberships || memberships.length === 0) return { group: null, members: [] };
+    const membership = memberships[0];
+
+    // 2. Fetch group details and members
+    const [groupResult, membersResult] = await Promise.all([
+        supabase
+            .from('family_groups')
+            .select('*')
+            .eq('id', membership.group_id)
+            .single(),
+        supabase
+            .from('family_members')
+            .select(`
+                *,
+                profile:profiles(*)
+            `)
+            .eq('group_id', membership.group_id)
+    ]);
+
+    const members = (membersResult.data || []) as (FamilyMember & { profile: Profile })[];
+
+    if (members.length === 0) {
+        return { group: groupResult.data, members: [] };
+    }
+
+    // 3. Fetch latest location for each member
+    // We'll fetch the last location for each user in the group
+    // In a production app with many locations, we might want a Postgres Function or a View for "latest_locations"
+    const userIds = members.map(m => m.user_id);
+
+    const { data } = await supabase
+        .from('locations')
+        .select('*')
+        .in('user_id', userIds)
+        .order('created_at', { ascending: false });
+
+    const locations = (data || []) as Location[];
+
+    // Map latest location to each member
+    const membersWithLocation = members.map(member => {
+        // Find the most recent location for this user
+        // Since we ordered by created_at desc, the first match is the latest
+        const loc = locations?.find(l => l.user_id === member.user_id);
+        return {
+            ...member,
+            location: loc
+        };
+    });
+
+    return {
+        group: groupResult.data,
+        members: membersWithLocation
+    };
 }
 
 /**
@@ -122,12 +231,14 @@ export async function createFamilyGroup(
         return { group, error: null };
     }
 
-    const { data: group, error } = await supabase
-        .from('family_groups')
+    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    const { data: group, error } = await (supabase.from('family_groups') as any)
         .insert({
             name,
             relationship_type: relationshipType,
             admin_id: adminId,
+            invite_code: inviteCode,
         } as any)
         .select()
         .single();
@@ -145,16 +256,21 @@ export async function createFamilyGroup(
 }
 
 /**
- * Generate invite link for family group
+ * Get the invite code for family group
  */
 export async function generateInviteLink(groupId: string): Promise<string> {
-    // In production, this would create a secure invite token in the database
-    const inviteCode = btoa(`${groupId}:${Date.now()}`);
-    return `${window.location.origin}/join/${inviteCode}`;
+    if (isMockMode) return 'MOCK-TAG';
+
+    const { data } = await (supabase.from('family_groups') as any)
+        .select('*')
+        .eq('id', groupId)
+        .single();
+
+    return (data as any)?.invite_code || '';
 }
 
 /**
- * Join a family group via invite link
+ * Join a family group via 6-character tag
  */
 export async function joinFamilyGroup(
     inviteCode: string,
@@ -162,11 +278,20 @@ export async function joinFamilyGroup(
     role: FamilyMember['role'] = 'member'
 ): Promise<{ error: string | null }> {
     try {
-        const decoded = atob(inviteCode);
-        const [groupId] = decoded.split(':');
-
         if (isMockMode) {
             return { error: null };
+        }
+
+        const cleanCode = inviteCode.replace('#', '').trim().toUpperCase();
+
+        // Use RPC to bypass RLS — non-members can't SELECT from family_groups
+        const { data: groupId, error: rpcError } = await (supabase.rpc as any)(
+            'lookup_family_by_invite_code',
+            { p_invite_code: cleanCode }
+        );
+
+        if (rpcError || !groupId) {
+            return { error: 'Código de familia inválido' };
         }
 
         const { error } = await supabase.from('family_members').insert({
@@ -177,7 +302,7 @@ export async function joinFamilyGroup(
 
         return { error: error?.message || null };
     } catch {
-        return { error: 'Invalid invite code' };
+        return { error: 'Error al unirse a la familia' };
     }
 }
 
@@ -192,8 +317,7 @@ export async function updateMemberPermissions(
         return { error: null };
     }
 
-    const { error } = await supabase
-        .from('family_members')
+    const { error } = await (supabase.from('family_members') as any)
         .update({ permissions } as any)
         .eq('id', memberId);
 
@@ -217,18 +341,6 @@ export async function removeFamilyMember(memberId: string): Promise<{ error: str
 }
 
 /**
- * Leave family group
+ * Remove member from group by user_id and group_id
  */
-export async function leaveFamilyGroup(userId: string, groupId: string): Promise<{ error: string | null }> {
-    if (isMockMode) {
-        return { error: null };
-    }
-
-    const { error } = await supabase
-        .from('family_members')
-        .delete()
-        .eq('user_id', userId)
-        .eq('group_id', groupId);
-
-    return { error: error?.message || null };
-}
+export async function removeFamilyMemberByUserId(userId: string, groupId: string): P

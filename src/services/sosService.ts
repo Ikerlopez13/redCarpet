@@ -1,11 +1,174 @@
 import { supabase, isMockMode } from './supabaseClient';
 import type { SOSAlert, EmergencyContact } from './database.types';
+import { CameraPreview } from '@capacitor-community/camera-preview';
+import { Capacitor } from '@capacitor/core';
+
 
 interface SOSConfig {
     message: string;
     callPolice: boolean;
     notifyContacts: boolean;
     shareLocation: boolean;
+    mode?: 'discrete' | 'visible';
+    mediaUrl?: string;
+}
+
+let mediaRecorder: MediaRecorder | null = null;
+let recordedChunks: Blob[] = [];
+
+/**
+ * Start audio/video recording (Web API)
+ */
+export async function startRecording(): Promise<boolean> {
+    try {
+        recordedChunks = [];
+        let stream: MediaStream;
+
+        try {
+            // Try Video + Audio first
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user' },
+                audio: true
+            });
+        } catch (err) {
+            console.warn('Video permission denied or failed, falling back to audio only', err);
+            try {
+                // Fallback to Audio only
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (authErr) {
+                console.error('Audio permission denied', authErr);
+                return false;
+            }
+        }
+
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.start();
+        return true;
+    } catch (error) {
+        console.error('Error starting recording:', error);
+        return false;
+    }
+}
+
+/**
+ * Stop recording and upload to Supabase Storage
+ */
+export async function stopAndUploadRecording(userId: string): Promise<string | null> {
+    return new Promise((resolve) => {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            resolve(null);
+            return;
+        }
+
+        mediaRecorder.onstop = async () => {
+            try {
+                const mimeType = mediaRecorder?.mimeType || 'video/webm';
+                const blob = new Blob(recordedChunks, { type: mimeType });
+
+                // Determine extension based on mime type (webm for video, ogg/webm for audio usually)
+                const ext = mimeType.includes('video') ? 'webm' : 'webm';
+                const fileName = `${userId}/${Date.now()}.${ext}`;
+
+                // Stop all tracks to release camera/mic
+                mediaRecorder?.stream.getTracks().forEach(track => track.stop());
+
+                const { error } = await supabase
+                    .storage
+                    .from('sos-recordings')
+                    .upload(fileName, blob, {
+                        contentType: mimeType,
+                        upsert: true
+                    });
+
+                if (error) {
+                    console.error('Error uploading recording:', error);
+                    resolve(null);
+                    return;
+                }
+
+                const { data: publicUrl } = supabase
+                    .storage
+                    .from('sos-recordings')
+                    .getPublicUrl(fileName);
+
+                resolve(publicUrl.publicUrl);
+            } catch (error) {
+                console.error('Error handling recording:', error);
+                resolve(null);
+            }
+        };
+
+        mediaRecorder.stop();
+    });
+}
+
+/**
+ * Take a silent background picture for security
+ */
+export async function captureSecuritySnapshot(userId: string): Promise<string | null> {
+    if (!Capacitor.isNativePlatform()) {
+        console.warn('Camera capture only available on native devices');
+        return null;
+    }
+
+    try {
+        // Start camera preview hidden
+        await CameraPreview.start({
+            position: 'rear',
+            parent: 'cameraPreview',
+            className: 'cameraPreview',
+            toBack: true, // Render behind the webview
+            width: window.screen.width,
+            height: window.screen.height
+        });
+
+        // Wait a tiny bit for the camera to focus
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const result = await CameraPreview.capture({ quality: 50 });
+        await CameraPreview.stop();
+
+        if (!result.value) return null;
+
+        // Convert base64 to Blob
+        const response = await fetch(`data:image/jpeg;base64,${result.value}`);
+        const blob = await response.blob();
+
+        const fileName = `${userId}/sos_snapshot_${Date.now()}.jpg`;
+
+        const { error } = await supabase
+            .storage
+            .from('sos-recordings')
+            .upload(fileName, blob, {
+                contentType: 'image/jpeg',
+                upsert: true
+            });
+
+        if (error) {
+            console.error('Error uploading snapshot:', error);
+            return null;
+        }
+
+        const { data: publicUrl } = supabase
+            .storage
+            .from('sos-recordings')
+            .getPublicUrl(fileName);
+
+        return publicUrl.publicUrl;
+
+    } catch (err) {
+        console.error('Snapshot error:', err);
+        // Try to stop it just in case it failed during capture
+        try { await CameraPreview.stop(); } catch (e) { }
+        return null;
+    }
 }
 
 /**
@@ -24,46 +187,35 @@ export async function activateSOS(
         });
     }).catch(() => null);
 
+    let finalMessage = config.message;
+    if (config.shareLocation && position) {
+        finalMessage += `\n\n📍 Ubicación en tiempo real:\nhttps://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}`;
+    }
+
     const alertData: Omit<SOSAlert, 'id' | 'created_at'> = {
         user_id: userId,
         group_id: groupId,
         lat: position?.coords.latitude || null,
         lng: position?.coords.longitude || null,
         status: 'active',
-        message: config.message,
-    };
-
-    if (isMockMode) {
-        const alert: SOSAlert = {
-            ...alertData,
-            id: `sos-${Date.now()}`,
-            created_at: new Date().toISOString(),
-        };
-
-        console.log('🚨 SOS ACTIVATED (mock):', alert);
-
-        // Simulate notification
-        if (Notification.permission === 'granted') {
-            new Notification('🚨 SOS Alert!', {
-                body: `${config.message}\nLocation shared: ${config.shareLocation}`,
-                icon: '/icons/sos.png',
-            });
-        }
-
-        return { alert, error: null };
-    }
+        message: finalMessage,
+        mode: config.mode || 'visible', // Add mode
+        media_url: config.mediaUrl || null, // Add media URL
+    } as any; // Cast because types might not be updated yet
 
     // Create alert in database
-    const { data: alert, error } = await supabase
-        .from('sos_alerts')
-        .insert(alertData as any)
+    const { data: alert, error } = await (supabase.from('sos_alerts') as any)
+        .insert(alertData)
         .select()
         .single();
 
-    if (error) return { alert: null, error: error.message };
+    if (error) {
+        console.error('Error creating SOS alert:', error);
+        return { alert: null, error: error.message };
+    }
 
     // Trigger notifications via Edge Function
-    await supabase.functions.invoke('send-sos-notifications', {
+    const { error: funcError } = await supabase.functions.invoke('send-sos-notifications', {
         body: {
             alertId: alert.id,
             userId,
@@ -72,11 +224,15 @@ export async function activateSOS(
         }
     });
 
+    if (funcError) {
+        console.error('Error invoking SOS function:', funcError);
+    }
+
     // Call emergency services if configured
     if (config.callPolice) {
         // This would integrate with native calling capability
         console.log('📞 Calling emergency services...');
-        // window.location.href = 'tel:112';
+        window.location.href = 'tel:112';
     }
 
     return { alert, error: null };
@@ -94,12 +250,51 @@ export async function resolveSOS(
         return { error: null };
     }
 
-    const { error } = await supabase
-        .from('sos_alerts')
+    const { error } = await (supabase.from('sos_alerts') as any)
         .update({ status } as any)
         .eq('id', alertId);
 
     return { error: error?.message || null };
+}
+
+/**
+ * Update SOS alert with media URL and notify
+ */
+export async function updateSOSAlertMedia(
+    alertId: string,
+    mediaUrl: string
+): Promise<{ error: string | null }> {
+    // Update database
+    const { error } = await (supabase.from('sos_alerts') as any)
+        .update({ media_url: mediaUrl } as any)
+        .eq('id', alertId);
+
+    if (error) {
+        console.error('Error updating SOS media:', error);
+        return { error: error.message };
+    }
+
+    // Trigger notification for evidence
+    const mediaMessage = `🎧 Audio / 🎥 Vídeo:\n${mediaUrl}`;
+
+    const { error: funcError } = await supabase.functions.invoke('send-sos-notifications', {
+        body: {
+            alertId: alertId,
+            action: 'media_uploaded',
+            mediaUrl: mediaUrl,
+            // We pass a custom config object to reuse the logic in the edge function (assuming it uses config.message)
+            config: {
+                message: mediaMessage,
+                notifyContacts: true
+            }
+        }
+    });
+
+    if (funcError) {
+        console.error('Error sending media notification:', funcError);
+    }
+
+    return { error: null };
 }
 
 /**
@@ -160,26 +355,8 @@ export function subscribeToSOSAlerts(
  */
 export async function getEmergencyContacts(userId: string): Promise<EmergencyContact[]> {
     if (isMockMode) {
-        return [
-            {
-                id: 'contact-1',
-                user_id: userId,
-                name: 'Ana García',
-                phone: '+34 612 345 680',
-                relationship: 'Hermana',
-                notify_on_sos: true,
-                created_at: new Date().toISOString(),
-            },
-            {
-                id: 'contact-2',
-                user_id: userId,
-                name: 'Pedro Martínez',
-                phone: '+34 612 345 681',
-                relationship: 'Amigo',
-                notify_on_sos: true,
-                created_at: new Date().toISOString(),
-            }
-        ];
+        // Mock removed
+        return [];
     }
 
     const { data } = await supabase
@@ -199,13 +376,8 @@ export async function addEmergencyContact(
     contact: Omit<EmergencyContact, 'id' | 'user_id' | 'created_at'>
 ): Promise<{ contact: EmergencyContact | null; error: string | null }> {
     if (isMockMode) {
-        const newContact: EmergencyContact = {
-            ...contact,
-            id: `contact-${Date.now()}`,
-            user_id: userId,
-            created_at: new Date().toISOString(),
-        };
-        return { contact: newContact, error: null };
+        // Mock removed
+        return { contact: null, error: null };
     }
 
     const { data, error } = await supabase
