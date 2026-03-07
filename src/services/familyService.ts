@@ -343,4 +343,33 @@ export async function removeFamilyMember(memberId: string): Promise<{ error: str
 /**
  * Remove member from group by user_id and group_id
  */
-export async function removeFamilyMemberByUserId(userId: string, groupId: string): P
+export async function removeFamilyMemberByUserId(userId: string, groupId: string): Promise<{ error: string | null }> {
+    if (isMockMode) {
+        return { error: null };
+    }
+
+    const { error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('user_id', userId)
+        .eq('group_id', groupId);
+
+    return { error: error?.message || null };
+}
+
+/**
+ * Leave family group
+ */
+export async function leaveFamilyGroup(userId: string, groupId: string): Promise<{ error: string | null }> {
+    if (isMockMode) {
+        return { error: null };
+    }
+
+    const { error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('user_id', userId)
+        .eq('group_id', groupId);
+
+    return { error: error?.message || null };
+}

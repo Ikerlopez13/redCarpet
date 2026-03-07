@@ -1,0 +1,91 @@
+{
+  "identifier" : "E00A6FD4",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "4F0E31F9",
+      "localizations" : [
+        {
+          "description" : "Pase 72h",
+          "displayName" : "Pase Seguro 72h",
+          "locale" : "es_ES"
+        }
+      ],
+      "productID" : "safe_pass_72h",
+      "referenceName" : "Pase Seguro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "1549FB48",
+      "localizations" : [
+
+      ],
+      "name" : "General",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "4C286ACD",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Premium Mensual",
+              "displayName" : "Suscripción Mensual",
+              "locale" : "es_ES"
+            }
+          ],
+          "productID" : "redcarpet.premium.onemonth",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Mensual",
+          "subscriptionGroupID" : "1549FB48",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "49.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "05B3A1AF",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Premium Anual",
+              "displayName" : "Suscripción Anual",
+              "locale" : "es_ES"
+            }
+          ],
+          "productID" : "redcarpet.premium.oneyear",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Anual",
+          "subscriptionGroupID" : "1549FB48",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
