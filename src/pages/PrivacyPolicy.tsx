@@ -170,4 +170,27 @@ export const PrivacyPolicy: React.FC = () => {
                     </section>
 
                     <section>
-                        <h3 classNa
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">8. Comunicación y Notificaciones</h3>
+                        <p>
+                            REDCARPET podrá enviarte notificaciones push y comunicaciones electrónicas relacionadas con la seguridad del servicio, alertas críticas y actualizaciones de la política. Puedes gestionar estas preferencias desde los ajustes de la App.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">9. Derechos del Usuario</h3>
+                        <p>
+                            Puedes ejercer tus derechos de acceso, rectificación, supresión y portabilidad enviando un correo a soporte@redcarpet.com. Nos comprometemos a responder en los plazos legales establecidos.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">10. Cambios en la Política</h3>
+                        <p>
+                            REDCARPET se reserva el derecho de modificar esta política para adaptarla a novedades legislativas. Te notificaremos cualquier cambio sustancial a través de la App.
+                        </p>
+                    </section>
+                </div>
+            </div>
+        </div>
+    );
+};
