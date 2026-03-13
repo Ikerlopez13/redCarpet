@@ -40,10 +40,12 @@ jobs:
           LC_ALL: en_US.UTF-8
 
       - name: Import Code Signing Certificates
-        uses: apple-actions/import-codesign-certs@v1
+        uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APP_STORE_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
+          create-keychain: true
+          keychain-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
 
       - name: Install Provisioning Profile
         run: |
