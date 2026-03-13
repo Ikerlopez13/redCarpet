@@ -1,4 +1,4 @@
-# Triggering build #13: Isolated signing settings - March 13
+# Triggering build #15: Hard-coded signing in pbxproj - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
