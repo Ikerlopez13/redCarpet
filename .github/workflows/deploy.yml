@@ -52,6 +52,8 @@ jobs:
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.APP_STORE_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          # List profiles to verify
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Build and Archive iOS App
         run: |
@@ -60,14 +62,19 @@ jobs:
             -configuration Release \
             -archivePath build/App.xcarchive \
             archive \
-            CODE_SIGNING_ALLOWED=YES
+            CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGNING_REQUIRED=YES \
+            DEVELOPMENT_TEAM=7W52U2SRVA \
+            PROVISIONING_PROFILE_SPECIFIER="redCarpet app" \
+            -allowProvisioningUpdates
 
       - name: Export .ipa
         run: |
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ \
-            -exportOptionsPlist ios/App/App/ExportOptions.plist
+            -exportOptionsPlist ios/App/App/ExportOptions.plist \
+            -allowProvisioningUpdates
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
