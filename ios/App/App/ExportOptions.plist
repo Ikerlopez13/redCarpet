@@ -16,5 +16,10 @@
 	<string>7W52U2SRVA</string>
 	<key>uploadSymbols</key>
 	<true/>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.vibecode.redcarpet</key>
+		<string>redCarpet app</string>
+	</dict>
 </dict>
 </plist>
