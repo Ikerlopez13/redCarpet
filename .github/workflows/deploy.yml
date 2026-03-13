@@ -70,6 +70,7 @@ jobs:
             CODE_SIGNING_REQUIRED=YES \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM=7W52U2SRVA \
+            PROVISIONING_PROFILE_SPECIFIER="redCarpet Distribution" \
             -verbose
 
       - name: Export .ipa

@@ -19,7 +19,7 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>com.vibecode.redcarpet</key>
-		<string>redCarpet app</string>
+		<string>redCarpet Distribution</string>
 	</dict>
 </dict>
 </plist>
