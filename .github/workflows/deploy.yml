@@ -71,8 +71,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=7W52U2SRVA \
             PROVISIONING_PROFILE_SPECIFIER="redCarpet app" \
-            -verbose \
-            -showBuildSettings
+            -verbose
 
       - name: Export .ipa
         run: |
