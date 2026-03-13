@@ -1,4 +1,4 @@
-# Triggering build #18: Fixed -authenticationKeyIssuerID - March 14
+# Triggering build #19: Fixed Profile Pairing - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
