@@ -1,4 +1,4 @@
-# Triggering build #15: Hard-coded signing in pbxproj - March 14
+# Triggering build #16: Synchronized Distribution identity - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
