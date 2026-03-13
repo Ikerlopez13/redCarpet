@@ -1,4 +1,4 @@
-# Triggering build #16: Synchronized Distribution identity - March 14
+# Triggering build #18: Fixed -authenticationKeyIssuerID - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -71,7 +71,7 @@ jobs:
             archive \
             -allowProvisioningUpdates \
             -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            -authenticationKeyIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             DEVELOPMENT_TEAM=7W52U2SRVA \
             -verbose
@@ -84,7 +84,7 @@ jobs:
             -exportOptionsPlist ios/App/App/ExportOptions.plist \
             -allowProvisioningUpdates \
             -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            -authenticationKeyIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             -verbose
 
