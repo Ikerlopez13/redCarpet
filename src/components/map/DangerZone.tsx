@@ -1,6 +1,6 @@
 import React from 'react';
-import { Source, Layer } from 'react-map-gl/mapbox';
-import type { CircleLayer } from 'mapbox-gl';
+import { Marker } from 'react-map-gl/mapbox';
+import dangerZoneIcon from '../../assets/icons/danger-zone.svg';
 
 interface DangerZoneProps {
     id: string;
@@ -15,61 +15,30 @@ interface DangerZonesProps {
 }
 
 export const DangerZones: React.FC<DangerZonesProps> = ({ zones }) => {
-    // Convert zones to GeoJSON
-    const geojson: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features: zones.map(zone => ({
-            type: 'Feature',
-            properties: {
-                id: zone.id,
-                label: zone.label || 'Zona Peligrosa',
-                radius: zone.radius || 200
-            },
-            geometry: {
-                type: 'Point',
-                coordinates: [zone.lng, zone.lat]
-            }
-        }))
-    };
-
-    const outerLayer: Omit<CircleLayer, 'source'> = {
-        id: 'danger-zones-outer',
-        type: 'circle',
-        paint: {
-            'circle-radius': ['get', 'radius'],
-            'circle-color': 'rgba(239, 68, 68, 0.15)',
-            'circle-blur': 0.6,
-            'circle-stroke-width': 1,
-            'circle-stroke-color': 'rgba(239, 68, 68, 0.3)'
-        }
-    };
-
-    const innerLayer: Omit<CircleLayer, 'source'> = {
-        id: 'danger-zones-inner',
-        type: 'circle',
-        paint: {
-            'circle-radius': ['/', ['get', 'radius'], 2],
-            'circle-color': 'rgba(239, 68, 68, 0.25)',
-            'circle-blur': 0.4
-        }
-    };
-
-    const pulseLayer: Omit<CircleLayer, 'source'> = {
-        id: 'danger-zones-pulse',
-        type: 'circle',
-        paint: {
-            'circle-radius': ['/', ['get', 'radius'], 4],
-            'circle-color': 'rgba(239, 68, 68, 0.5)',
-            'circle-blur': 0.2
-        }
-    };
-
     return (
-        <Source id="danger-zones" type="geojson" data={geojson}>
-            <Layer {...outerLayer} />
-            <Layer {...innerLayer} />
-            <Layer {...pulseLayer} />
-        </Source>
+        <>
+            {zones.map(zone => (
+                <Marker
+                    key={zone.id}
+                    latitude={zone.lat}
+                    longitude={zone.lng}
+                    anchor="center"
+                >
+                    <div className="relative group flex flex-col items-center justify-center cursor-pointer">
+                        {/* Image asset for complete native Apple Maps integration capability */}
+                        <img
+                            src={dangerZoneIcon}
+                            alt={zone.label || 'Zona Peligrosa'}
+                            className="w-[96px] h-[96px] max-w-none opacity-80"
+                            style={{ width: `${(zone.radius || 100) / 1.5}px`, height: `${(zone.radius || 100) / 1.5}px` }}
+                        />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] sm:text-xs font-bold text-red-500 whitespace-nowrap bg-black/60 px-2 py-0.5 rounded-full border border-red-500/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {zone.label}
+                        </div>
+                    </div>
+                </Marker>
+            ))}
+        </>
     );
 };
 

@@ -41,7 +41,7 @@ export const Home: React.FC = () => {
     const [familyMembers, setFamilyMembers] = useState<UIMember[]>([]);
     const [familyGroup, setFamilyGroup] = useState<FamilyGroup | null>(null);
     const [isLoadingFamily, setIsLoadingFamily] = useState(true);
-    const [activeTab, setActiveTab] = useState<'family' | 'places' | 'alerts'>('family');
+    const [activeTab, setActiveTab] = useState<'family' | 'places' | 'alerts'>('alerts');
     const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
     const [showSOSConfig, setShowSOSConfig] = useState(false);
     const [showFamilySheet, setShowFamilySheet] = useState(false);
@@ -72,6 +72,9 @@ export const Home: React.FC = () => {
                 if (group) {
                     const zones = await getSafeZones(group.id);
                     setSafeZones(zones);
+                    if (isPremium) {
+                        setActiveTab('family');
+                    }
                 }
 
                 if (group && members.length > 0) {
@@ -147,7 +150,16 @@ export const Home: React.FC = () => {
                     <span className="text-white/40 text-sm">¿A dónde vas?</span>
                 </button>
 
-                <button className="size-10 rounded-full bg-white/10 text-white flex items-center justify-center shrink-0">
+                <button
+                    onDoubleClick={() => {
+                        if (isPremium) {
+                            openSOSModal('discrete');
+                        } else {
+                            openPaywall('Modo Discreto');
+                        }
+                    }}
+                    className="size-10 rounded-full bg-white/10 text-white flex items-center justify-center shrink-0"
+                >
                     <span className="material-symbols-outlined text-xl">mail</span>
                 </button>
             </div>
@@ -172,30 +184,32 @@ export const Home: React.FC = () => {
                 >
 
                     {/* Avatares de familia en el mapa - z-30 to stay above map markers */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 z-30">
-                        {familyMembers.filter(m => m.lat !== 0).slice(0, 3).map((member) => (
-                            <button
-                                key={member.id}
-                                onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
-                                className={clsx(
-                                    "size-12 rounded-full border-2 flex items-center justify-center text-xl shadow-lg transition-all",
-                                    member.avatarBg,
-                                    selectedMember === member.id ? "border-primary scale-110" : "border-background-dark"
-                                )}
-                            >
-                                {member.avatarUrl ? (
-                                    <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover rounded-full" />
-                                ) : (
-                                    member.avatar
-                                )}
-                            </button>
-                        ))}
-                        {familyMembers.filter(m => m.lat !== 0).length > 3 && (
-                            <div className="size-12 rounded-full border-2 border-background-dark bg-zinc-800 flex items-center justify-center text-xs font-bold shadow-lg">
-                                +{familyMembers.filter(m => m.lat !== 0).length - 3}
-                            </div>
-                        )}
-                    </div>
+                    {isPremium && (
+                        <div className="absolute top-4 right-4 flex flex-col gap-2 z-30">
+                            {familyMembers.filter(m => m.lat !== 0).slice(0, 3).map((member) => (
+                                <button
+                                    key={member.id}
+                                    onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
+                                    className={clsx(
+                                        "size-12 rounded-full border-2 flex items-center justify-center text-xl shadow-lg transition-all",
+                                        member.avatarBg,
+                                        selectedMember === member.id ? "border-primary scale-110" : "border-background-dark"
+                                    )}
+                                >
+                                    {member.avatarUrl ? (
+                                        <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover rounded-full" />
+                                    ) : (
+                                        member.avatar
+                                    )}
+                                </button>
+                            ))}
+                            {familyMembers.filter(m => m.lat !== 0).length > 3 && (
+                                <div className="size-12 rounded-full border-2 border-background-dark bg-zinc-800 flex items-center justify-center text-xs font-bold shadow-lg">
+                                    +{familyMembers.filter(m => m.lat !== 0).length - 3}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                 </UnifiedMap>
             </div>
@@ -215,7 +229,7 @@ export const Home: React.FC = () => {
                             </button>
                             {sosConfig?.isConfigured ? (
                                 <button
-                                    onClick={openSOSModal}
+                                    onClick={() => openSOSModal()}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-full text-sm font-bold shadow-lg shadow-primary/40 animate-pulse"
                                 >
                                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>sos</span>
@@ -253,16 +267,18 @@ export const Home: React.FC = () => {
             >
                 {/* Tabs estilo Life360 */}
                 <div className="flex items-center justify-center gap-1 px-4 pb-3 shrink-0">
-                    <button
-                        onClick={() => setActiveTab('family')}
-                        className={clsx(
-                            "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                            activeTab === 'family' ? "bg-primary text-white" : "bg-white/5 text-white/60"
-                        )}
-                    >
-                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
-                        Familia
-                    </button>
+                    {isPremium && !!familyGroup && (
+                        <button
+                            onClick={() => setActiveTab('family')}
+                            className={clsx(
+                                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                                activeTab === 'family' ? "bg-primary text-white" : "bg-white/5 text-white/60"
+                            )}
+                        >
+                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
+                            Familia
+                        </button>
+                    )}
                     <button
                         onClick={() => setActiveTab('places')}
                         className={clsx(

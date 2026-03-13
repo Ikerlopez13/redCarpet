@@ -90,10 +90,22 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     origin,
     destination
 }) => {
-    const [viewState, setViewState] = useState(DEFAULT_VIEW);
+    const [viewState, setViewState] = useState({ ...DEFAULT_VIEW, pitch: 0, bearing: 0 });
     const [busStops, setBusStops] = useState<BusStop[]>([]);
     const [metroStations, setMetroStations] = useState<MetroStation[]>([]);
     const [pois, setPois] = useState<POI[]>([]);
+    const [is3D, setIs3D] = useState(false);
+
+    const toggle3D = useCallback(() => {
+        setIs3D(prev => {
+            const next3D = !prev;
+            setViewState(curr => ({
+                ...curr,
+                pitch: next3D ? 60 : 0
+            }));
+            return next3D;
+        });
+    }, []);
 
     // Fetch transit stops when showTransit is enabled
     useEffect(() => {
@@ -142,6 +154,21 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 attributionControl={false}
                 logoPosition="bottom-left"
             >
+                {/* 2D/3D Toggle Control */}
+                <div className="absolute top-[120px] left-[10px] z-10">
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggle3D();
+                        }}
+                        className="bg-zinc-800 text-white rounded-md shadow-[0_0_0_2px_rgba(0,0,0,0.1)] border border-black/10 hover:bg-zinc-700 font-bold text-sm w-[29px] h-[29px] flex items-center justify-center transition-colors"
+                        title="Toggle 2D/3D View"
+                    >
+                        {is3D ? '2D' : '3D'}
+                    </button>
+                </div>
+
                 {/* Navigation Controls */}
                 <NavigationControl position="top-left" showCompass={false} />
                 <GeolocateControl

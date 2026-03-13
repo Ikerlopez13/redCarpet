@@ -41,6 +41,8 @@ export interface Database {
                     full_name: string | null;
                     avatar_url: string | null;
                     phone: string | null;
+                    has_accepted_privacy_policy: boolean | null;
+                    sos_pin: string | null;
                     created_at: string;
                 };
                 Insert: {
@@ -48,6 +50,8 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     phone?: string | null;
+                    has_accepted_privacy_policy?: boolean | null;
+                    sos_pin?: string | null;
                     created_at?: string;
                 };
                 Update: {
@@ -55,6 +59,8 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     phone?: string | null;
+                    has_accepted_privacy_policy?: boolean | null;
+                    sos_pin?: string | null;
                     created_at?: string;
                 };
             };

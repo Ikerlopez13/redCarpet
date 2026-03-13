@@ -1,0 +1,75 @@
+name: Deploy to TestFlight 🚀🛡️
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: macos-15 # Latest macOS runner with iOS 18 SDK
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Web App
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+          VITE_REVENUECAT_APPLE_KEY: ${{ secrets.VITE_REVENUECAT_APPLE_KEY }}
+          VITE_REVENUECAT_GOOGLE_KEY: ${{ secrets.VITE_REVENUECAT_GOOGLE_KEY }}
+          VITE_TMB_APP_ID: ${{ secrets.VITE_TMB_APP_ID }}
+          VITE_TMB_APP_KEY: ${{ secrets.VITE_TMB_APP_KEY }}
+
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
+
+      - name: Import Code Signing Certificates
+        uses: apple-actions/import-codesigning-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APP_STORE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
+
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.APP_STORE_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build and Archive iOS App
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=YES
+
+      - name: Export .ipa
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ \
+            -exportOptionsPlist ios/App/App/ExportOptions.plist
+
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: 'build/App.ipa'
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-key-content: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}

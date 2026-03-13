@@ -28,20 +28,20 @@ PODS:
     - Capacitor
   - CapacitorVoiceRecorder (6.1.0):
     - Capacitor
-  - PurchasesHybridCommon (17.42.0):
-    - RevenueCat (= 5.60.0)
-  - PurchasesHybridCommonUI (17.42.0):
-    - PurchasesHybridCommon (= 17.42.0)
-    - RevenueCatUI (= 5.60.0)
-  - RevenueCat (5.60.0)
-  - RevenuecatPurchasesCapacitor (12.2.2):
+  - PurchasesHybridCommon (17.47.0):
+    - RevenueCat (= 5.63.0)
+  - PurchasesHybridCommonUI (17.47.0):
+    - PurchasesHybridCommon (= 17.47.0)
+    - RevenueCatUI (= 5.63.0)
+  - RevenueCat (5.63.0)
+  - RevenuecatPurchasesCapacitor (12.2.4):
     - Capacitor
-    - PurchasesHybridCommon (= 17.42.0)
-  - RevenuecatPurchasesCapacitorUi (12.2.2):
+    - PurchasesHybridCommon (= 17.47.0)
+  - RevenuecatPurchasesCapacitorUi (12.2.4):
     - Capacitor
-    - PurchasesHybridCommonUI (= 17.42.0)
-  - RevenueCatUI (5.60.0):
-    - RevenueCat (= 5.60.0)
+    - PurchasesHybridCommonUI (= 17.47.0)
+  - RevenueCatUI (5.63.0):
+    - RevenueCat (= 5.63.0)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
@@ -121,12 +121,12 @@ SPEC CHECKSUMS:
   CapacitorSplashScreen: ef140a8b1ea7244e0c245ce2dd4ce5251e7ab86a
   CapacitorStatusBar: 149cde8f1328ec3aa6cbdd872a55137ae3f98b16
   CapacitorVoiceRecorder: aa2a99f1688c09a66e6988e2df554ab3865d1ae3
-  PurchasesHybridCommon: c0a62a03bd15e40af1c3cd111f5f4f50cac751c7
-  PurchasesHybridCommonUI: b4ed664293091eb6f38f3c6549ded679d61b0625
-  RevenueCat: 88010b2d5fc8fb7405d2e11dacd65ac74c9d21d1
-  RevenuecatPurchasesCapacitor: 2d80de10a66dc38f2ab040f130d0cbcb58922135
-  RevenuecatPurchasesCapacitorUi: 25214360b6f819d97a93f13ac3e23d2314254457
-  RevenueCatUI: 4947e99bffd02fee429202b70b14dd780b8884ea
+  PurchasesHybridCommon: 7794f8a04e50265d595b695d49b8fc212e138d1f
+  PurchasesHybridCommonUI: 9b833b40d449f66922d4c76f0da09f01bcb9673f
+  RevenueCat: c7310bad19cb96a1551c68045303e1faaa1942a5
+  RevenuecatPurchasesCapacitor: 6b652e6e001224841fbfb9a97322c46f14d32504
+  RevenuecatPurchasesCapacitorUi: 482876f63c396e514f935b37ab37852ff5459bf7
+  RevenueCatUI: 5de5cc2b14e1431f128f3604735727de9b53cd09
 
 PODFILE CHECKSUM: 65dc1782b6bc71952b93b2b1a123737c51c1426e
 

@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { RevenueCatService } from '../services/revenueCatService';
 import type { PurchasesPackage } from '../services/revenueCatService';
 import { useAuth } from '../contexts/AuthContext';
 import { Capacitor } from '@capacitor/core';
+import {
+    CheckCircle2,
+    X,
+    ShieldCheck,
+    Users,
+    MapPin,
+    Bell
+} from 'lucide-react';
 import clsx from 'clsx';
 
 export const Subscription: React.FC = () => {
@@ -12,16 +21,15 @@ export const Subscription: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [offerings, setOfferings] = useState<PurchasesPackage[]>([]);
-    const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [individualPeriod, setIndividualPeriod] = useState<'monthly' | 'annual'>('annual');
 
-    const FEATURES = [
-        "Cámaras de Seguridad SOS integradas",
-        "Navegación inteligente con IA",
-        "Avisos de peligros e incidentes ilimitados",
-        "Panel avanzado de la Familia",
-        "Alertas de entrada y salida geovalladas",
-        "Historial de ubicaciones (1 mes)",
+    const COMMON_FEATURES = [
+        "Alertas de zonas peligrosas en tiempo real",
+        "Navegación segura con rutas alternativas",
+        "Botón SOS con aviso a policía y contactos",
+        "Historial de ubicación (1 mes)",
+        "Soporte prioritario 24/7"
     ];
 
     useEffect(() => {
@@ -30,41 +38,34 @@ export const Subscription: React.FC = () => {
                 setLoading(false);
                 return;
             }
-
             try {
-                // Fetch packages from RevenueCat
                 const packages = await RevenueCatService.getOfferings();
-
                 if (packages && packages.length > 0) {
                     setOfferings(packages);
-                    // Default to Annual if it exists, otherwise the first one
-                    const defaultPackage = packages.find(p => p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('year')) || packages[0];
-                    setSelectedPackageId(defaultPackage.identifier);
-                } else {
-                    setError('No se han encontrado planes de suscripción disponibles en este momento.');
                 }
             } catch (err: any) {
                 console.error("Error fetching packages:", err);
-                setError('Hubo un error cargando las suscripciones.');
             } finally {
                 setLoading(false);
             }
         };
-
         fetchOfferings();
     }, [isPremium]);
 
-    const handlePurchase = async () => {
-        const selectedPackage = offerings.find(p => p.identifier === selectedPackageId);
-        if (!selectedPackage) return;
-
+    const handlePurchase = async (packageId: string) => {
         setProcessing(true);
         setError(null);
-
         try {
-            const purchaseResult = await RevenueCatService.purchasePackage(selectedPackage);
-            if (purchaseResult) {
-                // Redirect user to home or back smoothly
+            const selectedPackage = offerings.find(p => p.identifier === packageId);
+            if (selectedPackage && Capacitor.isNativePlatform()) {
+                const purchaseResult = await RevenueCatService.purchasePackage(selectedPackage);
+                if (purchaseResult) {
+                    setIsPremium(true);
+                    navigate('/');
+                }
+            } else {
+                console.log(`Mocking purchase of ${packageId}`);
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 setIsPremium(true);
                 navigate('/');
             }
@@ -76,66 +77,32 @@ export const Subscription: React.FC = () => {
         }
     };
 
-    const handleRestore = async () => {
-        setProcessing(true);
-        setError(null);
-        try {
-            const customerInfo = await RevenueCatService.restorePurchases();
-            if (customerInfo && customerInfo.entitlements.active[RevenueCatService.ENTITLEMENT_ID]) {
-                setIsPremium(true);
-                navigate('/');
-            } else {
-                setError('No se encontró ninguna compra previa para restaurar.');
-            }
-        } catch (err) {
-            setError('Error restaurando compras.');
-        } finally {
-            setProcessing(false);
-        }
-    };
-
     if (loading) {
         return (
             <div className="h-full w-full bg-background-dark flex flex-col items-center justify-center text-white">
-                <span className="material-symbols-outlined animate-spin text-primary text-4xl mb-4">progress_activity</span>
-                <p className="text-white/60">Conectando de forma segura...</p>
+                <div className="size-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-6" />
+                <p className="text-white/40 font-bold tracking-widest uppercase text-xs">Asegurando conexión...</p>
             </div>
         );
     }
 
-    // PREMIUM STATE
     if (isPremium) {
         return (
-            <div className="h-full w-full bg-background-dark p-6 flex flex-col items-center justify-center animate-in fade-in duration-500 text-white overflow-y-auto">
-                <div className="size-24 rounded-full bg-primary/20 flex items-center justify-center mb-8 ring-4 ring-primary/30 shadow-[0_0_50px_rgba(255,0,0,0.4)]">
-                    <span className="material-symbols-outlined text-primary text-5xl">verified</span>
-                </div>
-
-                <h1 className="text-3xl font-black mb-4 text-center">¡Ya eres RedCarpet Pro!</h1>
-                <p className="text-lg font-medium mb-8 text-center text-white/80">
-                    Disfruta de protección ilimitada, rutas seguras inteligentes y control familiar avanzado.
+            <div className="h-full w-full bg-background-dark p-8 flex flex-col items-center justify-center text-white overflow-y-auto">
+                <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="size-32 rounded-full bg-primary/20 flex items-center justify-center mb-10 shadow-[0_0_60px_rgba(255,49,49,0.3)]"
+                >
+                    <ShieldCheck size={64} className="text-primary" />
+                </motion.div>
+                <h1 className="text-4xl font-black mb-4 text-center tracking-tighter uppercase italic">RedCarpet PRO</h1>
+                <p className="text-white/50 text-center max-w-xs mb-12">
+                    Todas las funciones de defensa e inteligencia artificial están activas en tu dispositivo.
                 </p>
-
-                {Capacitor.isNativePlatform() && (
-                    <>
-                        <p className="text-sm text-center text-white/50 mb-6 max-w-xs">
-                            Gestiona tu suscripción cómodamente.
-                        </p>
-                        <button
-                            onClick={async () => {
-                                await RevenueCatService.presentCustomerCenter();
-                            }}
-                            className="w-full max-w-xs py-4 mb-4 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all text-white border border-white/20 flex items-center justify-center gap-2"
-                        >
-                            <span className="material-symbols-outlined">manage_accounts</span>
-                            Gestionar Suscripción
-                        </button>
-                    </>
-                )}
-
                 <button
                     onClick={() => navigate('/')}
-                    className="w-full max-w-xs py-4 bg-primary text-white hover:bg-primary/90 shadow-[0_0_30px_rgba(255,0,0,0.3)] rounded-xl font-bold transition-all"
+                    className="w-full max-w-xs py-5 bg-white text-black font-black rounded-2xl text-lg active:scale-95 transition-all shadow-2xl uppercase tracking-tighter"
                 >
                     Volver al Mapa
                 </button>
@@ -143,151 +110,223 @@ export const Subscription: React.FC = () => {
         );
     }
 
-    // PAYWALL STATE
-    return (
-        <div className="h-full w-full bg-background-dark flex flex-col overflow-y-auto pb-24 relative">
+    const FeatureItem = ({ text, blue = false }: { text: string; blue?: boolean }) => (
+        <li className="flex items-start gap-3">
+            <CheckCircle2 size={18} className={clsx("shrink-0 mt-0.5", blue ? "text-blue-500" : "text-primary")} />
+            <span className="text-[13px] font-medium text-white/90 leading-tight">{text}</span>
+        </li>
+    );
 
-            {/* Dark background header w/ graphic */}
-            <div className="relative pt-12 pb-6 px-6 flex flex-col items-center justify-center z-10">
-                <div className="absolute inset-0 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
+    return (
+        <div className="h-full w-full bg-background-dark flex flex-col overflow-y-auto no-scrollbar pb-12">
+            {/* Header */}
+            <div className="flex flex-col items-center px-8 pt-20 pb-12 text-center space-y-2 relative overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] bg-primary/5 blur-[100px] pointer-events-none" />
+
                 <button
-                    onClick={() => navigate('/')}
-                    className="absolute top-6 left-6 size-10 flex items-center justify-center bg-black/40 rounded-full text-white/70 hover:text-white backdrop-blur-md transition-colors"
+                    onClick={() => navigate(-1)}
+                    className="absolute top-14 left-6 p-3 bg-white/5 backdrop-blur-md rounded-full text-white/60 hover:text-white transition-all shadow-lg active:scale-95"
                 >
-                    <span className="material-symbols-outlined text-xl">close</span>
+                    <X size={20} />
                 </button>
 
-                <div className="size-20 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,0,0,0.3)] backdrop-blur-md">
-                    <span className="material-symbols-outlined text-primary text-4xl">shield_locked</span>
-                </div>
-                <h1 className="text-3xl font-black text-center text-white mb-2 tracking-tight">
-                    RedCarpet <span className="text-primary">Pro</span>
-                </h1>
-                <p className="text-white/60 text-center max-w-xs text-sm">
-                    Desbloquea la seguridad definitiva de inteligencia artificial para ti y los tuyos.
+                <h1 className="text-4xl font-bold tracking-tight text-white uppercase">Premium</h1>
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">
+                    Tecnología de élite para tu seguridad
                 </p>
             </div>
 
-            <div className="px-6 flex-1 flex flex-col z-10 w-full max-w-md mx-auto">
-                {/* Features List */}
-                <div className="bg-black/40 border border-white/10 rounded-2xl p-5 mb-6 backdrop-blur-md">
-                    <ul className="space-y-4">
-                        {FEATURES.map((feature, idx) => (
-                            <li key={idx} className="flex items-start text-sm text-white/90">
-                                <span className="material-symbols-outlined text-primary text-base mr-3 mt-0.5 opacity-90">check_circle</span>
-                                <span>{feature}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+            <div className="px-5 space-y-8">
 
                 {/* Error Banner */}
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 text-sm text-center backdrop-blur-md">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-xs font-bold text-center"
+                    >
                         {error}
-                    </div>
+                    </motion.div>
                 )}
 
-                {/* Packages Selection */}
-                <div className="space-y-3 mb-8">
-                    {offerings.map((pkg) => {
-                        const isSelected = selectedPackageId === pkg.identifier;
-                        const isPopular = pkg.identifier.toLowerCase().includes('annual') || pkg.identifier.toLowerCase().includes('year');
-
-                        return (
-                            <button
-                                key={pkg.identifier}
-                                onClick={() => setSelectedPackageId(pkg.identifier)}
-                                disabled={processing}
-                                className={clsx(
-                                    "w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 relative overflow-hidden",
-                                    isSelected
-                                        ? "bg-primary/10 border-primary"
-                                        : "bg-white/5 border-white/10 hover:border-white/30"
-                                )}
-                            >
-                                {isPopular && (
-                                    <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg tracking-wider">
-                                        MÁS POPULAR
-                                    </div>
-                                )}
-
-                                <div className="flex items-center gap-4">
-                                    <div className={clsx(
-                                        "size-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                                        isSelected ? "border-primary" : "border-white/30"
-                                    )}>
-                                        {isSelected && <div className="size-2.5 rounded-full bg-primary" />}
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx("font-semibold", isSelected ? "text-white" : "text-white/80")}>
-                                            {pkg.product.title.replace('(RedCarpet)', '').trim()}
-                                        </h3>
-                                        <p className="text-white/50 text-xs mt-0.5">{pkg.product.description}</p>
-                                    </div>
-                                </div>
-
-                                <div className="text-right">
-                                    <div className={clsx("font-bold text-lg", isSelected ? "text-primary text-shadow-glow" : "text-white")}>
-                                        {pkg.product.priceString}
-                                    </div>
-                                </div>
-                            </button>
-                        );
-                    })}
-
-                    {/* Fallback mock UI for Web environment where packages might be empty */}
-                    {!Capacitor.isNativePlatform() && offerings.length === 0 && !error && (
-                        <div className="w-full flex items-center justify-between p-4 rounded-xl border border-primary bg-primary/10 text-left">
-                            <div className="flex items-center gap-4">
-                                <div className="size-5 rounded-full border-2 border-primary flex items-center justify-center">
-                                    <div className="size-2.5 rounded-full bg-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-white">Suscripción Premium (Simulada Web)</h3>
-                                    <p className="text-white/50 text-xs">Desbloquea todas las funciones</p>
-                                </div>
-                            </div>
-                            <div className="font-bold text-lg text-primary text-shadow-glow">4,99 €</div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Bottom Floating CTA & Legal */}
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-dark via-background-dark to-transparent z-20 flex flex-col items-center">
-                <button
-                    onClick={handlePurchase}
-                    disabled={processing || (offerings.length > 0 && !selectedPackageId)}
-                    className="w-full max-w-md py-4 bg-primary text-white hover:bg-primary/90 shadow-[0_0_30px_rgba(255,0,0,0.3)] rounded-2xl font-bold text-lg mb-4 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                {/* 1. PREMIUM INDIVIDUAL (RECOMENDADO) */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative bg-card-dark border border-white/5 rounded-[2.5rem] p-8 overflow-hidden shadow-2xl"
                 >
-                    {processing ? (
-                        <>
-                            <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                            Procesando...
-                        </>
-                    ) : (
-                        'Suscribirse Ahora'
-                    )}
-                </button>
-
-                <div className="flex flex-col items-center space-y-3 w-full max-w-md">
-                    <button
-                        onClick={handleRestore}
-                        disabled={processing}
-                        className="text-white/60 hover:text-white text-sm font-medium transition-colors"
-                    >
-                        Restaurar compras
-                    </button>
-
-                    <div className="flex items-center gap-3 text-xs text-white/40">
-                        <button onClick={() => navigate('/terms')} className="hover:text-white transition-colors underline decoration-white/20 underline-offset-2">Términos de Servicio</button>
-                        <span>•</span>
-                        <button onClick={() => navigate('/privacy')} className="hover:text-white transition-colors underline decoration-white/20 underline-offset-2">Política de Privacidad</button>
+                    <div className="absolute top-0 right-0 bg-primary px-6 py-2.5 font-bold text-[10px] tracking-[0.2em] uppercase rounded-bl-3xl shadow-lg">
+                        RECOMENDADO
                     </div>
-                </div>
-            </div>
 
+                    <div className="space-y-1 mb-8">
+                        <h2 className="text-3xl font-extrabold tracking-tight text-white uppercase leading-tight">Premium<br />Individual</h2>
+                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-2">Seguridad personal 24/7</p>
+                    </div>
+
+                    <ul className="space-y-4 mb-8">
+                        {COMMON_FEATURES.map((f, i) => <FeatureItem key={i} text={f} />)}
+                    </ul>
+
+                    {/* Selector Individual */}
+                    <div className="flex gap-4 mb-8">
+                        <button
+                            onClick={() => setIndividualPeriod('monthly')}
+                            className={clsx(
+                                "flex-1 p-6 rounded-3xl flex flex-col items-center gap-1 transition-all",
+                                individualPeriod === 'monthly' ? "bg-white text-black shadow-xl" : "bg-white/5 border border-white/5 hover:border-white/10 text-white"
+                            )}
+                        >
+                            <span className="text-2xl font-bold leading-none">9,99€</span>
+                            <span className={clsx("text-[10px] font-bold uppercase tracking-widest mt-1", individualPeriod === 'monthly' ? "text-black/40" : "text-white/40")}>Mensual</span>
+                        </button>
+                        <button
+                            onClick={() => setIndividualPeriod('annual')}
+                            className={clsx(
+                                "flex-1 p-6 rounded-3xl flex flex-col items-center gap-1 transition-all relative border",
+                                individualPeriod === 'annual' ? "bg-primary border-primary shadow-lg shadow-primary/30 text-white" : "bg-white/5 border border-white/5 hover:border-white/10 text-white"
+                            )}
+                        >
+                            <span className="text-2xl font-bold leading-none">89,99€</span>
+                            <div className="flex items-center gap-1 mt-1">
+                                <span className={clsx("text-[10px] font-bold uppercase tracking-widest", individualPeriod === 'annual' ? "text-white/60" : "text-white/40")}>Anual</span>
+                                <span className="text-[10px] bg-black/20 px-1 rounded text-white font-bold">(-25%)</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={() => handlePurchase(individualPeriod === 'monthly' ? 'rc_individual_monthly' : 'rc_individual_annual')}
+                        disabled={processing}
+                        className="w-full py-5 bg-white text-black font-bold rounded-2xl text-lg shadow-xl active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest"
+                    >
+                        {processing ? 'PROCESANDO...' : 'COMENZAR AHORA'}
+                    </button>
+                </motion.div>
+
+                {/* 2. PLAN ESTUDIANTES */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-card-dark border border-white/5 rounded-[2.5rem] p-8 shadow-2xl"
+                >
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase leading-tight">Plan Estudiantes</h2>
+                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Protección en campus</p>
+                        </div>
+                        <div className="px-4 py-2 bg-white/5 rounded-full font-black text-sm border border-white/10">
+                            4,99 €
+                        </div>
+                    </div>
+
+                    <ul className="space-y-4 mb-10">
+                        {COMMON_FEATURES.map((f, i) => <FeatureItem key={i} text={f} />)}
+                    </ul>
+
+                    <button
+                        onClick={() => handlePurchase('rc_student_discount')}
+                        disabled={processing}
+                        className="w-full py-5 bg-white/10 hover:bg-white/20 text-white font-black rounded-2xl text-xl transition-all border border-white/10 disabled:opacity-50 uppercase tracking-tighter"
+                    >
+                        {processing ? 'PROCESANDO...' : 'SUSCRIBIRSE COMO ESTUDIANTE'}
+                    </button>
+                </motion.div>
+
+                {/* 3. PASE 72H (BROWN THEME) */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-br from-amber-950/40 to-card-dark border border-amber-900/40 rounded-[2.5rem] p-8 shadow-2xl"
+                >
+                    <div className="space-y-1 mb-6">
+                        <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase">Pase 72h</h2>
+                    </div>
+
+                    <div className="bg-amber-600/10 border border-amber-600/20 p-6 rounded-3xl space-y-2 mb-8">
+                        <h4 className="text-amber-500 font-black text-lg leading-tight uppercase italic">Actívalo cuando más lo necesites.</h4>
+                        <p className="text-amber-500/60 text-[10px] font-bold uppercase tracking-widest mt-1">Pase temporal, tranquilidad total.</p>
+                    </div>
+
+                    <p className="text-[11px] text-white/40 font-bold mb-6 italic px-2 leading-relaxed">Incluye todas las funciones del Premium Individual a precio reducido.</p>
+
+                    <ul className="space-y-4 mb-10">
+                        {COMMON_FEATURES.map((f, i) => <FeatureItem key={i} text={f} />)}
+                    </ul>
+
+                    <button
+                        onClick={() => handlePurchase('rc_72h_pass')}
+                        disabled={processing}
+                        className="w-full py-5 bg-gradient-to-r from-orange-600 to-primary text-white font-black rounded-2xl text-xl shadow-xl shadow-red-900/40 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-tighter"
+                    >
+                        {processing ? 'PROCESANDO...' : 'OBTENER PASE POR 2,99€'}
+                    </button>
+                </motion.div>
+
+                {/* 4. PLAN FAMILIAR (BLUE THEME) */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-gradient-to-br from-indigo-950/40 to-card-dark border border-indigo-900/40 rounded-[2.5rem] p-8 shadow-2xl"
+                >
+                    <div className="space-y-1 mb-6">
+                        <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase">Plan Familiar</h2>
+                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-1">Protección compartida</p>
+                    </div>
+
+                    <div className="bg-indigo-600/10 border border-indigo-600/20 p-6 rounded-3xl space-y-1 mb-8">
+                        <p className="text-indigo-400 font-bold text-sm">La seguridad de tus seres queridos y la tuya sí importa.</p>
+                    </div>
+
+                    <div className="space-y-6 mb-10">
+                        <div className="flex items-center gap-4 group">
+                            <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                <Users size={20} />
+                            </div>
+                            <span className="text-sm font-bold">Hasta 5 miembros de la familia</span>
+                        </div>
+                        <div className="flex items-center gap-4 group">
+                            <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                <MapPin size={20} />
+                            </div>
+                            <span className="text-sm font-bold">Ubicación en tiempo real de todos</span>
+                        </div>
+                        <div className="flex items-center gap-4 group">
+                            <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                <Bell size={20} />
+                            </div>
+                            <span className="text-sm font-bold">Alertas cuando llegan o salen</span>
+                        </div>
+
+                        <hr className="border-white/5" />
+
+                        <ul className="space-y-4">
+                            {COMMON_FEATURES.map((f, i) => <FeatureItem key={i} text={f} blue />)}
+                        </ul>
+                    </div>
+
+                    <button
+                        onClick={() => handlePurchase('rc_family_plan')}
+                        disabled={processing}
+                        className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl text-xl shadow-xl shadow-indigo-900/40 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-tighter"
+                    >
+                        {processing ? 'PROCESANDO...' : 'PROTEGER A MI FAMILIA (14,99€)'}
+                    </button>
+                </motion.div>
+
+                {/* Bottom Legal */}
+                <div className="flex flex-col items-center gap-4 py-8">
+                    <div className="flex gap-4">
+                        <button onClick={() => navigate('/terms')} className="text-white/20 text-[10px] font-bold tracking-widest uppercase hover:text-white transition-all underline decoration-white/10 underline-offset-4">Términos</button>
+                        <button onClick={() => navigate('/privacy')} className="text-white/20 text-[10px] font-bold tracking-widest uppercase hover:text-white transition-all underline decoration-white/10 underline-offset-4">Privacidad</button>
+                    </div>
+                    <p className="text-[10px] text-white/10 font-black">© 2026 REDCARPET SECURITY</p>
+                </div>
+
+            </div>
         </div>
     );
 };

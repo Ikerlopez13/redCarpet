@@ -45,5 +45,30 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RedCarpet necesita tu ubicación para mostrarte zonas seguras cercanas y permitir que tus contactos te ayuden en caso de SOS.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Tu ubicación se utiliza en segundo plano exclusivamente para la geovalla de seguridad y para que tus contactos puedan localizarte si activas una emergencia.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Se requiere acceso a la cámara para grabar evidencias de video durante una alerta SOS y permitir la videollamada de emergencia.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>El micrófono es necesario para capturar audio durante el modo SOS y permitir la comunicación con contactos de confianza.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.getcapacitor.capacitor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.vibecode.redcarpet</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

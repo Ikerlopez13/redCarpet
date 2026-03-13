@@ -25,125 +25,142 @@ const categoryConfig: Record<POICategory, { icon: string; label: string; types: 
     hotel: { icon: 'hotel', label: 'Hotel', types: ['hotel', 'lodging'] },
 };
 
-// Deterministic pseudo-random number generator
-function pseudoRandom(seed: number) {
-    let t = seed += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-}
+export type POICategoryExtended = POICategory | 'landmark' | 'monument' | 'museum' | 'attraction';
 
-// Generate a deterministic ID based on grid coordinates
-function generateId(latGrid: number, lngGrid: number, index: number): string {
-    return `poi_${latGrid}_${lngGrid}_${index}`;
-}
-
-const CATEGORIES: POICategory[] = ['restaurant', 'cafe', 'shop', 'park', 'hospital', 'pharmacy', 'gym', 'bar', 'hotel'];
-const NAMES_PREFIX = ['Gran', 'Royal', 'City', 'Blue', 'Red', 'Golden', 'Silver', 'Central', 'Urban', 'Local'];
-const NAMES_SUFFIX = ['Place', 'Spot', 'Corner', 'Hub', 'Point', 'Center', 'Station', 'Lounge', 'Garden', 'Market'];
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 /**
- * Get nearby POIs (Procedurally generated for infinite map coverage)
+ * Get nearby POIs using Mapbox Geocoding API
+ * Includes landmarks and monuments for better map richness
  */
 export async function getNearbyPOIs(
     lat: number,
     lng: number,
-    radiusMeters: number = 800,
+    radiusMeters: number = 2000,
     category?: POICategory
 ): Promise<POI[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    const pois: POI[] = [];
-
-    // Grid size roughly 200 meters (0.002 degrees approx)
-    const gridSize = 0.002;
-    const searchRadiusGrid = Math.ceil((radiusMeters / 111000) / gridSize) + 1;
-
-    const centerLatGrid = Math.floor(lat / gridSize);
-    const centerLngGrid = Math.floor(lng / gridSize);
-
-    for (let x = -searchRadiusGrid; x <= searchRadiusGrid; x++) {
-        for (let y = -searchRadiusGrid; y <= searchRadiusGrid; y++) {
-            const currentLatGrid = centerLatGrid + x;
-            const currentLngGrid = centerLngGrid + y;
-
-            // Seed based on grid coordinates to be deterministic
-            // We mix the bits to avoid patterns
-            const seed = (currentLatGrid * 13371337) ^ (currentLngGrid * 73317331);
-
-            // Should this grid cell have a POI? (70% chance)
-            if (pseudoRandom(seed) > 0.3) {
-                // Determine number of POIs in this cell (0-2)
-                const numPOIs = Math.floor(pseudoRandom(seed + 1) * 3);
-
-                for (let i = 0; i < numPOIs; i++) {
-                    const poiSeed = seed + (i + 1) * 1000;
-
-                    // Generate position within the cell
-                    const latOffset = pseudoRandom(poiSeed) * gridSize;
-                    const lngOffset = pseudoRandom(poiSeed + 1) * gridSize;
-
-                    const poiLat = (currentLatGrid * gridSize) + latOffset;
-                    const poiLng = (currentLngGrid * gridSize) + lngOffset;
-
-                    // Filter by actual distance radius
-                    const distance = calculateDistance(lat, lng, poiLat, poiLng);
-                    if (distance > radiusMeters) continue;
-
-                    // Generate random category
-                    const catIndex = Math.floor(pseudoRandom(poiSeed + 2) * CATEGORIES.length);
-                    const poiCategory = CATEGORIES[catIndex];
-
-                    if (category && poiCategory !== category) continue;
-
-                    // Generate Name
-                    const prefix = NAMES_PREFIX[Math.floor(pseudoRandom(poiSeed + 3) * NAMES_PREFIX.length)];
-                    const suffix = NAMES_SUFFIX[Math.floor(pseudoRandom(poiSeed + 4) * NAMES_SUFFIX.length)];
-                    const label = categoryConfig[poiCategory].label;
-                    const name = `${prefix} ${label} ${suffix}`;
-
-                    pois.push({
-                        id: generateId(currentLatGrid, currentLngGrid, i),
-                        name: name,
-                        category: poiCategory,
-                        categoryIcon: categoryConfig[poiCategory].icon,
-                        address: `${label} Street, ${Math.floor(pseudoRandom(poiSeed + 5) * 100)}`,
-                        lat: poiLat,
-                        lng: poiLng,
-                        distance
-                    });
-                }
-            }
-        }
+    if (!MAPBOX_TOKEN) {
+        console.warn('Mapbox token not found, falling back to empty POIs');
+        return [];
     }
 
-    return pois.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    try {
+        // Broad search for POIs and landmarks
+        const queries = category
+            ? [categoryConfig[category].types[0]]
+            : ['landmark', 'monument', 'museum', 'tourist_attraction', 'restaurant', 'park', 'cafe', 'poi'];
+
+        // We'll combine multiple queries to ensure landmark richness
+        const responses = await Promise.all(queries.slice(0, 3).map(q =>
+            fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?` +
+                `proximity=${lng},${lat}&` +
+                `types=poi&` +
+                `access_token=${MAPBOX_TOKEN}&` +
+                `limit=15`
+            ).then(r => r.json())
+        ));
+
+        const allFeatures = responses.flatMap(r => r.features || []);
+
+        // Deduplicate features by ID
+        const uniqueFeatures = Array.from(new Map(allFeatures.map(f => [f.id, f])).values());
+
+        const pois: POI[] = uniqueFeatures.map((f: any) => {
+            const [poiLng, poiLat] = f.center;
+            const distance = calculateDistance(lat, lng, poiLat, poiLng);
+
+            // Extract category info from Mapbox properties
+            const mbtypes = (f.properties?.category || '').toLowerCase();
+            const mbtext = (f.text || '').toLowerCase();
+
+            let poiCategory: POICategory = 'shop'; // default
+
+            if (mbtypes.includes('restaurant') || mbtypes.includes('food')) poiCategory = 'restaurant';
+            else if (mbtypes.includes('cafe') || mbtext.includes('café') || mbtypes.includes('coffee')) poiCategory = 'cafe';
+            else if (mbtypes.includes('park') || mbtypes.includes('garden')) poiCategory = 'park';
+            else if (mbtypes.includes('hospital') || mbtypes.includes('medical')) poiCategory = 'hospital';
+            else if (mbtypes.includes('pharmacy')) poiCategory = 'pharmacy';
+            else if (mbtypes.includes('gym') || mbtypes.includes('fitness')) poiCategory = 'gym';
+            else if (mbtypes.includes('bar') || mbtypes.includes('pub')) poiCategory = 'bar';
+            else if (mbtypes.includes('hotel') || mbtypes.includes('lodging')) poiCategory = 'hotel';
+
+            // Special handling for landmarks (High priority icons)
+            let iconOverride = categoryConfig[poiCategory].icon;
+            if (mbtypes.includes('landmark') || mbtypes.includes('monument') || mbtypes.includes('museum') || mbtypes.includes('attraction')) {
+                iconOverride = 'account_balance'; // Monument/History icon
+                if (mbtypes.includes('museum')) iconOverride = 'museum';
+                if (mbtypes.includes('attraction')) iconOverride = 'local_activity';
+            }
+
+            return {
+                id: f.id,
+                name: f.text_es || f.text || 'Lugar desconocido',
+                category: poiCategory,
+                categoryIcon: iconOverride,
+                address: f.properties?.address || f.place_name?.split(',')[0] || 'Dirección no disponible',
+                lat: poiLat,
+                lng: poiLng,
+                distance
+            };
+        });
+
+        // Filter and sort by distance
+        return pois
+            .filter(p => p.distance! <= radiusMeters)
+            .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+
+    } catch (e) {
+        console.error('Error fetching nearby POIs:', e);
+        return [];
+    }
 }
 
 /**
- * Search POIs by query text
- */
-/**
- * Search POIs by query text
+ * Search POIs by query text using Mapbox Geocoding API
  */
 export async function searchPOIs(query: string, lat: number, lng: number): Promise<POI[]> {
-    if (!query.trim()) return [];
+    if (!query.trim() || !MAPBOX_TOKEN) return [];
 
-    const lowerQuery = query.toLowerCase();
+    try {
+        const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
+            `proximity=${lng},${lat}&` +
+            `types=poi,address,place&` +
+            `access_token=${MAPBOX_TOKEN}&` +
+            `limit=10`
+        );
 
-    // Generate POIs in a wider area for search
-    const nearbyPOIs = await getNearbyPOIs(lat, lng, 2000);
+        if (!response.ok) throw new Error('Mapbox search error');
 
-    const filtered = nearbyPOIs
-        .filter(poi =>
-            poi.name.toLowerCase().includes(lowerQuery) ||
-            poi.address.toLowerCase().includes(lowerQuery) ||
-            poi.category.toLowerCase().includes(lowerQuery)
-        )
-        .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+        const data = await response.json();
+        if (!data.features) return [];
 
-    return filtered;
+        return data.features.map((f: any) => {
+            const [poiLng, poiLat] = f.center;
+            const distance = calculateDistance(lat, lng, poiLat, poiLng);
+
+            // Basic category inference for search results
+            const mbtypes = f.properties?.category || '';
+            let poiCategory: POICategory = 'shop';
+            if (mbtypes.includes('restaurant')) poiCategory = 'restaurant';
+            else if (mbtypes.includes('cafe')) poiCategory = 'cafe';
+
+            return {
+                id: f.id,
+                name: f.text_es || f.text,
+                category: poiCategory,
+                categoryIcon: categoryConfig[poiCategory].icon,
+                address: f.place_name?.split(',')[0] || f.place_name,
+                lat: poiLat,
+                lng: poiLng,
+                distance
+            };
+        });
+    } catch (e) {
+        console.error('Error searching POIs:', e);
+        return [];
+    }
 }
 
 /**

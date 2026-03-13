@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import { Preferences } from '@capacitor/preferences';
+import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
+import { TrustedContactsService } from '../services/trustedContactsService';
+
+export const CONSENT_KEY = 'emergency_recording_consent';
 
 interface SOSContact {
-    id: number;
+    id: string;
     name: string;
     phone: string;
     avatar: string;
@@ -21,13 +28,9 @@ export interface SOSConfigData {
     autoCall112: boolean;
     shareLocation: boolean;
     recordAudio: boolean;
+    privacyPolicyAccepted: boolean;
     isConfigured: boolean;
 }
-
-const defaultContacts: SOSContact[] = [
-    { id: 1, name: 'Mamá', phone: '+34 612 345 678', avatar: '👩' },
-    { id: 2, name: 'Papá', phone: '+34 698 765 432', avatar: '👨' },
-];
 
 export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
     isOpen,
@@ -35,23 +38,72 @@ export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
     onSave,
     currentConfig
 }) => {
+    const navigate = useNavigate();
+    const { user, refreshProfile } = useAuth();
     const [step, setStep] = useState<'main' | 'pin' | 'contacts'>('main');
-    const [contacts, setContacts] = useState<SOSContact[]>(currentConfig?.contacts || defaultContacts);
-    const [pin, setPin] = useState(currentConfig?.pin || '');
+    const [contacts, setContacts] = useState<SOSContact[]>([]);
+    const [pin, setPin] = useState(currentConfig?.pin || user?.profile?.sos_pin || '');
     const [autoCall112, setAutoCall112] = useState(currentConfig?.autoCall112 ?? true);
     const [shareLocation, setShareLocation] = useState(currentConfig?.shareLocation ?? true);
-    const [recordAudio, setRecordAudio] = useState(currentConfig?.recordAudio ?? true);
+    const [recordAudio] = useState(currentConfig?.recordAudio ?? true);
+    const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(currentConfig?.privacyPolicyAccepted ?? false);
     const [pinInput, setPinInput] = useState('');
     const [pinConfirm, setPinConfirm] = useState('');
     const [pinStep, setPinStep] = useState<'create' | 'confirm'>('create');
 
-    const handleSave = () => {
+    useEffect(() => {
+        if (!user) return;
+
+        const loadTrustedContacts = async () => {
+            const trusted = await TrustedContactsService.getContacts(user.id);
+            // Filter only those who should be notified in emergency
+            const emergencyContacts = trusted
+                .filter(c => c.notify_emergency && c.status === 'accepted')
+                .map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    phone: c.phone,
+                    avatar: c.relation === 'Madre' ? '👩' : c.relation === 'Padre' ? '👨' : '👤'
+                }));
+            setContacts(emergencyContacts);
+        };
+
+        loadTrustedContacts();
+    }, [user]);
+
+    // Sync PIN from profile when it loads
+    useEffect(() => {
+        if (user?.profile?.sos_pin && !pin) {
+            setPin(user.profile.sos_pin);
+        }
+    }, [user?.profile?.sos_pin]);
+
+    const handleSave = async () => {
+        // Persist privacy acceptance if enabled
+        if (privacyPolicyAccepted) {
+            // 1. Local Storage
+            await Preferences.set({ key: CONSENT_KEY, value: 'true' });
+
+            // 2. Database Profile
+            if (user) {
+                await (supabase.from('profiles') as any)
+                    .update({
+                        has_accepted_privacy_policy: true,
+                        sos_pin: pin
+                    } as any)
+                    .eq('id', user.id);
+
+                if (refreshProfile) await refreshProfile();
+            }
+        }
+
         onSave({
             contacts,
             pin,
             autoCall112,
             shareLocation,
             recordAudio,
+            privacyPolicyAccepted,
             isConfigured: true,
         });
         onClose();
@@ -98,7 +150,7 @@ export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
         }
     };
 
-    const removeContact = (id: number) => {
+    const removeContact = (id: string) => {
         setContacts(contacts.filter(c => c.id !== id));
     };
 
@@ -235,42 +287,46 @@ export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
                                 </button>
                             </div>
 
-                            {/* Record Audio */}
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                                <div className="size-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-blue-400 text-lg">mic</span>
+                            {/* Privacy Policy */}
+                            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/20 mt-2">
+                                <div className="flex items-center gap-4">
+                                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                        <span className="material-symbols-outlined text-primary text-lg">policy</span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-bold text-sm">Política de Seguridad</p>
+                                        <p className="text-[10px] text-white/60 leading-tight">Acepto el uso de mis datos y sensores en caso de emergencia según los términos de SOS.</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setPrivacyPolicyAccepted(!privacyPolicyAccepted)}
+                                        className={clsx(
+                                            "w-12 h-7 rounded-full flex items-center px-1 transition-colors",
+                                            privacyPolicyAccepted ? "bg-primary" : "bg-white/20"
+                                        )}
+                                    >
+                                        <div className={clsx(
+                                            "size-5 bg-white rounded-full transition-transform",
+                                            privacyPolicyAccepted ? "translate-x-5" : "translate-x-0"
+                                        )} />
+                                    </button>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-sm">Grabar Audio</p>
-                                    <p className="text-[10px] text-white/40">Graba el entorno automáticamente</p>
-                                </div>
-                                <button
-                                    onClick={() => setRecordAudio(!recordAudio)}
-                                    className={clsx(
-                                        "w-12 h-7 rounded-full flex items-center px-1 transition-colors",
-                                        recordAudio ? "bg-blue-500" : "bg-white/20"
-                                    )}
-                                >
-                                    <div className={clsx(
-                                        "size-5 bg-white rounded-full transition-transform",
-                                        recordAudio ? "translate-x-5" : "translate-x-0"
-                                    )} />
-                                </button>
                             </div>
                         </div>
 
                         {/* Save Button */}
                         <button
                             onClick={handleSave}
-                            disabled={!pin || contacts.length === 0}
+                            disabled={!pin || contacts.length === 0 || !privacyPolicyAccepted}
                             className={clsx(
                                 "w-full mt-8 py-4 rounded-2xl font-bold text-lg transition-all",
-                                pin && contacts.length > 0
+                                pin && contacts.length > 0 && privacyPolicyAccepted
                                     ? "bg-primary text-white shadow-lg shadow-primary/30"
                                     : "bg-white/10 text-white/40"
                             )}
                         >
-                            {pin && contacts.length > 0 ? 'Guardar Configuración' : 'Completa la configuración'}
+                            {!privacyPolicyAccepted
+                                ? 'Acepta la política para continuar'
+                                : (pin && contacts.length > 0 ? 'Guardar Configuración' : 'Completa la configuración')}
                         </button>
                     </>
                 )}
@@ -382,11 +438,17 @@ export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
                         </div>
 
                         {/* Add Contact Button */}
-                        <button className="w-full flex items-center gap-4 p-4 rounded-2xl border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/50 transition-all">
+                        <button
+                            onClick={() => {
+                                onClose();
+                                navigate('/trusted-contacts');
+                            }}
+                            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/50 transition-all text-left"
+                        >
                             <div className="size-12 rounded-full bg-white/5 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-xl">person_add</span>
                             </div>
-                            <span className="font-medium">Añadir contacto</span>
+                            <span className="font-medium">Añadir o gestionar contactos</span>
                         </button>
                     </>
                 )}

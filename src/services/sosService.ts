@@ -10,7 +10,9 @@ interface SOSConfig {
     notifyContacts: boolean;
     shareLocation: boolean;
     mode?: 'discrete' | 'visible';
+    type?: string;
     mediaUrl?: string;
+    privacyPolicyAccepted?: boolean;
 }
 
 let mediaRecorder: MediaRecorder | null = null;
@@ -19,27 +21,34 @@ let recordedChunks: Blob[] = [];
 /**
  * Start audio/video recording (Web API)
  */
-export async function startRecording(): Promise<boolean> {
+export async function startRecording(videoEnabled: boolean = true): Promise<{ success: boolean; stream?: MediaStream }> {
     try {
         recordedChunks = [];
-        let stream: MediaStream;
+        let stream: MediaStream | null = null;
 
         try {
-            // Try Video + Audio first
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
-                audio: true
-            });
+            if (videoEnabled) {
+                // Try Video + Audio (Premium)
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' },
+                    audio: true
+                });
+            } else {
+                // Free user: Audio only
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
         } catch (err) {
-            console.warn('Video permission denied or failed, falling back to audio only', err);
+            console.warn('Initial media request failed, trying fallback', err);
             try {
-                // Fallback to Audio only
+                // Fallback to Audio only for either case if video fails but audio might work
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             } catch (authErr) {
-                console.error('Audio permission denied', authErr);
-                return false;
+                console.error('All media permissions denied', authErr);
+                return { success: false };
             }
         }
+
+        if (!stream) return { success: false };
 
         mediaRecorder = new MediaRecorder(stream);
 
@@ -50,10 +59,10 @@ export async function startRecording(): Promise<boolean> {
         };
 
         mediaRecorder.start();
-        return true;
+        return { success: true, stream };
     } catch (error) {
         console.error('Error starting recording:', error);
-        return false;
+        return { success: false };
     }
 }
 
@@ -188,6 +197,10 @@ export async function activateSOS(
     }).catch(() => null);
 
     let finalMessage = config.message;
+    if (config.type) {
+        finalMessage = `🚨 EMERGENCIA: ${config.type.toUpperCase()}\n\n` + finalMessage;
+    }
+
     if (config.shareLocation && position) {
         finalMessage += `\n\n📍 Ubicación en tiempo real:\nhttps://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}`;
     }
@@ -199,9 +212,10 @@ export async function activateSOS(
         lng: position?.coords.longitude || null,
         status: 'active',
         message: finalMessage,
-        mode: config.mode || 'visible', // Add mode
-        media_url: config.mediaUrl || null, // Add media URL
-    } as any; // Cast because types might not be updated yet
+        mode: config.mode || 'visible',
+        media_url: config.mediaUrl || null,
+        // Assuming we update profiles or pass metadata here
+    } as any;
 
     // Create alert in database
     const { data: alert, error } = await (supabase.from('sos_alerts') as any)

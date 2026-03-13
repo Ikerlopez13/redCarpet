@@ -22,7 +22,9 @@ const mockMembers: (FamilyMember & { profile: Profile })[] = [
             id: 'mock-user-123',
             full_name: 'Alejandro García',
             avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=260',
-            phone: '+34 612 345 678',
+            phone: '+34 600 000 000',
+            has_accepted_privacy_policy: true,
+            sos_pin: null,
             created_at: new Date().toISOString(),
         }
     },
@@ -37,7 +39,9 @@ const mockMembers: (FamilyMember & { profile: Profile })[] = [
             id: 'mock-user-456',
             full_name: 'María García',
             avatar_url: null,
-            phone: '+34 612 345 679',
+            phone: '+34 600 000 000',
+            has_accepted_privacy_policy: true,
+            sos_pin: null,
             created_at: new Date().toISOString(),
         }
     },
@@ -53,6 +57,8 @@ const mockMembers: (FamilyMember & { profile: Profile })[] = [
             full_name: 'Carlos García',
             avatar_url: null,
             phone: null,
+            has_accepted_privacy_policy: true,
+            sos_pin: null,
             created_at: new Date().toISOString(),
         }
     }

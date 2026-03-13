@@ -24,6 +24,8 @@ const mockUser: AuthUser = {
         full_name: 'Alejandro García',
         avatar_url: 'https://ui-avatars.com/api/?name=Alejandro+Garcia&background=0D8ABC&color=fff',
         phone: '+34 612 345 678',
+        has_accepted_privacy_policy: true,
+        sos_pin: null,
         created_at: new Date().toISOString(),
     },
     subscription: undefined // Default to free for mock user, or set to a mock subscription object to test premium
@@ -137,6 +139,8 @@ export async function signInAsDemo(): Promise<{ user: AuthUser; error: null }> {
             full_name: 'Usuario Demo',
             avatar_url: 'https://ui-avatars.com/api/?name=Usuario+Demo&background=random&color=fff',
             phone: '+34 600 000 000',
+            has_accepted_privacy_policy: true,
+            sos_pin: null,
             created_at: new Date().toISOString(),
         }
     };
@@ -221,7 +225,7 @@ export async function signInWithApple(): Promise<{ error: string | null }> {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const shouldUseCustomScheme = isNative || (isLocalhost && (!!window.Capacitor || navigator.userAgent.includes('Capacitor') || isMobile));
 
-    const redirectTo = shouldUseCustomScheme ? 'com.redcarpet.app://login-callback' : window.location.origin;
+    const redirectTo = shouldUseCustomScheme ? 'com.vibecode.redcarpet://login-callback' : window.location.origin;
 
     console.log('Apple Sign-In: detected platform', isNative ? 'native' : 'web', 'redirectTo:', redirectTo);
 

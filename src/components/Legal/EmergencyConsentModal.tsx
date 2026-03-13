@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Shield } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../services/supabaseClient';
 
 interface EmergencyConsentModalProps {
     isOpen: boolean;
@@ -17,10 +19,28 @@ export async function checkEmergencyConsent(): Promise<boolean> {
 
 export function EmergencyConsentModal({ isOpen, onConsent, onDecline }: EmergencyConsentModalProps) {
     const [agreed, setAgreed] = useState(false);
+    const { user, refreshProfile } = useAuth();
 
     const handleConfirm = async () => {
         if (!agreed) return;
+
+        // Save locally
         await Preferences.set({ key: CONSENT_KEY, value: 'true' });
+
+        // Save to Database if logged in
+        if (user) {
+            await supabase
+                .from('profiles')
+                // @ts-ignore
+                .update({ has_accepted_privacy_policy: true })
+                .eq('id', user.id);
+
+            // Refresh profile context
+            if (refreshProfile) {
+                await refreshProfile();
+            }
+        }
+
         onConsent();
     };
 
