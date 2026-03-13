@@ -1,4 +1,4 @@
-# Triggering final build with App Store Distribution profile - March 13
+# Triggering build #13: Isolated signing settings - March 13
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -68,6 +68,7 @@ jobs:
             archive \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM=7W52U2SRVA \
             PROVISIONING_PROFILE_SPECIFIER="redCarpet Distribution" \
