@@ -32,6 +32,9 @@ jobs:
           VITE_TMB_APP_ID: ${{ secrets.VITE_TMB_APP_ID }}
           VITE_TMB_APP_KEY: ${{ secrets.VITE_TMB_APP_KEY }}
 
+      - name: Capacitor Sync
+        run: npx cap sync ios
+
       - name: Install CocoaPods
         run: |
           cd ios/App
@@ -64,17 +67,16 @@ jobs:
             archive \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=7W52U2SRVA \
-            PROVISIONING_PROFILE_SPECIFIER="redCarpet app" \
-            -allowProvisioningUpdates
+            PROVISIONING_PROFILE_SPECIFIER="redCarpet app"
 
       - name: Export .ipa
         run: |
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ \
-            -exportOptionsPlist ios/App/App/ExportOptions.plist \
-            -allowProvisioningUpdates
+            -exportOptionsPlist ios/App/App/ExportOptions.plist
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
