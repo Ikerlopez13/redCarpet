@@ -1,4 +1,4 @@
-# Triggering build #25: TestFlight Upload Authentication Fix - March 14
+# Triggering build #26: Direct TestFlight Upload via xcrun altool - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -87,9 +87,9 @@ jobs:
             -verbose
 
       - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight-build@v1
-        with:
-          app-path: 'build/App.ipa'
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          api-key-content: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+        run: |
+          xcrun altool --upload-app \
+            --file build/App.ipa \
+            --type ios \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
