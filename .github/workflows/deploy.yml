@@ -1,4 +1,4 @@
-# Triggering build #24: Manual Signing with Synchronized Profile - March 14
+# Triggering build #25: TestFlight Upload Authentication Fix - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -59,7 +59,9 @@ jobs:
       - name: Build and Archive iOS App
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
+          mkdir -p ~/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          echo "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
           
           xcodebuild -workspace ios/App/App.xcworkspace \
             -scheme App \
