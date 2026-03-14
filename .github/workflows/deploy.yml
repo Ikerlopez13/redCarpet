@@ -1,4 +1,4 @@
-# Triggering build #24: Manual Signing with Fixed Profile - March 14
+# Triggering build #24: Manual Signing with Synchronized Profile - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
