@@ -351,7 +351,7 @@ export function subscribeToSOSAlerts(
                 table: 'sos_alerts',
                 filter: `group_id=eq.${groupId}`,
             },
-            (payload) => {
+            (payload: any) => {
                 onAlert(payload.new as SOSAlert);
             }
         )

@@ -166,7 +166,7 @@ export function subscribeToFamilyLocations(
                 table: 'locations',
                 filter: `user_id=in.(${memberIds.join(',')})`,
             },
-            (payload) => {
+            (payload: any) => {
                 const location = payload.new as Location;
                 onLocationUpdate(location.user_id, location);
             }

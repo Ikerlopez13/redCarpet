@@ -9,7 +9,7 @@ import { DeepLinkHandler } from './components/auth/DeepLinkHandler';
 
 // Pages
 import { Home } from './pages/Home';
-import { Login } from './pages/Login';
+import Login from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
 import { ReportIncident } from './pages/ReportIncident';
 import { RouteSelection } from './pages/RouteSelection';
