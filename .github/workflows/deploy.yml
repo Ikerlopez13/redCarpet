@@ -1,4 +1,4 @@
-# Triggering build #19: Fixed Profile Pairing - March 14
+# Triggering build #20: Clean Auto-Provisioning (No local profiles) - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -50,14 +50,6 @@ jobs:
           p12-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
           create-keychain: true
           keychain-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
-
-      - name: Install Provisioning Profile
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.APP_STORE_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-          # List profiles and check type
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
-          grep "AppIDName" -A 1 ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision || true
 
       - name: Build and Archive iOS App
         run: |
