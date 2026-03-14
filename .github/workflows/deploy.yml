@@ -1,4 +1,4 @@
-# Triggering build #26: Direct TestFlight Upload via xcrun altool - March 14
+# Triggering build #27: Final Key File Fix for TestFlight Upload - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -88,6 +88,8 @@ jobs:
 
       - name: Upload to TestFlight
         run: |
+          mkdir -p ~/private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
           xcrun altool --upload-app \
             --file build/App.ipa \
             --type ios \
