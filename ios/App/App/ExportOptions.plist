@@ -9,12 +9,17 @@
 	<key>method</key>
 	<string>app-store</string>
 	<key>signingStyle</key>
-	<string>automatic</string>
+	<string>manual</string>
 	<key>stripSwiftSymbols</key>
 	<true/>
 	<key>teamID</key>
 	<string>7W52U2SRVA</string>
 	<key>uploadSymbols</key>
 	<true/>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.vibecode.redcarpet</key>
+		<string>redCarpet Distribution</string>
+	</dict>
 </dict>
 </plist>

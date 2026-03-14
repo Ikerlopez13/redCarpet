@@ -1,4 +1,4 @@
-# Triggering build #22: Full Automatic Signing with API Key - March 14
+# Triggering build #23: Surgical Diagnostics + Portal Fix Verification - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -50,6 +50,32 @@ jobs:
           p12-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
           create-keychain: true
           keychain-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
+
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.APP_STORE_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          
+      - name: 🔍 Surgical Diagnostics
+        run: |
+          echo "=== keychain Identities ==="
+          security find-identity -v -p codesigning
+          
+          echo "=== Provisioning Profile Details ==="
+          PROV_PATH=~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          security cms -D -i "$PROV_PATH" > profile_decoded.plist
+          
+          echo "Profile TeamID:"
+          /usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" profile_decoded.plist
+          
+          echo "Profile Entitlements (Sign In with Apple?):"
+          /usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.developer.applesignin" profile_decoded.plist || echo "NOT FOUND"
+          
+          echo "Checking Certificate Match..."
+          openssl pkcs12 -in <(echo "${{ secrets.APP_STORE_CERTIFICATE_P12 }}" | base64 --decode) -nokeys -passin pass:"${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}" | openssl x64 -pubkey -noout || echo "P12 Cert detected"
+          
+          echo "Profile expiration:"
+          /usr/libexec/PlistBuddy -c "Print :ExpirationDate" profile_decoded.plist
 
       - name: Build and Archive iOS App
         run: |
