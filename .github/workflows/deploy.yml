@@ -1,4 +1,4 @@
-# Triggering build #28: Credentials Validation + Safe Key Handling - March 14
+# Triggering build #29: Surgical Diagnostics & Safe Key Handling - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -49,10 +49,23 @@ jobs:
           # Use printf to avoid trailing newline issues and handle multi-line secrets safely
           printf "%s" "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
           
-          echo "🔍 Validating credentials with Apple..."
+          echo "🔍 SURGICAL DIAGNOSTICS (Safe metadata check):"
+          ISSUER_ID="${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+          KEY_ID="${{ secrets.APP_STORE_CONNECT_KEY_ID }}"
+          KEY_CONTENT="${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}"
+          
+          echo "  - Issuer ID Length: ${#ISSUER_ID} (Expected: 36)"
+          echo "  - Key ID Length: ${#KEY_ID} (Expected: 10)"
+          echo "  - Key Content Length: ${#KEY_CONTENT} characters"
+          
+          # Check for common mistakes without exposing secrets
+          if [[ $ISSUER_ID == *" "* ]]; then echo "  ⚠️ ERROR: Issuer ID contains spaces!"; fi
+          if [[ $KEY_ID == *" "* ]]; then echo "  ⚠️ ERROR: Key ID contains spaces!"; fi
+          
+          echo "🚀 Validating with Apple..."
           xcrun altool --list-apps \
-            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+            --apiKey "$KEY_ID" \
+            --apiIssuer "$ISSUER_ID"
           echo "✅ Credentials verified!"
 
       - name: Import Code Signing Certificates
