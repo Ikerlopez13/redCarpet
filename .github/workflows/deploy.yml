@@ -1,4 +1,4 @@
-# Triggering build #27: Final Key File Fix for TestFlight Upload - March 14
+# Triggering build #28: Credentials Validation + Safe Key Handling - March 14
 name: Deploy to TestFlight 🚀🛡️
 
 on:
@@ -43,6 +43,18 @@ jobs:
           LANG: en_US.UTF-8
           LC_ALL: en_US.UTF-8
 
+      - name: Validate App Store Credentials
+        run: |
+          mkdir -p ~/private_keys
+          # Use printf to avoid trailing newline issues and handle multi-line secrets safely
+          printf "%s" "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          
+          echo "🔍 Validating credentials with Apple..."
+          xcrun altool --list-apps \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+          echo "✅ Credentials verified!"
+
       - name: Import Code Signing Certificates
         uses: apple-actions/import-codesign-certs@v3
         with:
@@ -58,11 +70,6 @@ jobs:
 
       - name: Build and Archive iOS App
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          mkdir -p ~/private_keys
-          echo "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-          echo "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-          
           xcodebuild -workspace ios/App/App.xcworkspace \
             -scheme App \
             -configuration Release \
@@ -71,7 +78,7 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
-            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             DEVELOPMENT_TEAM=7W52U2SRVA
 
       - name: Export .ipa
@@ -83,13 +90,11 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
-            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             -verbose
 
       - name: Upload to TestFlight
         run: |
-          mkdir -p ~/private_keys
-          echo "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
           xcrun altool --upload-app \
             --file build/App.ipa \
             --type ios \
