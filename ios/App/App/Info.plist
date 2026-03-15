@@ -64,7 +64,7 @@
 			<string>com.getcapacitor.capacitor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.redcarpet.help</string>
+				<string>com.vibecode.redcarpet</string>
 			</array>
 		</dict>
 	</array>
