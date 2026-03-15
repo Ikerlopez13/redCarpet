@@ -18,7 +18,7 @@
 	<true/>
 	<key>provisioningProfiles</key>
 	<dict>
-		<key>com.vibecode.redcarpet</key>
+		<key>com.redcarpet.help</key>
 		<string>redCarpet Distribution</string>
 	</dict>
 </dict>
