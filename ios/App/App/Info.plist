@@ -53,6 +53,10 @@
 	<string>Se requiere acceso a la cámara para grabar evidencias de video durante una alerta SOS y permitir la videollamada de emergencia.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>El micrófono es necesario para capturar audio durante el modo SOS y permitir la comunicación con contactos de confianza.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Se requiere acceso a la galería para que puedas adjuntar fotos de perfil o guardar evidencias visuales de seguridad.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Se requiere permiso para guardar evidencias visuales capturadas durante una emergencia en tu galería.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
