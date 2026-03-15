@@ -18,8 +18,8 @@
 	<true/>
 	<key>provisioningProfiles</key>
 	<dict>
-		<key>com.redcarpet.help</key>
-		<string>RedCarpet_Help_Distribution</string>
+		<key>com.vibecode.redcarpet</key>
+		<string>redCarpet Distribution</string>
 	</dict>
 </dict>
 </plist>
