@@ -19,7 +19,7 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>com.redcarpet.help</key>
-		<string>RedCarpet_Help_Store</string>
+		<string>RedCarpet_Help_Distribution</string>
 	</dict>
 </dict>
 </plist>
