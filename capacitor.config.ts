@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-    appId: 'com.vibecode.redcarpet',
+    appId: 'com.redcarpet.help',
     appName: 'RedCarpet',
     webDir: 'dist',
     server: {

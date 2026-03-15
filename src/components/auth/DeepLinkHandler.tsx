@@ -101,7 +101,7 @@ export const DeepLinkHandler = () => {
     useEffect(() => {
         // Handle Cold Start
         App.getLaunchUrl().then(launchUrl => {
-            if (launchUrl && launchUrl.url.startsWith('com.vibecode.redcarpet://')) {
+            if (launchUrl && launchUrl.url.startsWith('com.redcarpet.help://')) {
                 console.log('App opened with cold start URL:', launchUrl.url);
                 handleDeepLink(launchUrl.url);
             }
@@ -109,7 +109,7 @@ export const DeepLinkHandler = () => {
 
         // Handle Background/Resume
         const listener = App.addListener('appUrlOpen', (event: URLOpenListenerEvent) => {
-            if (event.url.startsWith('com.vibecode.redcarpet://')) {
+            if (event.url.startsWith('com.redcarpet.help://')) {
                 console.log('App opened with URL event:', event.url);
                 handleDeepLink(event.url);
             }
