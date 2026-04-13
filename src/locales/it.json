@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Mappa",
+    "contacts": "Contatti",
+    "sos": "SOS",
+    "premium": "Premium",
+    "settings": "Impostazioni"
+  },
+  "home": {
+    "greeting": "Ciao, {{name}}",
+    "emergency_active": "ALLERTA SOS ATTIVA",
+    "report_incident": "Segnala incidente"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "profile_section": {
+      "premium_member": "Membro Premium",
+      "free_member": "Membro Gratuito"
+    },
+    "groups": {
+      "security_circle": "CERCHIO DI SICUREZZA",
+      "account_access": "ACCOUNT E ACCESSO",
+      "security_network": "RETE DI SICUREZZA",
+      "support_legal": "SUPPORTO E LEGALE",
+      "privacy_data": "PRIVACY E DATI (GDPR)",
+      "debug": "🛠️ DEBUG (DEMO)"
+    },
+    "items": {
+      "circle_management": "Gestione cerchi",
+      "protection_level": "Livello di protezione",
+      "my_account": "Il mio account",
+      "emergency_history": "Cronologia emergenze",
+      "trusted_contacts": "Contatti fidati",
+      "ai_chat": "Chat IA",
+      "greencarpet": "GreenCarpet",
+      "contact": "Contatti",
+      "feedback": "Feedback",
+      "faq": "FAQ",
+      "privacy_policy": "Informativa sulla privacy",
+      "terms_of_use": "Condizioni d'uso",
+      "language": "Lingua",
+      "notifications": "Notifiche",
+      "advanced_tracking": "Tracciamento avanzato",
+      "download_data": "Scarica i miei dati",
+      "withdraw_consent": "Ritira il consenso",
+      "view_onboarding": "Visualizza onboarding",
+      "reset_onboarding": "Ripristina onboarding"
+    },
+    "status": {
+      "granted": "Attiva",
+      "denied": "Disattivata (Tocca per attivare)"
+    },
+    "logout": "Disconnetti",
+    "delete_account": "Elimina il mio account"
+  },
+  "emergency": {
+    "sos_title": "CENTRO EMERGENZE",
+    "instructions": "Tieni premuto per attivare SOS",
+    "cancel": "Annulla"
+  },
+  "premium": {
+    "individual": {
+      "title": "Premium Individuale",
+      "subtitle": "Resta un passo avanti al pericolo."
+    },
+    "student": {
+      "title": "Piano Studenti",
+      "subtitle": "Sii colui che va sempre più al sicuro."
+    },
+    "72h": {
+      "title": "Pass 72h",
+      "subtitle": "Attivalo quando ne hai più bisogno."
+    },
+    "family": {
+      "title": "Piano Famiglia",
+      "subtitle": "Perché ciò che conta di più non ha prezzo."
+    },
+    "cancel_anytime": "Cancella quando vuoi",
+    "includes_all_individual": "Include tutto il Premium Individuale",
+    "student_discount": "E sconto studenti!",
+    "hire": "ABBONATI",
+    "activate": "ATTIVA PASS",
+    "verify": "VERIFICA IDONEITÀ",
+    "protect_family": "PROTEGGI LA MIA FAMIGLIA",
+    "main_subtitle": "Con la tecnologia d'élite, attiva la modalità tranquillità.",
+    "72h.promo": "Pass temporaneo, tranquillità totale.",
+    "restore_purchases": "Ripristina acquisti"
+  }
+}

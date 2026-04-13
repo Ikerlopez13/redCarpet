@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Mapa",
+    "contacts": "Contactes",
+    "sos": "SOS",
+    "premium": "Premium",
+    "settings": "Ajustos"
+  },
+  "home": {
+    "greeting": "Hola, {{name}}",
+    "emergency_active": "ALERTA SOS ACTIVA",
+    "report_incident": "Reportar Incidència"
+  },
+  "settings": {
+    "title": "Ajustos",
+    "profile_section": {
+      "premium_member": "Membre Premium",
+      "free_member": "Membre Gratuït"
+    },
+    "groups": {
+      "security_circle": "CERCLE DE SEGURETAT",
+      "account_access": "COMPTE I ACCÉS",
+      "security_network": "XARXA DE SEGURETAT",
+      "support_legal": "SUPORT I LEGAL",
+      "privacy_data": "PRIVACITAT I DADES (RGPD)",
+      "debug": "🛠️ DEBUG (DEMO)"
+    },
+    "items": {
+      "circle_management": "Gestió de Cercles",
+      "protection_level": "Nivell de Protecció",
+      "my_account": "El meu Compte",
+      "emergency_history": "Registre d'Emergències",
+      "trusted_contacts": "Contactes de confiança",
+      "ai_chat": "Chat amb IA",
+      "greencarpet": "GreenCarpet",
+      "contact": "Contacte",
+      "feedback": "Feedback",
+      "faq": "FAQ",
+      "privacy_policy": "Polítiques de privacitat",
+      "terms_of_use": "Condicions d'ús",
+      "language": "Idioma",
+      "notifications": "Notificacions",
+      "advanced_tracking": "Seguiment avançat",
+      "download_data": "Descarregar les meves dades",
+      "withdraw_consent": "Retirar consentiment",
+      "view_onboarding": "Veure Onboarding",
+      "reset_onboarding": "Reiniciar Onboarding"
+    },
+    "status": {
+      "granted": "Activa",
+      "denied": "Desactivada (Toca per activar)"
+    },
+    "logout": "Tancar sessió",
+    "delete_account": "Eliminar el meu compte"
+  },
+  "emergency": {
+    "sos_title": "CENTRE D'EMERGÈNCIA",
+    "instructions": "Mantén premut per activar SOS",
+    "cancel": "Cancel·lar"
+  },
+  "premium": {
+    "individual": {
+      "title": "Premium Individual",
+      "subtitle": "Ves un pas per davant del perill."
+    },
+    "student": {
+      "title": "Plan Estudiants",
+      "subtitle": "Sigues qui sempre vagi més segur."
+    },
+    "72h": {
+      "title": "Passi 72h",
+      "subtitle": "Activa'l quan més ho necessitis."
+    },
+    "family": {
+      "title": "Plan Familiar",
+      "subtitle": "Perquè el més valuós no té preu."
+    },
+    "cancel_anytime": "Cancel·la quan vulguis",
+    "includes_all_individual": "Inclou tot el del Premium Individual",
+    "student_discount": "I descompte per a estudiants!",
+    "hire": "CONTRACTAR",
+    "activate": "ACTIVAR PASSI",
+    "verify": "VERIFICAR ELEGIBILITAT",
+    "protect_family": "PROTEGIR LA MEVA FAMÍLIA",
+    "main_subtitle": "Amb tecnologia d'elit, activa el modo tranquil·litat.",
+    "72h.promo": "Passi temporal, tranquil·litat total.",
+    "restore_purchases": "Restaurar Compres"
+  }
+}

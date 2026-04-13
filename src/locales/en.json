@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Map",
+    "contacts": "Contacts",
+    "sos": "SOS",
+    "premium": "Premium",
+    "settings": "Settings"
+  },
+  "home": {
+    "greeting": "Hello, {{name}}",
+    "emergency_active": "SOS ALERT ACTIVE",
+    "report_incident": "Report Incident"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile_section": {
+      "premium_member": "Premium Member",
+      "free_member": "Free Member"
+    },
+    "groups": {
+      "security_circle": "SECURITY CIRCLE",
+      "account_access": "ACCOUNT & ACCESS",
+      "security_network": "SECURITY NETWORK",
+      "support_legal": "SUPPORT & LEGAL",
+      "privacy_data": "PRIVACY & DATA (GDPR)",
+      "debug": "🛠️ DEBUG (DEMO)"
+    },
+    "items": {
+      "circle_management": "Circle Management",
+      "protection_level": "Protection Level",
+      "my_account": "My Account",
+      "emergency_history": "Emergency History",
+      "trusted_contacts": "Trusted Contacts",
+      "ai_chat": "AI Chat",
+      "greencarpet": "GreenCarpet",
+      "contact": "Contact",
+      "feedback": "Feedback",
+      "faq": "FAQ",
+      "privacy_policy": "Privacy Policy",
+      "terms_of_use": "Terms of Use",
+      "language": "Language",
+      "notifications": "Notifications",
+      "advanced_tracking": "Advanced Tracking",
+      "download_data": "Download my data",
+      "withdraw_consent": "Withdraw consent",
+      "view_onboarding": "View Onboarding",
+      "reset_onboarding": "Reset Onboarding"
+    },
+    "status": {
+      "granted": "Active",
+      "denied": "Disabled (Tap to activate)"
+    },
+    "logout": "Logout",
+    "delete_account": "Delete my account"
+  },
+  "emergency": {
+    "sos_title": "EMERGENCY CENTER",
+    "instructions": "Hold to activate SOS",
+    "cancel": "Cancel"
+  },
+  "premium": {
+    "individual": {
+      "title": "Premium Individual",
+      "subtitle": "Stay one step ahead of danger."
+    },
+    "student": {
+      "title": "Students Plan",
+      "subtitle": "Always be the safest one."
+    },
+    "72h": {
+      "title": "72h Pass",
+      "subtitle": "Activate it when you need it most."
+    },
+    "family": {
+      "title": "Family Plan",
+      "subtitle": "Because what matters most is priceless."
+    },
+    "cancel_anytime": "Cancel anytime",
+    "includes_all_individual": "Includes everything from Premium Individual",
+    "student_discount": "And student discount!",
+    "hire": "SUBSCRIBE",
+    "activate": "ACTIVATE PASS",
+    "verify": "VERIFY ELIGIBILITY",
+    "protect_family": "PROTECT MY FAMILY",
+    "main_subtitle": "With elite technology, activate peace of mind mode.",
+    "72h.promo": "Temporary pass, total peace of mind.",
+    "restore_purchases": "Restore Purchases"
+  }
+}

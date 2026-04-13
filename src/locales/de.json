@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Karte",
+    "contacts": "Kontakte",
+    "sos": "SOS",
+    "premium": "Premium",
+    "settings": "Einstellungen"
+  },
+  "home": {
+    "greeting": "Hallo, {{name}}",
+    "emergency_active": "SOS-ALARM AKTIV",
+    "report_incident": "Vorfall melden"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "profile_section": {
+      "premium_member": "Premium-Mitglied",
+      "free_member": "Kostenloses Mitglied"
+    },
+    "groups": {
+      "security_circle": "SICHERHEITSKREIS",
+      "account_access": "KONTO & ZUGANG",
+      "security_network": "SICHERHEITSNETZWERK",
+      "support_legal": "SUPPORT & RECHTLICHES",
+      "privacy_data": "DATENSCHUTZ & DATEN (DSGVO)",
+      "debug": "🛠️ DEBUG (DEMO)"
+    },
+    "items": {
+      "circle_management": "Kreisverwaltung",
+      "protection_level": "Schutzniveau",
+      "my_account": "Mein Konto",
+      "emergency_history": "Notfallhistorie",
+      "trusted_contacts": "Vertrauenswürdige Kontakte",
+      "ai_chat": "KI-Chat",
+      "greencarpet": "GreenCarpet",
+      "contact": "Kontakt",
+      "feedback": "Feedback",
+      "faq": "FAQ",
+      "privacy_policy": "Datenschutzrichtlinie",
+      "terms_of_use": "Nutzungsbedingungen",
+      "language": "Sprache",
+      "notifications": "Benachrichtigungen",
+      "advanced_tracking": "Erweitertes Tracking",
+      "download_data": "Meine Daten herunterladen",
+      "withdraw_consent": "Einwilligung widerrufen",
+      "view_onboarding": "Onboarding anzeigen",
+      "reset_onboarding": "Onboarding zurücksetzen"
+    },
+    "status": {
+      "granted": "Aktiv",
+      "denied": "Deaktiviert (Zum Aktivieren tippen)"
+    },
+    "logout": "Abmelden",
+    "delete_account": "Mein Konto löschen"
+  },
+  "emergency": {
+    "sos_title": "NOTFALLZENTRUM",
+    "instructions": "Halten, um SOS zu aktivieren",
+    "cancel": "Abbrechen"
+  },
+  "premium": {
+    "individual": {
+      "title": "Premium Individual",
+      "subtitle": "Bleiben Sie der Gefahr einen Schritt voraus."
+    },
+    "student": {
+      "title": "Studenten-Plan",
+      "subtitle": "Sei derjenige, der immer am sichersten ist."
+    },
+    "72h": {
+      "title": "72h-Pass",
+      "subtitle": "Aktivieren Sie ihn, wenn Sie ihn am dringendsten benötigen."
+    },
+    "family": {
+      "title": "Familienplan",
+      "subtitle": "Denn das, was am wichtigsten ist, ist unbezahlbar."
+    },
+    "cancel_anytime": "Jederzeit kündbar",
+    "includes_all_individual": "Enthält alles von Premium Individual",
+    "student_discount": "Und Studentenrabatt!",
+    "hire": "ABONNIEREN",
+    "activate": "PASS AKTIVIEREN",
+    "verify": "BERECHTIGUNG PRÜFEN",
+    "protect_family": "MEINE FAMILIE SCHÜTZEN",
+    "main_subtitle": "Mit Elite-Technologie, aktivieren Sie den Seelenfrieden-Modus.",
+    "72h.promo": "Temporärer Pass, absolute Sicherheit.",
+    "restore_purchases": "Käufe wiederherstellen"
+  }
+}
