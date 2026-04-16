@@ -144,18 +144,6 @@ export async function signUp(email: string, password: string, fullName: string):
             return { user: null, error: error.message };
         }
 
-        // Crear el perfil explícitamente para evitar problemas de Foreign Key
-        if (data.user) {
-            const { error: profileError } = await supabase.from('profiles').insert({
-                 id: data.user.id,
-                 full_name: fullName,
-                 avatar_url: null
-            });
-            if (profileError && profileError.code !== '23505') {
-                 console.error('[AuthService] Error creating profile on signup:', profileError);
-            }
-        }
-
         return {
             user: data.user as AuthUser,
             error: null,

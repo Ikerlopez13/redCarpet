@@ -62,23 +62,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .eq('id', sessionUser.id)
                     .single();
 
-                // If profile does not exist (PGRST116), we create it automatically
-                if (error && error.code === 'PGRST116') {
-                    console.log('[AuthContext] Profile missing. Creating automatic profile...');
-                    await supabase.from('profiles').insert({
-                        id: sessionUser.id,
-                        full_name: sessionUser.user_metadata?.full_name || 'Nuevo Usuario',
-                        avatar_url: sessionUser.user_metadata?.avatar_url || null,
-                    });
-                    
-                    const { data: newProfile } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
-                    if (mounted) {
-                        setUser({ ...sessionUser, profile: newProfile || undefined });
-                    }
-                } else {
-                    if (mounted) {
-                        setUser({ ...sessionUser, profile: profile || undefined });
-                    }
+                // If profile does not exist, it's likely the trigger is still pending or failed.
+                // We'll just show what we have (metadata) or undefined.
+                if (mounted) {
+                    setUser({ ...sessionUser, profile: profile || undefined });
                 }
             } catch (err) {
                 console.error('[AuthContext] Error fetching profile:', err);
@@ -159,8 +146,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(true);
         const { user: newUser, error } = await signUp(email, password, fullName);
         if (newUser) {
-            setUser(newUser);
-            await updatePremiumStatus(newUser);
+            // Only 'log in' the user in the context if they are confirmed
+            // If they are not confirmed (and not in mock mode), we don't set the user state yet
+            if (newUser.email_confirmed_at || getIsMockMode()) {
+                setUser(newUser);
+                await updatePremiumStatus(newUser);
+            }
         }
         setIsLoading(false);
         return { error };
@@ -240,7 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <AuthContext.Provider value={{
             user,
             isLoading,
-            isAuthenticated: !!user,
+            isAuthenticated: !!user && (!!user.email_confirmed_at || getIsMockMode()),
             isPremium,
             login,
             register,

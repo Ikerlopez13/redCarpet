@@ -13,11 +13,12 @@ export const Login: React.FC = () => {
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [resetSent, setResetSent] = useState(false);
+    const [registerSuccess, setRegisterSuccess] = useState(false);
     const { user } = useAuth();
 
-    // Auto-redirect if already logged in (handles OAuth success case)
+    // Auto-redirect if already logged in AND confirmed (handles OAuth success case)
     React.useEffect(() => {
-        if (user) {
+        if (user && user.email_confirmed_at) {
             navigate('/', { replace: true });
         }
     }, [user, navigate]);
@@ -47,25 +48,38 @@ export const Login: React.FC = () => {
         if (result.error) {
             setError(result.error);
         } else {
-            navigate('/');
+            if (mode === 'register') {
+                setRegisterSuccess(true);
+            } else {
+                navigate('/');
+            }
         }
     };
 
-    if (resetSent) {
+    if (resetSent || registerSuccess) {
+        const isReset = resetSent;
         return (
             <div className="flex flex-col h-full w-full bg-background-dark text-white items-center justify-center p-6 text-center animate-fade-in">
                 <div 
-                    className="size-20 rounded-[2rem] bg-green-500/20 text-green-500 flex items-center justify-center mb-6 animate-scale-in"
+                    className={clsx(
+                        "size-20 rounded-[2rem] flex items-center justify-center mb-6 animate-scale-in",
+                        isReset ? "bg-green-500/20 text-green-500" : "bg-primary/20 text-primary"
+                    )}
                 >
-                    <span className="material-symbols-outlined text-4xl">mail</span>
+                    <span className="material-symbols-outlined text-4xl">{isReset ? 'mail' : 'verified_user'}</span>
                 </div>
-                <h2 className="text-2xl font-black uppercase tracking-tight mb-2">Correo Enviado</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tight mb-2">
+                    {isReset ? 'Correo Enviado' : '¡Cuenta Creada!'}
+                </h2>
                 <p className="text-white/60 text-sm mb-12 max-w-[280px]">
-                    Revisa tu bandeja de entrada. Te hemos enviado un enlace para restablecer tu contraseña.
+                    {isReset 
+                        ? 'Revisa tu bandeja de entrada. Te hemos enviado un enlace para restablecer tu contraseña.'
+                        : 'Para activar tu cuenta, por favor revisa tu bandeja de entrada y confirma tu correo electrónico.'}
                 </p>
                 <button
                     onClick={() => {
                         setResetSent(false);
+                        setRegisterSuccess(false);
                         setMode('login');
                     }}
                     className="w-full max-w-xs h-14 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all text-white"

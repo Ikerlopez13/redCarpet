@@ -25,7 +25,6 @@ import { NightModeWarning } from '../components/safety/NightModeWarning';
 import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
 import { ShieldAlert, Send, Users, Battery } from 'lucide-react';
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
-import { useRef } from 'react';
 
 // Tipos para el estado de la UI
 interface UIMember {
