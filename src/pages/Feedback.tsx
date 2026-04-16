@@ -10,8 +10,23 @@ export const Feedback: React.FC = () => {
 
     const handleSubmit = () => {
         if (rating === 0) return;
+        
+        // Success state
         setSubmitted(true);
-        setTimeout(() => navigate(-1), 2000);
+        
+        // If high rating, redirect to store after a short delay
+        if (rating >= 4) {
+            setTimeout(() => {
+                const confirmReview = window.confirm('¡Muchas gracias por tu valoración! ¿Te gustaría dedicarnos 1 minuto y dejarnos una reseña positiva en la tienda? Nos ayudaría muchísimo.');
+                if (confirmReview) {
+                    // For demo purposes, we'll use a generic store link
+                    window.open('https://apps.apple.com/app/id6479100000?action=write-review', '_blank');
+                }
+                navigate(-1);
+            }, 1000);
+        } else {
+            setTimeout(() => navigate(-1), 2000);
+        }
     };
 
     if (submitted) {

@@ -50,6 +50,10 @@ export class TrustedContactsService {
         email?: string,
         relation: string = 'Familiar'
     ): Promise<{ contact: TrustedContact | null; error: string | null; isPendingRequest: boolean }> {
+        if (!userId || userId.trim() === '') {
+            throw new Error("Sesión no válida");
+        }
+        
         // 1. Look for an existing app user with this phone number or email using the secure RPC
         const { data: matchedId, error: rpcError } = await (supabase.rpc as any)('match_user_for_contact', {
             p_phone: phone || null,

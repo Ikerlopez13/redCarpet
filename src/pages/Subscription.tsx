@@ -5,8 +5,6 @@ import { RevenueCatService } from '../services/revenueCatService';
 import type { PurchasesPackage } from '../services/revenueCatService';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-    ShieldCheck, 
-    ShieldAlert, 
     Crown,
     Check,
     Video,
@@ -22,13 +20,12 @@ import clsx from 'clsx';
 export const Subscription: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { isPremium, setIsPremium } = useAuth();
+    const { setIsPremium } = useAuth();
     const [packages, setPackages] = useState<PurchasesPackage[]>([]);
     const [individualCycle, setIndividualCycle] = useState<'monthly' | 'annual'>('monthly');
     const [processing, setProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
 
     const SHARED_FEATURES = [
         "Escudo de IA Personal",
@@ -56,22 +53,27 @@ export const Subscription: React.FC = () => {
         setProcessing(true);
         setError(null);
         try {
-            // Find real pkg or mock it
+            // Find real pkg
             const pkg = packages.find(p => p.identifier === packageId);
             
-            // Simulation for better UI experience
-            await new Promise(r => setTimeout(r, 1200));
+            if (!pkg) {
+                console.error('Package not found in offerings:', packageId, 'Available:', packages.map(p => p.identifier));
+                setError(`El plan "${packageId}" no está disponible en la tienda. Verifica que los Identificadores de Producto coincidan en RevenueCat.`);
+                return;
+            }
 
-            const result = pkg ? await RevenueCatService.purchasePackage(pkg) : true; // Mock success if not found
+            const result = await RevenueCatService.purchasePackage(pkg);
             
             if (result) {
                 setIsPremium(true);
                 setShowSuccess(true);
             } else {
-                setError('La compra no se pudo completar.');
+                // If result is null but no error thrown, it was usually cancelled
+                // But we show a generic retry if it wasn't captured before
             }
         } catch (err: any) {
-            setError(err.message || 'Error en la suscripción');
+            console.error('Purchase error detail:', err);
+            setError(err.message || 'Error en la suscripción. Intenta de nuevo.');
         } finally {
             setProcessing(false);
         }

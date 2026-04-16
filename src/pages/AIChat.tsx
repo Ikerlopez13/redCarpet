@@ -13,15 +13,30 @@ export const AIChat: React.FC = () => {
     const handleSend = () => {
         if (!input.trim()) return;
         setMessages([...messages, { role: 'user', text: input }]);
+        const userMsg = input.toLowerCase();
         setInput('');
         
-        // Simulate bot response
+        // Simulate bot response with logic
         setTimeout(() => {
+            let response = 'Entiendo tu consulta. Como tu asistente RedCarpet, estoy aquí para guiarte en rutas seguras y protocolos de emergencia.';
+            
+            if (userMsg.includes('sos') || userMsg.includes('ayuda') || userMsg.includes('emergencia')) {
+                response = 'Si estás en peligro, mantén pulsado el botón central SOS. He avisado a tus contactos prioritarios para que estén alerta.';
+            } else if (userMsg.includes('ruta') || userMsg.includes('camino') || userMsg.includes('ir a')) {
+                response = 'Puedo calcular la ruta más segura para ti. Abre el mapa y selecciona tu destino; priorizaré calles iluminadas y zonas con alta actividad.';
+            } else if (userMsg.includes('familia') || userMsg.includes('hijo') || userMsg.includes('hija')) {
+                response = 'Puedes ver la ubicación de tu familia en tiempo real desde la pestaña "Familia" en el mapa principal.';
+            } else if (userMsg.includes('premium') || userMsg.includes('pago')) {
+                response = 'La suscripción Premium desbloquea el seguimiento en tiempo real ilimitado y la grabación de seguridad en la nube.';
+            } else if (userMsg.includes('hola') || userMsg.includes('buenos dias')) {
+                response = '¡Hola! Soy Red. Estoy monitorizando tu seguridad. ¿Hay algo específico en lo que pueda ayudarte ahora?';
+            }
+
             setMessages(prev => [...prev, { 
                 role: 'bot', 
-                text: 'Entiendo tu consulta. Como asistente de RedCarpet, estoy aquí para guiarte en rutas seguras y protocolos de emergencia. Actualmente estamos optimizando mis respuestas para tu zona.' 
+                text: response 
             }]);
-        }, 1000);
+        }, 800);
     };
 
     return (

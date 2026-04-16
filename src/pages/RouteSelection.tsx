@@ -57,7 +57,7 @@ export const RouteSelection: React.FC = () => {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [transportMode, setTransportMode] = useState<'walking' | 'cycling' | 'transit'>(initialTransportMode);
+    const [transportMode, setTransportMode] = useState<'walking' | 'cycling' | 'transit' | 'driving'>(initialTransportMode as any);
     const [selectedRoute, setSelectedRoute] = useState<'safe' | 'balanced' | 'fast'>('safe');
     const [selectedDestination, setSelectedDestination] = useState<string | null>(initialDestinationName);
     const [searchQuery, setSearchQuery] = useState('');
@@ -127,7 +127,47 @@ export const RouteSelection: React.FC = () => {
 
         setIsLoading(true);
         const origin = userLocation;
-        const mapboxMode = transportMode === 'transit' ? 'driving' : transportMode;
+
+        if (transportMode === 'transit') {
+            try {
+                // Import getTransitOptions dynamically or via top-level import
+                const { getTransitOptions } = await import('../services/transitRoutingService');
+                const transitRoutes = await getTransitOptions(origin, destCoords);
+                
+                if (transitRoutes && transitRoutes.length > 0) {
+                    const safeOpt = transitRoutes[0];
+                    const balOpt = transitRoutes[1] || transitRoutes[0];
+                    const fastOpt = transitRoutes[transitRoutes.length - 1] || transitRoutes[0];
+
+                    setRoutes({
+                        safe: {
+                            time: formatDuration(safeOpt.totalDuration),
+                            distance: formatDistance(safeOpt.totalDistance),
+                            description: safeOpt.summary + ' (Recomendada)',
+                            extra: 'Paradas con alta afluencia e iluminación',
+                        },
+                        balanced: {
+                            time: formatDuration(balOpt.totalDuration),
+                            distance: formatDistance(balOpt.totalDistance),
+                            description: balOpt.summary,
+                        },
+                        fast: {
+                            time: formatDuration(fastOpt.totalDuration),
+                            distance: formatDistance(fastOpt.totalDistance),
+                            description: fastOpt.summary + ' (Más directa)',
+                        }
+                    });
+                }
+                setRouteGeometry({ safe: null, balanced: null, fast: null }); // Don't draw car lines for transit
+            } catch (error) {
+                console.error('Error fetching transit options:', error);
+            } finally {
+                setIsLoading(false);
+            }
+            return;
+        }
+
+        const mapboxMode = transportMode;
 
         try {
             const baseRoute = await getRoute(origin, destCoords, mapboxMode);
@@ -342,6 +382,11 @@ export const RouteSelection: React.FC = () => {
                             <span className="material-symbols-outlined mr-1 text-[18px]">directions_transit</span>
                             <span className="truncate">Transporte</span>
                             <input type="radio" name="transport_mode" value="transit" className="invisible w-0" checked={transportMode === 'transit'} onChange={() => setTransportMode('transit')} />
+                        </label>
+                        <label className={clsx("flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-xs font-semibold transition-all", transportMode === 'driving' ? "bg-primary text-white" : "text-gray-400")}>
+                            <span className="material-symbols-outlined mr-1 text-[18px]">directions_car</span>
+                            <span className="truncate">Coche</span>
+                            <input type="radio" name="transport_mode" value="driving" className="invisible w-0" checked={transportMode === 'driving'} onChange={() => setTransportMode('driving')} />
                         </label>
                     </div>
                 </div>

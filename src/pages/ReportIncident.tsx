@@ -31,7 +31,8 @@ export const ReportIncident: React.FC = () => {
     };
 
     const handleReport = async () => {
-        if (!selectedCategory || !user) return;
+        if (!user) return;
+        if (!selectedCategory && !customInput.trim()) return;
 
         setIsSubmitting(true);
         try {
@@ -145,7 +146,7 @@ export const ReportIncident: React.FC = () => {
 
                 {/* Input */}
                 <div className="shrink-0 mb-auto">
-                    <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3 ml-1">INPUT PERSONALIZADO</label>
+                    <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3 ml-1">OTROS (Descripción)</label>
                     <div className="relative">
                         <input
                             className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl h-14 px-5 text-base text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-600 transition-all disabled:opacity-50"
@@ -162,10 +163,10 @@ export const ReportIncident: React.FC = () => {
                 <div className="pb-10 flex flex-col gap-3 shrink-0">
                     <button
                         onClick={handleReport}
-                        disabled={!selectedCategory || isSubmitting}
+                        disabled={(!selectedCategory && !customInput.trim()) || isSubmitting}
                         className={clsx(
                             "flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl h-16 px-5 text-lg font-bold shadow-lg transition-all active:scale-[0.98]",
-                            selectedCategory && !isSubmitting
+                            (selectedCategory || customInput.trim()) && !isSubmitting
                                 ? "bg-red-600 text-white shadow-red-900/20 hover:bg-red-500"
                                 : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                         )}
@@ -177,7 +178,7 @@ export const ReportIncident: React.FC = () => {
                             </div>
                         ) : (
                             <span className="truncate">
-                                {selectedCategoryData ? `Reportar ${selectedCategoryData.title}` : 'Seleccionar Categoría'}
+                                {selectedCategoryData ? `Reportar ${selectedCategoryData.title}` : customInput.trim() ? 'Enviar Reporte' : 'Seleccionar Categoría'}
                             </span>
                         )}
                     </button>

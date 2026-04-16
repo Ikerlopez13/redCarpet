@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../services/supabaseClient';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -22,7 +23,7 @@ import type { FamilyGroup, SOSAlert } from '../services/database.types';
 import { AddSafeZoneModal } from '../components/safety/AddSafeZoneModal';
 import { NightModeWarning } from '../components/safety/NightModeWarning';
 import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
-import { ShieldAlert, Send } from 'lucide-react';
+import { ShieldAlert, Send, Users, Battery } from 'lucide-react';
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
 import { useRef } from 'react';
 
@@ -238,6 +239,40 @@ export const Home: React.FC = () => {
         requestInitialPermissions();
     }, [user, familyGroup?.id]);
 
+    // Suscribir a ubicaciones en tiempo real
+    useEffect(() => {
+        if (!user || !familyGroup) return;
+
+        const subscription = supabase
+            .channel('location-updates')
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'locations' 
+            }, (payload) => {
+                const newLoc = payload.new;
+                setFamilyMembers(prev => prev.map(m => {
+                    if (m.id === newLoc.user_id) {
+                        return { 
+                            ...m, 
+                            lat: newLoc.lat, 
+                            lng: newLoc.lng,
+                            battery: newLoc.battery_level || m.battery,
+                            speed: newLoc.speed ? `${Math.round(newLoc.speed)} km/h` : m.speed,
+                            status: newLoc.speed > 5 ? 'moving' : 'stationary',
+                            lastUpdate: 'Ahora'
+                        };
+                    }
+                    return m;
+                }));
+            })
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [user, familyGroup]);
+
     // Lógica de búsqueda autocompletada
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -250,7 +285,11 @@ export const Home: React.FC = () => {
 
         setIsSearching(true);
         debounceRef.current = setTimeout(async () => {
-            const results = await searchPlaces(searchQuery);
+            // Get current location for proximity bit
+            const me = familyMembers.find(m => m.id === user?.id);
+            const proximity = me?.lat && me?.lng ? { lat: me.lat, lng: me.lng } : undefined;
+            
+            const results = await searchPlaces(searchQuery, proximity);
             setSuggestions(results);
             setShowSuggestions(results.length > 0);
             setIsSearching(false);
@@ -311,20 +350,20 @@ export const Home: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display">
+        <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative">
 
-            {/* Header con buscador - Cleaned version */}
-            <div className="flex flex-col gap-3 px-4 pt-12 pb-3 bg-background-dark z-30 shrink-0 relative">
-                <div className="flex items-center gap-3">
+            {/* Header con buscador - Cleaned version (Floating) */}
+            <div className="absolute top-0 left-0 right-0 z-40 flex flex-col gap-3 px-4 pt-14 pb-3 pointer-events-none">
+                <div className="flex items-center gap-3 pointer-events-auto">
                     <div className={clsx(
-                        "flex-1 flex items-center gap-3 px-4 py-2 bg-white/5 rounded-2xl border transition-all relative",
+                        "flex-1 flex items-center gap-3 px-4 py-3 bg-zinc-900/90 backdrop-blur-md rounded-2xl border transition-all relative shadow-lg shadow-black/20",
                         showSuggestions ? "border-primary" : "border-white/10"
                     )}>
                         <span className="material-symbols-outlined text-primary text-2xl">search</span>
                         <input
                             ref={searchInputRef}
                             type="text"
-                            placeholder={t('home.report_incident')} // Using a generic placeholder or dynamic one
+                            placeholder="Buscar destino..."
                             value={searchQuery}
                             autoComplete="off"
                             autoCorrect="off"
@@ -344,10 +383,6 @@ export const Home: React.FC = () => {
                             className="flex-1 bg-transparent text-white placeholder-white/40 outline-none h-10"
                             style={{ fontSize: '16px' }}
                         />
-                        {isSearching && (
-                            <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
-                        )}
-
                         {isSearching && (
                             <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
                         )}
@@ -443,19 +478,7 @@ export const Home: React.FC = () => {
 
 
 
-                    {/* Global SOS Floating Button - Life360 Style */}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40">
-                         <button
-                            onClick={() => startSOSCountdown()}
-                            className="size-16 rounded-full bg-red-600 shadow-[0_0_30px_rgba(220,38,38,0.6)] flex items-center justify-center text-white border-4 border-white/20 relative active:scale-90 transition-transform"
-                        >
-                            <ShieldAlert size={32} />
-                            <div className="absolute inset-0 rounded-full border-4 border-white/10 animate-ping" />
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white text-red-600 text-[8px] font-black px-2 py-0.5 rounded-full whitespace-nowrap border border-red-600">
-                                SOS
-                            </div>
-                        </button>
-                    </div>
+
                 </UnifiedMap>
             </div>
 
@@ -494,6 +517,16 @@ export const Home: React.FC = () => {
                 {/* Tabs estilo Life360 */}
                 <div className="flex items-center justify-center gap-1 px-4 pb-3 shrink-0">
                     <button
+                        onClick={() => setActiveTab('family')}
+                        className={clsx(
+                            "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                            activeTab === 'family' ? "bg-primary text-white" : "bg-white/5 text-white/60"
+                        )}
+                    >
+                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
+                        {t('nav.family')}
+                    </button>
+                    <button
                         onClick={() => setActiveTab('places')}
                         className={clsx(
                             "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
@@ -518,6 +551,82 @@ export const Home: React.FC = () => {
                 {/* Content area */}
                 <div className="px-4 pb-28 flex-1 overflow-y-auto no-scrollbar">
 
+                    {activeTab === 'family' && (
+                        <div className="flex flex-col gap-3">
+                            {familyMembers.length === 0 ? (
+                                <div className="p-8 text-center text-white/40 flex flex-col items-center gap-4">
+                                    <div className="size-16 rounded-full bg-white/5 flex items-center justify-center">
+                                        <Users className="text-white/20" size={32} />
+                                    </div>
+                                    <p className="text-sm font-bold uppercase tracking-tight">Todavía no has agregado a nadie</p>
+                                    <button 
+                                        onClick={() => navigate('/settings/family')}
+                                        className="py-3 px-6 bg-primary/20 text-primary text-xs font-black uppercase tracking-widest rounded-xl border border-primary/30"
+                                    >
+                                        Configurar Familia
+                                    </button>
+                                </div>
+                            ) : (
+                                familyMembers.map((member) => (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => {
+                                            if (member.lat !== 0) {
+                                                setSelectedMember(member.id);
+                                            }
+                                        }}
+                                        className={clsx(
+                                            "flex items-center gap-4 p-4 rounded-3xl transition-all border",
+                                            member.isEmergency ? "bg-red-600/10 border-red-600/30" : "bg-white/5 border-white/5 hover:bg-white/10"
+                                        )}
+                                    >
+                                        <div className={clsx(
+                                            "size-14 rounded-full border-2 flex items-center justify-center text-2xl shrink-0 overflow-hidden shadow-lg",
+                                            member.avatarBg,
+                                            member.status === 'moving' ? 'border-primary' : 'border-white/10'
+                                        )}>
+                                            {member.avatarUrl ? (
+                                                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                member.avatar
+                                            )}
+                                        </div>
+                                        <div className="flex-1 text-left min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-black uppercase tracking-tighter truncate">{member.name}</p>
+                                                {member.isEmergency && (
+                                                    <span className="px-1.5 py-0.5 bg-red-600 text-[8px] font-black uppercase rounded text-white animate-pulse">SOS</span>
+                                                )}
+                                            </div>
+                                            <p className={clsx(
+                                                "text-[10px] font-bold uppercase truncate mt-0.5",
+                                                member.isEmergency ? "text-red-500" : "text-white/40"
+                                            )}>
+                                                {member.location}
+                                            </p>
+                                            
+                                            <div className="flex items-center gap-3 mt-1.5 opacity-60">
+                                                <div className="flex items-center gap-1">
+                                                    <Battery size={10} className={member.battery < 20 ? "text-red-500" : "text-primary"} />
+                                                    <span className="text-[9px] font-black">{member.battery}%</span>
+                                                </div>
+                                                {member.speed && (
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-[10px]">speed</span>
+                                                        <span className="text-[9px] font-black">{member.speed}</span>
+                                                    </div>
+                                                )}
+                                                <div className="ml-auto text-[8px] font-bold uppercase tracking-widest">
+                                                    {member.lastUpdate}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span className="material-symbols-outlined text-white/20">chevron_right</span>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    )}
 
                     {activeTab === 'places' && (
                         <div className="flex flex-col gap-3">

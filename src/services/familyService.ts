@@ -226,6 +226,10 @@ export async function createFamilyGroup(
     relationshipType: FamilyGroup['relationship_type'],
     adminId: string
 ): Promise<{ group: FamilyGroup | null; error: string | null }> {
+    if (!adminId || adminId.trim() === '') {
+        return { group: null, error: 'Sesión no válida: Falta el ID del administrador' };
+    }
+
     if (getIsMockMode()) {
         const group: FamilyGroup = {
             id: `group-${Date.now()}`,

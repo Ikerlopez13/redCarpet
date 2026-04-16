@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { getFamilyData } from '../services/familyService';
+import type { FamilyGroup } from '../services/database.types';
 import { checkEmergencyConsent } from '../components/Legal/EmergencyConsentModal';
 import { useAuth } from './AuthContext';
 import { SOSContext, useSOS } from './SOSContext.base';

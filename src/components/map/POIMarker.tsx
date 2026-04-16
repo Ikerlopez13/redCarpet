@@ -19,6 +19,9 @@ const categoryColors: Record<string, { bg: string; icon: string; shadow: string 
     gym: { bg: 'from-[#B46EE5] to-[#8B5CF6]', icon: 'text-white', shadow: 'shadow-[#B46EE5]/60' },
     bar: { bg: 'from-[#A85CD6] to-[#9333EA]', icon: 'text-white', shadow: 'shadow-[#A85CD6]/60' },
     hotel: { bg: 'from-[#3b82f6] to-[#2563eb]', icon: 'text-white', shadow: 'shadow-[#3b82f6]/60' },
+    university: { bg: 'from-[#6366F1] to-[#4F46E5]', icon: 'text-white', shadow: 'shadow-[#6366F1]/60' },
+    monument: { bg: 'from-[#F59E0B] to-[#D97706]', icon: 'text-white', shadow: 'shadow-[#F59E0B]/60' },
+    museum: { bg: 'from-[#EC4899] to-[#DB2777]', icon: 'text-white', shadow: 'shadow-[#EC4899]/60' },
 };
 
 const defaultColors = { bg: 'from-zinc-500 to-zinc-600', icon: 'text-white', shadow: 'shadow-zinc-500/60' };
@@ -35,25 +38,25 @@ export const POIMarker: React.FC<POIMarkerProps> = ({ poi, onClick }) => {
                 e.originalEvent.stopPropagation();
                 onClick(poi);
             }}
+            style={{ zIndex: 999 }}
         >
             <div
-                className="cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 flex flex-col items-center group relative"
+                className="cursor-pointer transition-all duration-300 hover:scale-125 active:scale-95 flex flex-col items-center group relative z-[999]"
             >
                 {/* Glowing drop shadow behind the whole marker component */}
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full blur-[10px] bg-gradient-to-br ${colors.bg}`} />
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full blur-[12px] bg-gradient-to-br ${colors.bg} opacity-80`} />
 
                 {/* Main circular body */}
                 <div className={`
-                    relative z-10 size-[32px] rounded-full flex flex-col items-center justify-center 
+                    relative z-10 size-[38px] rounded-full flex flex-col items-center justify-center 
                     bg-gradient-to-br ${colors.bg}
-                    border-[1.5px] border-white/20
-                    shadow-[0_4px_12px_rgba(0,0,0,0.5)]
+                    border-[2px] border-white shadow-2xl
                 `}>
                     {/* Inner highlight (Glass effect) */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
 
                     <span
-                        className={`material-symbols-outlined text-white text-[16px] drop-shadow-sm font-extrabold`}
+                        className={`material-symbols-outlined text-white text-[20px] drop-shadow-md font-black`}
                         style={{ fontVariationSettings: "'FILL' 1" }}
                     >
                         {poi.categoryIcon || 'place'}
@@ -61,8 +64,8 @@ export const POIMarker: React.FC<POIMarkerProps> = ({ poi, onClick }) => {
                 </div>
 
                 {/* Small indicator triangle pointing to exact location */}
-                <div className="relative z-0 -mt-1 drop-shadow-md">
-                    <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-white/30" />
+                <div className="relative z-0 -mt-1 drop-shadow-xl">
+                    <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-white" />
                 </div>
             </div>
         </Marker>

@@ -1,4 +1,4 @@
-import { PushNotifications } from '@capacitor/push-notifications';
+import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { supabase } from './supabaseClient';
 
 /**
@@ -7,36 +7,35 @@ import { supabase } from './supabaseClient';
 export async function initPushNotifications(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
         // Request permission
-        const permStatus = await PushNotifications.requestPermissions();
+        const { receive } = await FirebaseMessaging.requestPermissions();
 
-        if (permStatus.receive !== 'granted') {
+        if (receive !== 'granted') {
             return { success: false, error: 'Permission not granted' };
         }
 
-        // Register for push
-        await PushNotifications.register();
+        // Get the FCM token and save it
+        const { token } = await FirebaseMessaging.getToken();
+        if (token) {
+            console.log('📱 FCM Push token:', token);
+            await savePushToken(userId, token);
+        }
 
-        // Listen for registration
-        PushNotifications.addListener('registration', async (token) => {
-            console.log('📱 Push token:', token.value);
-            await savePushToken(userId, token.value);
-        });
-
-        // Listen for errors
-        PushNotifications.addListener('registrationError', (error) => {
-            console.error('Push registration error:', error);
+        // Listen for token updates
+        FirebaseMessaging.addListener('tokenReceived', async (event) => {
+            console.log('📱 New FCM Push token:', event.token);
+            await savePushToken(userId, event.token);
         });
 
         // Listen for notifications received while app is in foreground
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
-            console.log('📩 Push received:', notification);
-            handleForegroundNotification(notification);
+        FirebaseMessaging.addListener('notificationReceived', (event) => {
+            console.log('📩 Push received:', event.notification);
+            handleForegroundNotification(event.notification);
         });
 
         // Listen for notification tap (app opened from notification)
-        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-            console.log('👆 Push action:', action);
-            handleNotificationAction(action);
+        FirebaseMessaging.addListener('notificationActionPerformed', (event) => {
+            console.log('👆 Push action:', event.actionId);
+            handleNotificationAction(event);
         });
 
         return { success: true };
@@ -98,8 +97,8 @@ function handleForegroundNotification(notification: any): void {
 /**
  * Handle notification action (tap)
  */
-function handleNotificationAction(action: any): void {
-    const { notification } = action;
+function handleNotificationAction(event: any): void {
+    const { notification } = event;
     const data = notification.data;
 
     if (data?.type === 'sos' && data?.alertId) {
@@ -142,8 +141,8 @@ export function isPushSupported(): boolean {
  */
 export async function getPushPermissionStatus(): Promise<'granted' | 'denied' | 'prompt'> {
     try {
-        const status = await PushNotifications.checkPermissions();
-        return status.receive as 'granted' | 'denied' | 'prompt';
+        const { receive } = await FirebaseMessaging.checkPermissions();
+        return receive as 'granted' | 'denied' | 'prompt';
     } catch {
         // Fallback for web
         if ('Notification' in window) {

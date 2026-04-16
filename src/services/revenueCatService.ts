@@ -47,41 +47,57 @@ export class RevenueCatService {
             });
 
             this.isConfigured = true;
-            console.log('💳 RevenueCat initialized successfully');
+            console.log('💳 RevenueCat initialized successfully with key:', apiKey.substring(0, 8) + '...');
         } catch (error) {
-            console.error('Error initializing RevenueCat', error);
+            console.error('❌ Error initializing RevenueCat:', error);
             this.isConfigured = false;
         }
     }
 
     static async getOfferings(): Promise<PurchasesPackage[]> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) {
+        if (!Capacitor.isNativePlatform()) {
+            console.warn('⚠️ Skipping offerings: Not a native platform');
             return [];
+        }
+        
+        if (!this.isConfigured) {
+            console.error('❌ RevenueCat not configured. Initializing now...');
+            await this.initialize();
         }
 
         try {
+            console.log('🔍 Fetching offerings from RevenueCat...');
             const offerings = await Purchases.getOfferings();
             if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+                console.log(`✅ Found ${offerings.current.availablePackages.length} packages`);
                 return offerings.current.availablePackages;
             }
+            console.warn('⚠️ No active offerings found in RevenueCat');
         } catch (error) {
-            console.error('Error getting offerings', error);
+            console.error('❌ Error getting offerings:', error);
         }
         return [];
     }
 
     static async purchasePackage(rcPackage: PurchasesPackage): Promise<{ customerInfo: CustomerInfo; productIdentifier: string; } | null> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) return null;
+        if (!Capacitor.isNativePlatform() || !this.isConfigured) {
+            console.error('❌ Cannot purchase: Native/Config check failed', { isNative: Capacitor.isNativePlatform(), isConfigured: this.isConfigured });
+            return null;
+        }
 
         try {
+            console.log('🚀 Initiating purchase for:', rcPackage.product.identifier);
             const { customerInfo } = await Purchases.purchasePackage({ aPackage: rcPackage });
+            console.log('💰 Purchase successful:', customerInfo);
             return {
                 customerInfo,
                 productIdentifier: rcPackage.product.identifier
             };
         } catch (error: any) {
-            if (!error.userCancelled) {
-                console.error('Error purchasing package', error);
+            if (error.userCancelled) {
+                console.log('ℹ️ User cancelled the purchase');
+            } else {
+                console.error('❌ Error purchasing package:', error.message || error);
             }
             return null;
         }

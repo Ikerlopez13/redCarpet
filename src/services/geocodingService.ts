@@ -29,13 +29,20 @@ export async function searchPlaces(
     const params = new URLSearchParams({
         access_token: MAPBOX_TOKEN,
         autocomplete: 'true',
+        fuzzyMatch: 'true',
         language: 'es',
-        limit: '10',
-        types: 'poi,address,place' // Use standard types only
+        country: 'es',
+        limit: '20',
+        types: 'poi,address,neighborhood,locality,place'
     });
 
-    // Biasing results towards Barcelona landmark center but allowing global search
-    params.append('proximity', proximity ? `${proximity.lng},${proximity.lat}` : '2.1734,41.3851');
+    // Use provided proximity or fallback to a broad geographic bias if none provided
+    if (proximity) {
+        params.append('proximity', `${proximity.lng},${proximity.lat}`);
+    } else {
+        // Broad bias for Spain if no location available
+        params.append('proximity', '2.1734,41.3851');
+    }
 
     const url = `${GEOCODING_API_BASE}/${encodeURIComponent(query)}.json?${params}`;
 
@@ -71,6 +78,7 @@ function getIconFromType(type: string): string {
         case 'address':
             return 'home';
         case 'place':
+        case 'locality':
             return 'location_city';
         case 'neighborhood':
             return 'holiday_village';
@@ -87,17 +95,37 @@ export function getCategoryIcon(category: string): string {
         'restaurant': 'restaurant',
         'cafe': 'local_cafe',
         'bar': 'local_bar',
+        'pub': 'sports_bar',
         'hotel': 'hotel',
         'shop': 'shopping_bag',
+        'store': 'store',
+        'mall': 'mall',
         'park': 'park',
+        'garden': 'yard',
         'hospital': 'local_hospital',
         'pharmacy': 'local_pharmacy',
         'school': 'school',
+        'university': 'school',
+        'college': 'account_balance',
         'gym': 'fitness_center',
         'bank': 'account_balance',
+        'atm': 'atm',
         'gas_station': 'local_gas_station',
         'parking': 'local_parking',
         'transit': 'directions_transit',
+        'bus': 'directions_bus',
+        'train': 'directions_railway',
+        'subway': 'directions_subway',
+        'airport': 'local_airport',
+        'museum': 'museum',
+        'monument': 'account_balance',
+        'landmark': 'castle',
+        'attraction': 'local_activity',
+        'church': 'church',
+        'stadium': 'stadium',
+        'theater': 'theater_comedy',
+        'movie': 'movie',
+        'plaza': 'location_city',
         'place': 'place',
         'home': 'home',
         'location_city': 'location_city',

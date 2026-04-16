@@ -1,14 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export const PrivacyPolicy: React.FC = () => {
+interface PrivacyPolicyProps {
+    onClose?: () => void;
+}
+
+export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
     const navigate = useNavigate();
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 p-6 pt-16 font-display">
             <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm p-6 md:p-10 mb-10">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => onClose ? onClose() : navigate(-1)}
                     className="mb-6 text-primary hover:text-primary/80 font-bold flex items-center"
                 >
                     <span className="material-symbols-outlined mr-1">arrow_back_ios_new</span>

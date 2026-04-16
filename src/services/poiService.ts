@@ -11,18 +11,21 @@ export interface POI {
     distance?: number; // in meters
 }
 
-export type POICategory = 'restaurant' | 'cafe' | 'shop' | 'park' | 'hospital' | 'pharmacy' | 'gym' | 'bar' | 'hotel';
+export type POICategory = 'restaurant' | 'cafe' | 'shop' | 'park' | 'hospital' | 'pharmacy' | 'gym' | 'bar' | 'hotel' | 'university' | 'monument' | 'museum';
 
 const categoryConfig: Record<POICategory, { icon: string; label: string; types: string[] }> = {
     restaurant: { icon: 'restaurant', label: 'Restaurante', types: ['restaurant', 'food'] },
     cafe: { icon: 'local_cafe', label: 'Cafetería', types: ['cafe', 'coffee'] },
     shop: { icon: 'shopping_bag', label: 'Tienda', types: ['shop', 'store', 'supermarket'] },
-    park: { icon: 'park', label: 'Parque', types: ['park', 'garden'] },
+    park: { icon: 'park', label: 'Parque', types: ['park', 'garden', 'recreation'] },
     hospital: { icon: 'local_hospital', label: 'Hospital', types: ['hospital', 'clinic'] },
     pharmacy: { icon: 'medication', label: 'Farmacia', types: ['pharmacy'] },
     gym: { icon: 'fitness_center', label: 'Gimnasio', types: ['gym', 'fitness'] },
     bar: { icon: 'sports_bar', label: 'Bar', types: ['bar', 'pub'] },
     hotel: { icon: 'hotel', label: 'Hotel', types: ['hotel', 'lodging'] },
+    university: { icon: 'school', label: 'Universidad', types: ['university', 'college', 'school'] },
+    monument: { icon: 'account_balance', label: 'Monumento', types: ['monument', 'landmark', 'attraction'] },
+    museum: { icon: 'museum', label: 'Museo', types: ['museum'] },
 };
 
 export type POICategoryExtended = POICategory | 'landmark' | 'monument' | 'museum' | 'attraction';
@@ -45,19 +48,19 @@ export async function getNearbyPOIs(
     }
 
     try {
-        // Broad search for POIs and landmarks
+        // Broad search for POIs and landmarks - More aggressive to avoid empty results
         const queries = category
             ? [categoryConfig[category].types[0]]
-            : ['landmark', 'monument', 'museum', 'tourist_attraction', 'restaurant', 'park', 'cafe', 'poi'];
+            : ['landmark', 'park', 'university', 'museum', 'monument', 'square', 'market', 'church', 'school', 'hospital', 'restaurant', 'cafe', 'shop', 'pharmacy', 'poi'];
 
-        // We'll combine multiple queries to ensure landmark richness
-        const responses = await Promise.all(queries.slice(0, 3).map(q =>
+        // We'll combine multiple queries to ensure landmark and POI richness
+        const responses = await Promise.all(queries.slice(0, 8).map(q =>
             fetch(
                 `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?` +
                 `proximity=${lng},${lat}&` +
                 `types=poi&` +
                 `access_token=${MAPBOX_TOKEN}&` +
-                `limit=15`
+                `limit=12`
             ).then(r => r.json())
         ));
 
@@ -73,6 +76,7 @@ export async function getNearbyPOIs(
             // Extract category info from Mapbox properties
             const mbtypes = (f.properties?.category || '').toLowerCase();
             const mbtext = (f.text || '').toLowerCase();
+            const mbplaceType = (f.place_type?.[0] || '').toLowerCase();
 
             let poiCategory: POICategory = 'shop'; // default
 
@@ -84,14 +88,16 @@ export async function getNearbyPOIs(
             else if (mbtypes.includes('gym') || mbtypes.includes('fitness')) poiCategory = 'gym';
             else if (mbtypes.includes('bar') || mbtypes.includes('pub')) poiCategory = 'bar';
             else if (mbtypes.includes('hotel') || mbtypes.includes('lodging')) poiCategory = 'hotel';
+            else if (mbtypes.includes('university') || mbtypes.includes('college') || mbtext.includes('universidad') || mbtext.includes('campus')) poiCategory = 'university';
+            else if (mbtypes.includes('museum')) poiCategory = 'museum';
+            else if (mbtypes.includes('landmark') || mbtypes.includes('monument') || mbtypes.includes('attraction')) poiCategory = 'monument';
 
             // Special handling for landmarks (High priority icons)
             let iconOverride = categoryConfig[poiCategory].icon;
-            if (mbtypes.includes('landmark') || mbtypes.includes('monument') || mbtypes.includes('museum') || mbtypes.includes('attraction')) {
-                iconOverride = 'account_balance'; // Monument/History icon
-                if (mbtypes.includes('museum')) iconOverride = 'museum';
-                if (mbtypes.includes('attraction')) iconOverride = 'local_activity';
-            }
+            if (poiCategory === 'university') iconOverride = 'school';
+            if (poiCategory === 'museum') iconOverride = 'museum';
+            if (poiCategory === 'monument') iconOverride = 'account_balance';
+            if (mbtypes.includes('attraction')) iconOverride = 'local_activity';
 
             return {
                 id: f.id,
@@ -196,8 +202,18 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
  * Format distance for display
  */
 export function formatPOIDistance(meters: number): string {
-    if (meters < 1000) {
-        return `${Math.round(meters)} m`;
+    const useMiles = localStorage.getItem('use_miles') === 'true';
+    if (useMiles) {
+        const miles = meters * 0.000621371;
+        if (miles < 0.1) {
+            const feet = Math.round(meters * 3.28084);
+            return `${feet} ft`;
+        }
+        return `${miles.toFixed(1)} mi`;
+    } else {
+        if (meters < 1000) {
+            return `${Math.round(meters)} m`;
+        }
+        return `${(meters / 1000).toFixed(1)} km`;
     }
-    return `${(meters / 1000).toFixed(1)} km`;
 }

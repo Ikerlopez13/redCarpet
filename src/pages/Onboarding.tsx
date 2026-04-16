@@ -5,6 +5,7 @@ import { ShieldCheck, Camera, MapPin, BellRing, ChevronRight } from 'lucide-reac
 import { requestSOSPermissions, requestNotificationPermission } from '../services/sosService';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
+import { PrivacyPolicy } from './PrivacyPolicy';
 
 type Step = 'welcome' | 'permissions' | 'privacy';
 
@@ -13,6 +14,7 @@ export const Onboarding: React.FC = () => {
     const [step, setStep] = useState<Step>('welcome');
     const [isProcessing, setIsProcessing] = useState(false);
     const [hasAcceptedPrivacy, setHasAcceptedPrivacy] = useState(false);
+    const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
     const handleNextStep = async () => {
         if (step === 'welcome') {
@@ -108,22 +110,16 @@ export const Onboarding: React.FC = () => {
                         </div>
                         <div className="space-y-4">
                             <h2 className="text-3xl font-black uppercase italic tracking-tighter">Tu Privacidad</h2>
-                            <div className="bg-white/5 rounded-2xl p-6 text-left space-y-4 max-h-[250px] overflow-y-auto no-scrollbar border border-white/5">
-                                <p className="text-xs text-white/60 leading-relaxed font-medium">
-                                    Tus datos están encriptados. La ubicación solo se comparte con tus contactos de confianza cuando se activa una alerta SOS.
-                                </p>
-                                <p className="text-xs text-white/60 leading-relaxed font-medium">
-                                    Al pulsar el botón SOS, la aplicación capturará audio y vídeo para tu protección y evidencia legal.
-                                </p>
-                            </div>
-                            <label className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-xl cursor-pointer active:scale-95 transition-all w-full max-w-xs border border-white/5">
+                            <label className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-xl cursor-pointer active:scale-95 transition-all w-full max-w-xs border border-white/5 mt-8">
                                 <input 
                                     type="checkbox" 
                                     checked={hasAcceptedPrivacy}
                                     onChange={(e) => setHasAcceptedPrivacy(e.target.checked)}
                                     className="size-5 rounded border-white/20 bg-transparent text-primary focus:ring-primary shadow-inner"
                                 />
-                                <span className="text-xs font-bold text-white/80">Acepto la Política de Privacidad</span>
+                                <span className="text-xs font-bold text-white/80">
+                                    Acepto la <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPrivacyPolicy(true); }} className="text-blue-400 underline active:text-blue-300">política de privacidad</span>
+                                </span>
                             </label>
                         </div>
                     </div>
@@ -152,6 +148,13 @@ export const Onboarding: React.FC = () => {
                     )}
                 </button>
             </div>
+
+            {/* Privacy Policy Fullscreen Overlay */}
+            {showPrivacyPolicy && (
+                <div className="fixed inset-0 z-[100] bg-background-dark overflow-y-auto">
+                    <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />
+                </div>
+            )}
         </div>
     );
 };

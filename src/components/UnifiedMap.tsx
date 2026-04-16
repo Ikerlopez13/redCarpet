@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import Map, { NavigationControl, GeolocateControl, Marker } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, GeolocateControl, Marker, Source, Layer } from 'react-map-gl/mapbox';
 import clsx from 'clsx';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapMarker } from './map/MapMarker';
@@ -72,7 +72,7 @@ interface UnifiedMapProps {
     showPOIs?: boolean;
     onPOIClick?: (poi: POI) => void;
     onMemberClick?: (memberId: string) => void;
-    transportMode?: 'walking' | 'cycling' | 'transit';
+    transportMode?: 'walking' | 'cycling' | 'transit' | 'driving';
     selectedRoute?: 'safe' | 'balanced' | 'fast' | null;
     routeGeometry?: RouteGeometry;
     origin?: { lat: number; lng: number };
@@ -105,7 +105,6 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     const [dangerZones, setDangerZones] = useState<any[]>([]);
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
     const [is3D, setIs3D] = useState(false);
-    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; heading: number | null }>({ lat: DEFAULT_VIEW.latitude, lng: DEFAULT_VIEW.longitude, heading: null });
     const geoControlRef = useRef<any>(null);
 
     // Fetch Danger Zones from Supabase
@@ -186,75 +185,32 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         
         const initLocation = async () => {
             try {
-                // Get initial position safely to center the map immediately
                 if (Capacitor.isNativePlatform()) {
                     await Geolocation.requestPermissions();
                     const initialPos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
                     if (initialPos) {
-                        const lat = initialPos.coords.latitude;
-                        const lng = initialPos.coords.longitude;
-                        const heading = initialPos.coords.heading;
-                        setUserLocation({ lat, lng, heading });
-                        setViewState(prev => ({ ...prev, latitude: lat, longitude: lng, zoom: 16 }));
+                        setViewState(prev => ({ ...prev, latitude: initialPos.coords.latitude, longitude: initialPos.coords.longitude, zoom: 16 }));
                     }
-
-                    // Start tracking location natively to update the blue dot
-                    watchId = await Geolocation.watchPosition({ enableHighAccuracy: true }, (position, err) => {
-                        if (position) {
-                            setUserLocation({
-                                lat: position.coords.latitude,
-                                lng: position.coords.longitude,
-                                heading: position.coords.heading
-                            });
-                        }
-                    });
                 } else {
-                    // Web fallback using browser Geolocation API
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            const heading = position.coords.heading;
-                            setUserLocation({ lat, lng, heading });
-                            setViewState(prev => ({ ...prev, latitude: lat, longitude: lng, zoom: 16 }));
+                            setViewState(prev => ({ ...prev, latitude: position.coords.latitude, longitude: position.coords.longitude, zoom: 16 }));
                         },
                         (err) => console.warn('Web geolocation failed:', err),
                         { enableHighAccuracy: true, timeout: 10000 }
                     );
-
-                    const id = navigator.geolocation.watchPosition(
-                        (position) => {
-                            setUserLocation({
-                                lat: position.coords.latitude,
-                                lng: position.coords.longitude,
-                                heading: position.coords.heading
-                            });
-                        },
-                        (err) => console.warn('Web geolocation watch failed:', err),
-                        { enableHighAccuracy: true }
-                    );
-                    watchId = id.toString();
                 }
                 
-                // Still trigger Mapbox's control just in case they like the compass functionality
+                // Trigger Mapbox's control to render the native blue dot and handle tracking
                 geoControlRef.current?.trigger();
             } catch (e) {
                 console.error("Permission request or location error:", e);
             }
         };
 
-        const timer = setTimeout(initLocation, 500);
+        initLocation();
         
-        return () => {
-            clearTimeout(timer);
-            if (watchId) {
-                if (Capacitor.isNativePlatform()) {
-                    Geolocation.clearWatch({ id: watchId });
-                } else {
-                    navigator.geolocation.clearWatch(parseInt(watchId));
-                }
-            }
-        };
+        return () => {};
     }, []);
 
     const toggle3D = useCallback(() => {
@@ -269,20 +225,16 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     }, []);
 
     const recenterToUser = useCallback(() => {
-        if (userLocation) {
-            setViewState(prev => ({
-                ...prev,
-                latitude: userLocation.lat,
-                longitude: userLocation.lng,
-                zoom: 18, // Zoom in for "Grandmother-friendly" detail
-                pitch: 0,  // Force cenital view
-                bearing: 0 // Reset rotation to North
-            }));
-            setIs3D(false);
-            // Also trigger the geolocate control for the native compass if available
-            geoControlRef.current?.trigger();
-        }
-    }, [userLocation]);
+        setViewState(prev => ({
+            ...prev,
+            zoom: 18, // Zoom in for "Grandmother-friendly" detail
+            pitch: 0,  // Force cenital view
+            bearing: 0 // Reset rotation to North
+        }));
+        setIs3D(false);
+        // Trigger the geolocate control natively
+        geoControlRef.current?.trigger();
+    }, []);
 
     // Fetch transit stops when showTransit is enabled
     useEffect(() => {
@@ -336,10 +288,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         <div className={clsx("relative w-full h-full overflow-hidden", className)}>
             <Map
                 {...viewState}
-                onMove={evt => setViewState({
-                    ...evt.viewState,
-                    zoom: 16 // Force constant zoom
-                })}
+                onMove={evt => setViewState(evt.viewState)}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
                 mapboxAccessToken={MAPBOX_TOKEN}
                 style={{ width: '100%', height: '100%' }}
@@ -416,17 +365,52 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     showUserHeading
                 />
 
-                {/* Danger Zones Layer */}
-                {showDangerZones && (
-                    <DangerZones 
-                        zones={barcelonaDangerZones.map(z => ({
-                            ...z,
-                            onClick: (id) => setActiveZoneId(id)
-                        }))} 
-                    />
-                )}
-                {showDangerZones && dangerZones.length > 0 && (
-                    <DangerZones key={`zones-${dangerZones.length}`} zones={dangerZones} />
+                {/* Danger Zones Native WebGL Layer - Guaranteed Visibility */}
+                {(showDangerZones) && (
+                    <Source
+                        id="danger-zones-source"
+                        type="geojson"
+                        data={{
+                            type: 'FeatureCollection',
+                            features: [...barcelonaDangerZones, ...dangerZones].map(zone => ({
+                                type: 'Feature',
+                                id: zone.id,
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: [zone.lng, zone.lat]
+                                },
+                                properties: {
+                                    id: zone.id,
+                                    label: zone.label || zone.description || 'Zona Peligrosa',
+                                    type: zone.type || 'danger'
+                                }
+                            }))
+                        }}
+                    >
+                        {/* Outer Pulse Area */}
+                        <Layer
+                            id="danger-zones-circles"
+                            type="circle"
+                            paint={{
+                                'circle-radius': 30,
+                                'circle-color': '#ef4444',
+                                'circle-opacity': 0.2,
+                                'circle-stroke-width': 2,
+                                'circle-stroke-color': '#ef4444'
+                            }}
+                        />
+                        {/* Core Icon Dot */}
+                        <Layer
+                            id="danger-zones-dots"
+                            type="circle"
+                            paint={{
+                                'circle-radius': 8,
+                                'circle-color': '#ef4444',
+                                'circle-stroke-width': 2,
+                                'circle-stroke-color': '#ffffff'
+                            }}
+                        />
+                    </Source>
                 )}
 
                 {/* Safe Zones Layer - Green Circles */}
@@ -482,29 +466,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     </>
                 )}
 
-                {/* Custom User Location Marker with Heading Indicator */}
-                {userLocation && (
-                    <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
-                        <div className="relative flex items-center justify-center">
-                            {/* Heading Arrow (Sleek Directional Indicator) */}
-                            {userLocation.heading !== null && (
-                                <div 
-                                    className="absolute -top-[1.2rem] transition-transform duration-300 pointer-events-none"
-                                    style={{ transform: `rotate(${userLocation.heading}deg)` }}
-                                >
-                                    {/* Traditional directional arrow */}
-                                    <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[14px] border-b-blue-600 drop-shadow-[0_0_5px_rgba(59,130,246,0.8)]" />
-                                </div>
-                            )}
-
-                            {/* Main Blue Dot */}
-                            <div className="relative">
-                                <div className="size-5 bg-blue-500 rounded-full border-[3px] border-white shadow-[0_0_15px_rgba(59,130,246,0.6)] z-50 pointer-events-none" />
-                                <div className="absolute inset-0 size-5 bg-blue-500 rounded-full animate-ping opacity-30" />
-                            </div>
-                        </div>
-                    </Marker>
-                )}
+                {/* Removed Custom User Location Marker because Mapbox Handles it via GeolocateControl */}
 
                 {/* Origin Marker */}
                 {showRoutes && origin && origin.lat && origin.lng && (
@@ -530,6 +492,13 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     </Marker>
                 )}
 
+                {/* DEBUG MARKER - Should be visible even if others fail */}
+                <Marker latitude={DEFAULT_VIEW.latitude} longitude={DEFAULT_VIEW.longitude} offsetLeft={-20} offsetTop={-10}>
+                    <div className="size-10 bg-blue-600 rounded-full border-4 border-white shadow-2xl flex items-center justify-center animate-bounce z-[9999]">
+                        <span className="material-symbols-outlined text-white">bug_report</span>
+                    </div>
+                </Marker>
+
                 {/* Family Member Markers */}
                 {showMarkers && familyMembers.map(member => (
                     <MapMarker
@@ -539,6 +508,16 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     />
                 ))}
             </Map>
+
+            {/* Custom Recenter Button (Red, Safe Position) */}
+            <div className="absolute top-[150px] right-4 z-40 pointer-events-auto">
+                <button
+                    onClick={recenterToUser}
+                    className="size-12 bg-red-600 rounded-[1rem] border border-red-500/50 flex items-center justify-center shadow-lg shadow-red-600/30 text-white hover:bg-red-500 active:scale-90 transition-all pointer-events-auto"
+                >
+                    <span className="material-symbols-outlined text-2xl">my_location</span>
+                </button>
+            </div>
 
             {/* Children Content - High z-index for UI widgets */}
             <div className="absolute inset-0 z-20 w-full h-full pointer-events-none">

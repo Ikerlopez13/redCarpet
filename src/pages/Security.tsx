@@ -68,10 +68,36 @@ export const Security: React.FC = () => {
 
                 {/* Modules Grid */}
                 <div className="grid grid-cols-1 gap-4">
-                    {modules.map((m, i) => (
-                        <div
+                    {[
+                        {
+                            title: 'Zonas de Peligro',
+                            desc: 'Ver incidencias en el mapa.',
+                            icon: AlertTriangle,
+                            color: 'text-red-500',
+                            bg: 'bg-red-500/10',
+                            path: '/'
+                        },
+                        {
+                            title: 'Rutas Seguras AI',
+                            desc: 'Cálculo de trayectos optimizados.',
+                            icon: Navigation2,
+                            color: 'text-primary',
+                            bg: 'bg-primary/10',
+                            path: '/route'
+                        },
+                        {
+                            title: 'Guardianes Activos',
+                            desc: 'Protección colaborativa activa.',
+                            icon: Shield,
+                            color: 'text-green-500',
+                            bg: 'bg-green-500/10',
+                            path: '/'
+                        }
+                    ].map((m, i) => (
+                        <button
                             key={i}
-                            className="bg-white/5 border border-white/5 rounded-[2rem] p-6 flex items-center gap-6 active:scale-[0.98] transition-all animate-slide-up"
+                            onClick={() => navigate(m.path)}
+                            className="bg-white/5 border border-white/5 rounded-[2rem] p-6 flex items-center gap-6 active:scale-[0.98] transition-all animate-slide-up w-full text-left"
                             style={{ animationDelay: `${i * 100}ms` }}
                         >
                             <div className={clsx(
@@ -85,8 +111,8 @@ export const Security: React.FC = () => {
                                 <h4 className="text-sm font-black uppercase italic">{m.title}</h4>
                                 <p className="text-xs text-white/40 font-bold uppercase tracking-widest leading-none mt-1">{m.desc}</p>
                             </div>
-                            <span className="material-symbols-outlined text-white/10">chevron_right</span>
-                        </div>
+                            <span className="material-symbols-outlined text-white/10">arrow_forward</span>
+                        </button>
                     ))}
                 </div>
 

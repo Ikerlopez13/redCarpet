@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Geolocation } from '@capacitor/geolocation';
 
-import Map, { Marker } from 'react-map-gl/mapbox';
+import Map, { Marker, Popup, GeolocateControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { RouteLine, ROUTE_COLORS } from '../components/map/RouteLine';
 import { DangerZones } from '../components/map/DangerZone';
@@ -78,6 +78,8 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
         bearing: 0,
         pitch: 60
     });
+    const [userLocation, setUserLocation] = useState({ lat: origin.lat, lng: origin.lng });
+    const geoControlRef = React.useRef<any>(null);
 
     // Fetch route on mount
     useEffect(() => {
@@ -105,6 +107,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             setIsLoading(false);
         };
         fetchRoute();
+        
+        // Trigger native mapbox tracking on mount
+        setTimeout(() => {
+            geoControlRef.current?.trigger();
+        }, 500);
     }, [origin, destination, transportMode]);
 
     // Track position and heading for rotation
@@ -118,13 +125,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     timeout: 5000 
                 }, (position) => {
                     if (position) {
-                        setViewState(prev => ({
-                            ...prev,
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude,
-                            // Use heading if available, fallback to 0
-                            bearing: position.coords.heading || prev.bearing
-                        }));
+                        setUserLocation({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        });
+                        // Removed forcing setViewState here so the map doesn't fight native GeolocateControl
                     }
                 });
             } catch (e) {
@@ -142,12 +147,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     const handleRecenter = () => {
         setViewState(prev => ({
             ...prev,
-            latitude: origin.lat,
-            longitude: origin.lng,
             zoom: 17,
             pitch: 0, // Vista cenital (plana)
             bearing: 0 // Mirando al norte
         }));
+        geoControlRef.current?.trigger();
     };
 
     const currentStep = steps[currentStepIndex];
@@ -177,22 +181,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     return (
         <div className="h-full w-full bg-background-dark flex flex-col font-display overflow-hidden relative">
 
-            {/* Top Navigation Bar - ULTRA SIMPLE */}
-            <div className="bg-primary text-white shrink-0 z-20 shadow-2xl">
-                <div className="px-5 pt-12 pb-5 flex items-center gap-5">
-                    <div className="size-20 bg-white/20 rounded-3xl flex items-center justify-center shrink-0 shadow-inner">
-                        <span className="material-symbols-outlined text-5xl">
-                            {currentStep ? getManeuverIcon(currentStep.maneuver.type, currentStep.maneuver.modifier) : 'straight'}
-                        </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-4xl font-black">{currentStep ? formatDistance(currentStep.distance) : '--'}</p>
-                        <p className="text-xl font-medium opacity-90 leading-tight mt-1">
-                            {currentStep?.maneuver.instruction || 'Sigue recto'}
-                        </p>
-                    </div>
-                </div>
-            </div>
+            {/* Removed ugly top header per request */}
 
             {/* Map Area */}
             <div className="flex-1 relative">
@@ -216,25 +205,51 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         </Marker>
                     ))}
 
-                    <Marker latitude={origin.lat} longitude={origin.lng} anchor="center">
-                        <div className="relative flex items-center justify-center">
-                            {/* Heading Beam (The Cone of Light) */}
-                            <div 
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 pointer-events-none transition-transform duration-500 ease-out"
-                                style={{ 
-                                    transform: `translate(-50%, -50%) rotate(${viewState.bearing}deg)`,
-                                    background: 'conic-gradient(from 150deg at 50% 50%, transparent 0deg, rgba(59, 130, 246, 0.3) 30deg, transparent 60deg)'
-                                }}
-                            />
-                            {/* Blue Dot */}
-                            <div className="size-6 bg-blue-500 rounded-full border-4 border-white shadow-[0_0_20px_rgba(59,130,246,0.8)] z-10" />
-                            <div className="absolute inset-0 size-6 bg-blue-500 rounded-full animate-ping opacity-40" />
+                    {/* Native Mapbox Geolocation & Tracking Control */}
+                    <GeolocateControl
+                        ref={geoControlRef}
+                        position="top-right"
+                        trackUserLocation={true}
+                        showUserLocation={true}
+                        showUserHeading={true}
+                        style={{ display: 'none' }} // Hidden visually but logic runs internally
+                    />
+
+                    {/* Default Mapbox Popup for Instructions */}
+                    <Popup
+                        latitude={userLocation.lat}
+                        longitude={userLocation.lng}
+                        anchor="bottom"
+                        offset={30}
+                        closeButton={false}
+                        closeOnClick={false}
+                        style={{ padding: 0, borderRadius: '1rem', overflow: 'hidden' }}
+                    >
+                        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl max-w-[280px] shadow-xl">
+                            <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-primary text-xl">
+                                    {currentStep ? getManeuverIcon(currentStep.maneuver.type, currentStep.maneuver.modifier) : 'straight'}
+                                </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-lg font-black text-zinc-900 leading-tight tracking-tight">
+                                    {currentStep ? formatDistance(currentStep.distance) : '--'}
+                                </p>
+                                <p className="text-xs font-semibold text-zinc-500 leading-tight">
+                                    {currentStep?.maneuver.instruction || 'Sigue recto'}
+                                </p>
+                            </div>
                         </div>
-                    </Marker>
+                    </Popup>
 
                     <Marker latitude={destination.lat} longitude={destination.lng} anchor="bottom">
-                        <div className="size-12 bg-primary rounded-2xl border-4 border-white shadow-2xl flex items-center justify-center text-white">
-                            <span className="material-symbols-outlined text-2xl font-black">flag</span>
+                        <div className="flex flex-col items-center">
+                            <div className="size-8 bg-primary rounded-full border-3 border-white shadow-lg flex items-center justify-center">
+                                <span className="material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                    flag
+                                </span>
+                            </div>
+                            <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-white -mt-0.5" />
                         </div>
                     </Marker>
                 </Map>

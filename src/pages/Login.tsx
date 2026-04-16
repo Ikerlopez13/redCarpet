@@ -274,32 +274,13 @@ export const Login: React.FC = () => {
                         </button>
                     </div>
 
-                    {localStorage.getItem('redcarpet_demo_mode') === 'true' && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                localStorage.removeItem('redcarpet_demo_mode');
-                                localStorage.removeItem('mock_user');
-                                window.location.reload();
-                            }}
-                            className="w-full flex items-center justify-center gap-2 py-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-500 text-xs font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all active:scale-95"
-                        >
-                            <span className="material-symbols-outlined text-sm">logout</span>
-                            Desactivar Modo Demo (Usar Cuentas Reales)
-                        </button>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            await loginAsDemo();
-                            navigate('/');
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-2 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] hover:text-white/40 transition-colors"
-                    >
-                        <span className="material-symbols-outlined text-xs">rocket_launch</span>
-                        Acceso Rápido (Modo Demo)
-                    </button>
+                {/* Support generic footer */}
+                <div className="pt-8 pb-12 flex flex-col items-center gap-4">
+                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest text-center leading-relaxed">
+                        Al continuar, aceptas nuestros<br/>
+                        <button onClick={() => navigate('/terms')} className="underline">Términos</button> y <button onClick={() => navigate('/privacy')} className="underline">Privacidad</button>.
+                    </p>
+                </div>
                 </div>
             </div>
         </div>

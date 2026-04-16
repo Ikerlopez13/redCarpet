@@ -1,0 +1,141 @@
+# Triggering build #32: TestFlight Submission BUILD #2 - March 14
+name: Deploy to TestFlight 🚀🛡️
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.gitignore'
+
+jobs:
+  deploy:
+    runs-on: macos-15 # Latest macOS runner with iOS 18 SDK
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Web App
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+          VITE_REVENUECAT_APPLE_KEY: ${{ secrets.VITE_REVENUECAT_APPLE_KEY }}
+          VITE_REVENUECAT_GOOGLE_KEY: ${{ secrets.VITE_REVENUECAT_GOOGLE_KEY }}
+          VITE_TMB_APP_ID: ${{ secrets.VITE_TMB_APP_ID }}
+          VITE_TMB_APP_KEY: ${{ secrets.VITE_TMB_APP_KEY }}
+
+      - name: Capacitor Sync
+        run: npx cap sync ios
+
+      - name: Increment Build Number
+        run: |
+          chmod +x scripts/increment-build.sh
+          ./scripts/increment-build.sh
+        
+      - name: Verify Bundle Identifier
+        run: |
+          echo "🔍 Verifying identifiers..."
+          PLIST="ios/App/App/Info.plist"
+          BUNDLE_ID=$(grep -A 1 "CFBundleURLName" "$PLIST" | tail -n 1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          echo "  - Identified Bundle URL: $BUNDLE_ID"
+          
+          # Check project settings
+          XCODE_ID=$(grep "PRODUCT_BUNDLE_IDENTIFIER =" ios/App/App.xcodeproj/project.pbxproj | head -n 1 | sed 's/.*= \(.*\);/\1/')
+          echo "  - Xcode Project Bundle ID: $XCODE_ID"
+          
+          if [ "$XCODE_ID" != "com.vibecode.redcarpet" ]; then
+            echo "❌ ERROR: Bundle ID mismatch! Expected com.vibecode.redcarpet but found $XCODE_ID"
+            exit 1
+          fi
+          echo "✅ Bundle ID verified!"
+
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
+
+      - name: Validate App Store Credentials
+        run: |
+          mkdir -p ~/private_keys
+          # Use printf to avoid trailing newline issues and handle multi-line secrets safely
+          printf "%s" "${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          
+          echo "🔍 SURGICAL DIAGNOSTICS (Safe metadata check):"
+          ISSUER_ID="${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+          KEY_ID="${{ secrets.APP_STORE_CONNECT_KEY_ID }}"
+          KEY_CONTENT="${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}"
+          
+          echo "  - Issuer ID Length: ${#ISSUER_ID} (Expected: 36)"
+          echo "  - Key ID Length: ${#KEY_ID} (Expected: 10)"
+          echo "  - Key Content Length: ${#KEY_CONTENT} characters"
+          
+          # Check for common mistakes without exposing secrets
+          if [[ $ISSUER_ID == *" "* ]]; then echo "  ⚠️ ERROR: Issuer ID contains spaces!"; fi
+          if [[ $KEY_ID == *" "* ]]; then echo "  ⚠️ ERROR: Key ID contains spaces!"; fi
+          
+          echo "🚀 Validating with Apple..."
+          xcrun altool --list-apps \
+            --apiKey "$KEY_ID" \
+            --apiIssuer "$ISSUER_ID"
+          echo "✅ Credentials verified!"
+
+      - name: Import Code Signing Certificates
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APP_STORE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
+          create-keychain: true
+          keychain-password: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
+
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.APP_STORE_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build and Archive iOS App
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            DEVELOPMENT_TEAM=7W52U2SRVA
+
+      - name: Export .ipa
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ \
+            -exportOptionsPlist ios/App/App/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            -verbose
+
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+            --file build/App.ipa \
+            --type ios \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"

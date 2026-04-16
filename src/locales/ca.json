@@ -43,8 +43,8 @@
       "advanced_tracking": "Seguiment avançat",
       "download_data": "Descarregar les meves dades",
       "withdraw_consent": "Retirar consentiment",
-      "view_onboarding": "Veure Onboarding",
-      "reset_onboarding": "Reiniciar Onboarding"
+      "view_onboarding": "Veure guia d'inici",
+      "reset_onboarding": "Reiniciar guia"
     },
     "status": {
       "granted": "Activa",
@@ -82,7 +82,7 @@
     "activate": "ACTIVAR PASSI",
     "verify": "VERIFICAR ELEGIBILITAT",
     "protect_family": "PROTEGIR LA MEVA FAMÍLIA",
-    "main_subtitle": "Amb tecnologia d'elit, activa el modo tranquil·litat.",
+    "main_subtitle": "Amb tecnologia d'elit, activa el mode tranquil·litat.",
     "72h.promo": "Passi temporal, tranquil·litat total.",
     "restore_purchases": "Restaurar Compres"
   }

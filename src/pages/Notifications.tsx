@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import { useAuth } from '../contexts/AuthContext';
+import { getFamilyData } from '../services/familyService';
+import { getSOSHistory } from '../services/sosService';
 
 interface NotificationItem {
   id: string;
@@ -21,40 +24,76 @@ interface NotificationItem {
   time: string;
   isRead: boolean;
   action?: string;
+  alertId?: string;
 }
-
-const mockNotifications: NotificationItem[] = [
-  {
-    id: '1',
-    type: 'emergency',
-    title: 'Alerta SOS Finalizada',
-    message: 'Tu alerta de emergencia de hoy a las 14:20 ha sido resuelta correctamente.',
-    time: '2h ago',
-    isRead: false,
-    action: 'Ver detalles'
-  },
-  {
-    id: '2',
-    type: 'family',
-    title: 'Familia a Salvo',
-    message: 'Todos tus contactos de confianza han confirmado su seguridad.',
-    time: '5h ago',
-    isRead: true
-  },
-  {
-    id: '3',
-    type: 'system',
-    title: 'Actualización Disponible',
-    message: 'Hemos mejorado la precisión del GPS en zonas de baja cobertura.',
-    time: '1d ago',
-    isRead: true,
-    action: 'Actualizar'
-  }
-];
 
 export const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+        if (!user) return;
+        try {
+            const { group, members } = await getFamilyData(user.id);
+            if (group) {
+                const alerts = await getSOSHistory(group.id, 20);
+                const mapped: NotificationItem[] = alerts.map(a => {
+                    const member = members.find(m => m.profile?.id === a.user_id);
+                    const name = member?.profile?.full_name?.split(' ')[0] || 'Un contacto';
+                    
+                    const date = new Date(a.created_at);
+                    const now = new Date();
+                    const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+                    let timeStr = 'Hace un momento';
+                    if (diffMins > 0 && diffMins < 60) timeStr = `Hace ${diffMins} min`;
+                    else if (diffMins >= 60 && diffMins < 1440) timeStr = `Hace ${Math.floor(diffMins/60)} h`;
+                    else if (diffMins >= 1440) timeStr = `Hace ${Math.floor(diffMins/1440)} d`;
+
+                    return {
+                        id: a.id,
+                        alertId: a.id,
+                        type: a.status === 'active' ? 'emergency' : 'family',
+                        title: a.status === 'active' ? `EMERGENCIA: ${name}` : `SOS Resuelto: ${name}`,
+                        message: a.message || `Alerta de seguridad procesada.`,
+                        time: timeStr,
+                        isRead: a.status !== 'active',
+                        action: a.status === 'active' ? 'Abrir mapa' : 'Ver historial'
+                    };
+                });
+                // Add a welcome notification if it's too empty
+                if (mapped.length === 0) {
+                  mapped.push({
+                    id: 'welcome',
+                    type: 'system',
+                    title: 'Centro de Seguridad Activo',
+                    message: 'Aquí aparecerán las alertas SOS y avisos de zonas de peligro de tu círculo familiar.',
+                    time: 'Ahora',
+                    isRead: false
+                  });
+                }
+                setNotifications(mapped);
+            }
+        } catch (e) {
+            console.error('Failed to load notifs', e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchNotifs();
+  }, [user]);
+
+  const handleAction = (notif: NotificationItem) => {
+    if (notif.action === 'Abrir mapa') {
+        navigate('/');
+    } else if (notif.action === 'Ver historial') {
+        navigate('/history');
+    }
+  };
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0d0d0d] text-white overflow-hidden font-display animate-fade-in">
@@ -76,8 +115,12 @@ export const Notifications: React.FC = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32">
-        {mockNotifications.length > 0 ? (
-          mockNotifications.map((notif, index) => (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="size-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : notifications.length > 0 ? (
+          notifications.map((notif, index) => (
             <div
               key={notif.id}
               className={clsx(
@@ -116,7 +159,10 @@ export const Notifications: React.FC = () => {
 
                   {/* Action Button */}
                   {notif.action && (
-                    <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors">
+                    <button 
+                      onClick={() => handleAction(notif)}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors"
+                    >
                       {notif.action}
                       <ArrowRight size={12} />
                     </button>

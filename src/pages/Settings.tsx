@@ -1,11 +1,12 @@
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadAvatar } from '../services/authService';
 import { useTranslation } from 'react-i18next';
-import { PushNotifications } from '@capacitor/push-notifications';
 import { App } from '@capacitor/app';
-import { initPushNotifications } from '../services/pushService';
+import { Preferences } from '@capacitor/preferences';
+import { initPushNotifications, getPushPermissionStatus } from '../services/pushService';
 import clsx from 'clsx';
 
 export const Settings: React.FC = () => {
@@ -14,17 +15,30 @@ export const Settings: React.FC = () => {
     const { user, isPremium, logout } = useAuth(); // Connect to AuthContext
     const [isUploading, setIsUploading] = useState(false);
     const [showLanguageSelector, setShowLanguageSelector] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [fileInputRef] = [useRef<HTMLInputElement>(null)];
     const [notificationStatus, setNotificationStatus] = useState<string>('checker');
+    const [useMiles, setUseMiles] = useState<boolean>(localStorage.getItem('use_miles') === 'true');
 
     useEffect(() => {
+        const loadSettings = async () => {
+            const { value } = await Preferences.get({ key: 'use_miles' });
+            if (value !== null) {
+                setUseMiles(value === 'true');
+            } else {
+                // Fallback to localStorage if Preferences is empty (migration)
+                const legacy = localStorage.getItem('use_miles') === 'true';
+                setUseMiles(legacy);
+                await Preferences.set({ key: 'use_miles', value: String(legacy) });
+            }
+        };
+        loadSettings();
         checkNotificationStatus();
     }, []);
 
     const checkNotificationStatus = async () => {
         try {
-            const status = await PushNotifications.checkPermissions();
-            setNotificationStatus(status.receive);
+            const status = await getPushPermissionStatus();
+            setNotificationStatus(status);
         } catch (err) {
             console.error('Error checking push permissions:', err);
             setNotificationStatus('denied');
@@ -34,17 +48,24 @@ export const Settings: React.FC = () => {
     const handleNotificationActivation = async () => {
         try {
             if (notificationStatus === 'denied') {
-                await App.openAppSettings();
+                // NativeSettings is the correct way, fallback to window.location for now
+                if (Capacitor.getPlatform() === 'ios') {
+                    window.location.href = 'app-settings:';
+                } else {
+                    alert('Por favor, abre los Ajustes del sistema para activar las notificaciones.');
+                }
             } else {
-                const result = await PushNotifications.requestPermissions();
-                setNotificationStatus(result.receive);
-                if (result.receive === 'granted' && user?.id) {
+                if (user?.id) {
                     await initPushNotifications(user.id);
+                    // We don't have direct access to PushNotifications here,
+                    // so we rely on checkNotificationStatus to refresh.
+                    setTimeout(checkNotificationStatus, 1000);
+                    alert('Se ha solicitado el permiso de notificaciones.');
                 }
             }
         } catch (err) {
             console.error('Error handling notification activation:', err);
-            await App.openAppSettings();
+            alert('Por favor, abre los Ajustes del sistema para activar las notificaciones.');
         }
     };
 
@@ -110,6 +131,13 @@ export const Settings: React.FC = () => {
                     action: "toggle-notifications",
                     iconColor: notificationStatus === 'granted' ? "text-green-400" : "text-amber-400"
                 },
+                { 
+                    icon: "straighten", 
+                    label: t('settings.items.measurement_system'), 
+                    subLabel: useMiles ? t('settings.items.unit_imperial') : t('settings.items.unit_metric'), 
+                    action: "toggle-distance-unit",
+                    iconColor: "text-blue-400"
+                },
             ]
         },
         {
@@ -130,21 +158,6 @@ export const Settings: React.FC = () => {
                 { icon: "description", label: t('settings.items.terms_of_use'), path: "/terms" },
             ]
         },
-        {
-            title: t('settings.groups.privacy_data'),
-            items: [
-                { icon: "tune", label: t('settings.items.advanced_tracking'), subLabel: "Activado (Toca para limitar)", action: "toggle-tracking", iconColor: "text-blue-400" },
-                { icon: "download", label: t('settings.items.download_data'), subLabel: "Portabilidad (Art. 20)", action: "download-data", iconColor: "text-indigo-400" },
-                { icon: "block", label: t('settings.items.withdraw_consent'), subLabel: "Desactivar funciones core", action: "withdraw-consent", iconColor: "text-orange-400" },
-            ]
-        },
-        {
-            title: t('settings.groups.debug'),
-            items: [
-                { icon: "waving_hand", label: t('settings.items.view_onboarding'), subLabel: "Demo para clientes", path: "/onboarding", iconColor: "text-purple-400" },
-                { icon: "restart_alt", label: t('settings.items.reset_onboarding'), subLabel: "Borrar estado guardado", action: "reset-onboarding", iconColor: "text-amber-400" },
-            ]
-        }
     ];
 
     return (
@@ -212,23 +225,15 @@ export const Settings: React.FC = () => {
                                         onClick={() => {
                                             if ((item as any).email) {
                                                 window.location.href = `mailto:${(item as any).email}`;
-                                            } else if ((item as any).action === 'reset-onboarding') {
-                                                localStorage.removeItem('onboarding_complete');
-                                                localStorage.removeItem('usage_type');
-                                                localStorage.removeItem('relationship_type');
-                                                alert('✅ Onboarding reiniciado. Ahora puedes verlo de nuevo.');
-                                            } else if ((item as any).action === 'toggle-tracking') {
-                                                alert('Configuración de seguimiento avanzado actualizada.');
-                                            } else if ((item as any).action === 'withdraw-consent') {
-                                                if (window.confirm('Si retiras el consentimiento, la aplicación dejará de funcionar y se cerrará tu sesión. ¿Estás seguro?')) {
-                                                    handleLogout();
-                                                }
-                                            } else if ((item as any).action === 'download-data') {
-                                                alert('Hemos iniciado la recopilación de tus datos. Recibirás un correo con el archivo descargable en las próximas 24 horas.');
                                             } else if ((item as any).action === 'change-language') {
                                                 setShowLanguageSelector(true);
                                             } else if ((item as any).action === 'toggle-notifications') {
                                                 handleNotificationActivation();
+                                            } else if ((item as any).action === 'toggle-distance-unit') {
+                                                const newValue = !useMiles;
+                                                setUseMiles(newValue);
+                                                Preferences.set({ key: 'use_miles', value: String(newValue) });
+                                                localStorage.setItem('use_miles', String(newValue));
                                             } else if (item.path) {
                                                 navigate(item.path);
                                             }
@@ -268,18 +273,6 @@ export const Settings: React.FC = () => {
                         {t('settings.logout')}
                     </button>
 
-                    <button
-                        onClick={() => {
-                            if (window.confirm('⚠️ ADVERTENCIA: Esta acción es IRREVERSIBLE. Se eliminarán todos tus datos personales, historiales de ubicación, patrones y contactos asociados. ¿Estás absolutamente seguro de que deseas eliminar tu cuenta?')) {
-                                alert('Iniciando proceso automático de borrado. Su cuenta será destruida en los próximos minutos según el Art. 17 del RGPD.');
-                                handleLogout();
-                            }
-                        }}
-                        className="w-full h-14 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-red-500/20 transition-colors"
-                    >
-                        <span className="material-symbols-outlined">delete_forever</span>
-                        {t('settings.delete_account')}
-                    </button>
                 </div>
 
                 {/* Language Selector Overlay */}

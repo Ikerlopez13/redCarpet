@@ -151,10 +151,20 @@ export function formatDuration(seconds: number): string {
  * Format distance from meters to human readable string
  */
 export function formatDistance(meters: number): string {
-    if (meters < 1000) {
-        return `${Math.round(meters)} m`;
+    const useMiles = localStorage.getItem('use_miles') === 'true';
+    if (useMiles) {
+        const miles = meters * 0.000621371;
+        if (miles < 0.1) {
+            const feet = Math.round(meters * 3.28084);
+            return `${feet} ft`;
+        }
+        return `${miles.toFixed(1)} mi`;
+    } else {
+        if (meters < 1000) {
+            return `${Math.round(meters)} m`;
+        }
+        return `${(meters / 1000).toFixed(1)} km`;
     }
-    return `${(meters / 1000).toFixed(1)} km`;
 }
 
 // Barcelona locations - Felipe II 229 area

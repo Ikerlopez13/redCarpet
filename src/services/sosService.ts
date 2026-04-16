@@ -138,6 +138,10 @@ export async function activateSOS(
     groupId: string,
     config: SOSConfig
 ): Promise<{ alert: SOSAlert | null; error: string | null }> {
+    if (!userId || userId.trim() === '' || !groupId || groupId.trim() === '') {
+        throw new Error("Sesión no válida");
+    }
+
     try {
         const position = await (async () => {
             const geoPromise = new Promise<GeolocationPosition | null>((resolve) => {
@@ -204,6 +208,11 @@ export async function getActiveAlerts(groupId: string): Promise<SOSAlert[]> {
     return data || [];
 }
 
+export async function getSOSHistory(groupId: string, limit: number = 20): Promise<SOSAlert[]> {
+    const { data } = await supabase.from('sos_alerts').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(limit);
+    return data || [];
+}
+
 export function subscribeToSOSAlerts(groupId: string, onNewAlert: (alert: SOSAlert) => void) {
     const subscription = supabase
         .channel(`sos-alerts-${groupId}`)
@@ -240,9 +249,9 @@ export async function call112() {
 export async function requestNotificationPermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) return true;
     try {
-        const { PushNotifications } = await import('@capacitor/push-notifications');
-        const status = await PushNotifications.requestPermissions();
-        return status.receive === 'granted';
+        const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+        const { receive } = await FirebaseMessaging.requestPermissions();
+        return receive === 'granted';
     } catch (err) {
         console.error('[SOS-Service] Notification permission fail:', err);
         return false;

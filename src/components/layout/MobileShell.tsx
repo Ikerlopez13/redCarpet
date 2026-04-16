@@ -57,7 +57,7 @@ export const MobileShell: React.FC = () => {
         
         return (
             <div className={clsx(
-                "h-screen w-screen overflow-hidden flex flex-col relative",
+                "h-[100dvh] w-screen overflow-hidden flex flex-col relative",
                 isEmergencyLive ? "bg-transparent" : "bg-background-dark"
             )}>
                 <DeepLinkHandler />
@@ -80,7 +80,7 @@ export const MobileShell: React.FC = () => {
 
     return (
         // Main Container - Black Background
-        <div className="min-h-screen w-full bg-[#050505] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden relative selection:bg-primary selection:text-white">
+        <div className="h-[100dvh] w-full bg-[#050505] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden relative selection:bg-primary selection:text-white">
             <DeepLinkHandler />
 
             {/* Ambient Background Effects - Cleaned for Production */}

@@ -22,7 +22,7 @@ export const ProtectedRoute = () => {
         );
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.id || user.id.trim() === '') {
         return <Navigate to="/login" replace />;
     }
 

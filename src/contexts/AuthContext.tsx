@@ -50,14 +50,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const fetchAndSetProfile = async (sessionUser: any) => {
             try {
-                const { data: profile } = await supabase
+                if (!sessionUser || !sessionUser.id || sessionUser.id.trim() === "") {
+                    console.error('[AuthContext] Invalid sessionUser UUID detected. Gracefully aborting profile fetch.');
+                    if (mounted) setUser(null);
+                    return;
+                }
+
+                const { data: profile, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', sessionUser.id)
                     .single();
 
-                if (mounted) {
-                    setUser({ ...sessionUser, profile: profile || undefined });
+                // If profile does not exist (PGRST116), we create it automatically
+                if (error && error.code === 'PGRST116') {
+                    console.log('[AuthContext] Profile missing. Creating automatic profile...');
+                    await supabase.from('profiles').insert({
+                        id: sessionUser.id,
+                        full_name: sessionUser.user_metadata?.full_name || 'Nuevo Usuario',
+                        avatar_url: sessionUser.user_metadata?.avatar_url || null,
+                    });
+                    
+                    const { data: newProfile } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
+                    if (mounted) {
+                        setUser({ ...sessionUser, profile: newProfile || undefined });
+                    }
+                } else {
+                    if (mounted) {
+                        setUser({ ...sessionUser, profile: profile || undefined });
+                    }
                 }
             } catch (err) {
                 console.error('[AuthContext] Error fetching profile:', err);
@@ -74,10 +95,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setUser(loggedUser);
                         setIsLoading(false);
                         fetchAndSetProfile(loggedUser);
-                        updatePremiumStatus(loggedUser).then(hasPremium => {
-                            if (hasPremium) {
-                                BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
-                            }
+
+                        // Initialize RevenueCat for native platform
+                        RevenueCatService.initialize(loggedUser.id).then(() => {
+                            updatePremiumStatus(loggedUser).then(hasPremium => {
+                                if (hasPremium) {
+                                    BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+                                }
+                            });
                         });
                     }
                 } else {

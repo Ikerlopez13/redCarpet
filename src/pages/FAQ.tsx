@@ -86,7 +86,10 @@ export const FAQ: React.FC = () => {
                         <h3 className="text-sm font-bold uppercase tracking-widest mb-1">¿Aún tienes dudas?</h3>
                         <p className="text-[10px] text-white/40">Nuestro equipo de soporte está disponible las 24h para usuarios Premium.</p>
                     </div>
-                    <button className="w-full py-3 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                    <button 
+                        onClick={() => window.open('mailto:soporte.redcarpet@gmail.com?subject=Soporte RedCarpet', '_blank')}
+                        className="w-full py-3 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
                         Contactar Soporte
                     </button>
                 </div>

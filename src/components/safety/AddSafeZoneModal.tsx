@@ -38,7 +38,11 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
         setIsSearching(true);
         debounceRef.current = setTimeout(async () => {
             try {
-                const results = await searchPlaces(addressQuery);
+                // Get current position for proximity search
+                const position = await getCurrentPosition().catch(() => null);
+                const proximity = position ? { lat: position.coords.latitude, lng: position.coords.longitude } : undefined;
+                
+                const results = await searchPlaces(addressQuery, proximity);
                 setSuggestions(results);
                 setShowSuggestions(results.length > 0);
             } catch (err) {
@@ -67,6 +71,9 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
 
     const handleSave = async () => {
         if (!name.trim()) return;
+        if (!familyId || familyId.trim() === "") {
+            throw new Error("Sesión no válida");
+        }
         setIsLoading(true);
         setError(null);
 
