@@ -3,11 +3,23 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white;
+  @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-medium;
+}
+
+/* Improve white title legibility on dark backgrounds */
+h1, h2, h3, .font-display {
+  @apply tracking-tight;
+}
+
+.text-white-shadow {
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 /* Custom scrollbar for webkit */

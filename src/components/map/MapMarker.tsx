@@ -66,7 +66,7 @@ export const MapMarker: React.FC<MapMarkerProps> = ({ member, onClick }) => {
                         {member.isEmergency && (
                             <div className="absolute -top-3 -right-3 bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-lg border-2 border-white flex items-center gap-0.5 animate-bounce">
                                 <span className="material-symbols-outlined text-[10px] fill-current">warning</span>
-                                SOS
+                                GO
                             </div>
                         )}
                     </div>

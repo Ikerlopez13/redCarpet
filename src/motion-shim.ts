@@ -23,6 +23,7 @@ if (typeof window !== 'undefined') {
     h3: 'h3',
   };
   (window as any).AnimatePresence = ({ children }: any) => children;
-  console.log("🛠️ Framer Motion Fail-safe Active");
+  (window as any).SOS = undefined; // Global Fail-safe for legacy reference errors
+  console.log("🛠️ Framer Motion & SOS Fail-safe Active");
 }
 export {};

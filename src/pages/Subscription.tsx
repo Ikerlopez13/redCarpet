@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { RevenueCatService } from '../services/revenueCatService';
 import type { PurchasesPackage } from '../services/revenueCatService';
 import { useAuth } from '../contexts/AuthContext';
-import { 
+import {
     Crown,
     Check,
     Video,
@@ -28,53 +28,77 @@ export const Subscription: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const SHARED_FEATURES = [
-        "Escudo de IA Personal",
-        "SOS con Vídeo HD 1080p",
-        "Grabación en la Nube",
-        "Navegación Táctica Segura",
-        "Detección de Caída/Choque",
-        "Conexión Prioritaria"
+        t('premium.features_list.ai_shield'),
+        t('premium.features_list.safe_route'),
+        t('premium.features_list.hd_video'),
+        t('premium.features_list.cloud_recording'),
+        t('premium.features_list.tactical_nav'),
+        t('premium.features_list.ai_shield'),
+        t('premium.features_list.fall_detection'),
+        t('premium.features_list.priority_connection')
     ];
 
     useEffect(() => {
         const loadOfferings = async () => {
+            console.log(`[RevenueCat] 🔄 Iniciando carga de offerings (useEffect)`);
             try {
+                // Ensure initialization before fetching
+                if (!RevenueCatService.isConfigured) {
+                    console.log(`[RevenueCat] Configurando RevenueCat antes de obtener offerings...`);
+                    await RevenueCatService.initialize();
+                }
                 const pkgs = await RevenueCatService.getOfferings();
+                console.log(`[RevenueCat] 📦 Offerings cargados correctamente. Total de paquetes: ${pkgs.length}`);
+                if (pkgs.length === 0) {
+                     console.warn(`[RevenueCat] ⚠️ Advertencia: No se han encontrado paquetes (pkgs.length === 0)`);
+                }
                 setPackages(pkgs);
             } catch (err) {
-                console.error('Error loading offerings:', err);
-                setError('No se pudieron cargar los planes.');
+                console.error('[RevenueCat] ❌ Error loading offerings:', err);
+                setError(t('common.error') + ': offerings_load_failed');
             }
         };
         loadOfferings();
-    }, []);
+    }, [t]);
 
     const handlePurchase = async (packageId: string) => {
+        console.log(`[RevenueCat] 👉 Botón de compra pulsado para el paquete: ${packageId}`);
         setProcessing(true);
         setError(null);
         try {
+            console.log(`[RevenueCat] Estado actual de paquetes cargados: ${packages.length}`);
+            
+            // Check configuration again
+            if (!RevenueCatService.isConfigured) {
+                console.log(`[RevenueCat] RevenueCat no estaba configurado. Inicializando...`);
+                await RevenueCatService.initialize();
+            }
+
             // Find real pkg
             const pkg = packages.find(p => p.identifier === packageId);
-            
+
             if (!pkg) {
-                console.error('Package not found in offerings:', packageId, 'Available:', packages.map(p => p.identifier));
-                setError(`El plan "${packageId}" no está disponible en la tienda. Verifica que los Identificadores de Producto coincidan en RevenueCat.`);
+                console.error(`[RevenueCat] ❌ Error: Package no encontrado en offerings: ${packageId}`);
+                console.log(`[RevenueCat] Paquetes disponibles actualmente:`, packages.map(p => p.identifier));
+                setError(t('common.error') + ': plan_not_available');
                 return;
             }
 
+            console.log(`[RevenueCat] 🚀 Llamando a RevenueCatService.purchasePackage para: ${pkg.identifier}`);
             const result = await RevenueCatService.purchasePackage(pkg);
-            
+
             if (result) {
+                console.log(`[RevenueCat] ✅ Compra completada exitosamente! CustomerInfo actualizado.`);
                 setIsPremium(true);
                 setShowSuccess(true);
             } else {
-                // If result is null but no error thrown, it was usually cancelled
-                // But we show a generic retry if it wasn't captured before
+                console.log(`[RevenueCat] ⚠️ Compra devuelta como null (posible cancelación del usuario).`);
             }
         } catch (err: any) {
-            console.error('Purchase error detail:', err);
-            setError(err.message || 'Error en la suscripción. Intenta de nuevo.');
+            console.error('[RevenueCat] ❌ Purchase error detail:', err);
+            setError(err.message || t('common.error'));
         } finally {
+            console.log(`[RevenueCat] 🏁 Proceso de compra finalizado. Restaurando estado del botón.`);
             setProcessing(false);
         }
     };
@@ -84,27 +108,27 @@ export const Subscription: React.FC = () => {
         return (
             <div className="flex flex-col h-full w-full bg-black text-white items-center justify-center p-8 text-center font-display relative overflow-hidden animate-fade-in">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -z-10" />
-                
-                <div 
+
+                <div
                     className="size-32 rounded-[3.5rem] bg-primary/20 flex items-center justify-center mb-10 shadow-[0_0_80px_rgba(255,49,49,0.4)] border border-primary/30 animate-scale-in"
                 >
                     <CheckCircle2 size={72} className="text-primary" />
                 </div>
-                
-                <h1 className="text-4xl font-black uppercase tracking-tighter italic mb-4">Felicidades.</h1>
-                <p className="text-xl text-white/80 font-bold mb-12">Ahora eres:</p>
-                
+
+                <h1 className="text-4xl font-black uppercase tracking-tighter italic mb-4">{t('premium.success.title')}</h1>
+                <p className="text-xl text-white/80 font-bold mb-12">{t('premium.success.now_you_are')}</p>
+
                 <div className="space-y-4 mb-16 text-left w-full max-w-xs px-6">
                     {[
-                        '• Más seguro.',
-                        '• Más inteligente.',
-                        '• Más protegido.',
-                        '• Más preparado.',
-                        '• Más tranquilo.',
-                        '• Más Red Carpet.'
+                        t('premium.success.step1'),
+                        t('premium.success.step2'),
+                        t('premium.success.step3'),
+                        t('premium.success.step4'),
+                        t('premium.success.step5'),
+                        t('premium.success.step6')
                     ].map((step, i) => (
-                        <p 
-                            key={i} 
+                        <p
+                            key={i}
                             className="text-lg font-black italic tracking-tight animate-fade-in"
                             style={{ animationDelay: `${i * 100}ms` }}
                         >
@@ -112,12 +136,12 @@ export const Subscription: React.FC = () => {
                         </p>
                     ))}
                 </div>
-                
+
                 <button
                     onClick={() => navigate('/')}
                     className="w-full max-w-xs h-16 bg-white text-black rounded-2xl font-black text-xl uppercase tracking-tighter italic shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
                 >
-                    COMENZAR EXPERIENCIA
+                    {t('premium.success.start')}
                 </button>
             </div>
         );
@@ -125,32 +149,32 @@ export const Subscription: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative animate-fade-in">
-            
+
             {/* Background Elite Gradient */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px] -z-10" />
 
             {/* Header */}
             <div className="relative flex flex-col items-center p-8 pt-16 shrink-0 z-10 text-center">
-                <button 
-                    onClick={() => navigate(-1)} 
+                <button
+                    onClick={() => navigate(-1)}
                     className="absolute left-6 top-16 size-12 flex items-center justify-center text-white/60 hover:text-white bg-white/5 rounded-2xl backdrop-blur-2xl border border-white/10 transition-all active:scale-90 shadow-xl"
                 >
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className="text-5xl font-black uppercase tracking-tighter italic mb-2 animate-slide-up">{t('nav.premium')}</h1>
+                <h1 className="text-5xl font-black uppercase tracking-tighter italic mb-2 animate-slide-up text-white-shadow">{t('nav.premium')}</h1>
                 <p className="text-sm font-bold text-primary max-w-[200px] leading-tight uppercase tracking-tight animate-fade-in" style={{ animationDelay: '200ms' }}>
                     {t('premium.main_subtitle')}
                 </p>
             </div>
 
             <div className="flex-1 overflow-y-auto pb-24 px-6 no-scrollbar z-10 space-y-6">
-                
+
                 {/* 3. Premium Individual */}
                 <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-[3rem] p-8 relative overflow-hidden group animate-slide-up" style={{ animationDelay: '300ms' }}>
                     <div className="absolute top-0 right-0 p-4 opacity-20">
                         <Crown size={24} />
                     </div>
-                    
+
                     <h2 className="text-3xl font-black uppercase tracking-tighter italic mb-2">{t('premium.individual.title')}</h2>
                     <p className="text-primary text-[11px] font-black uppercase tracking-widest mb-8">{t('premium.individual.subtitle')}</p>
 
@@ -165,46 +189,55 @@ export const Subscription: React.FC = () => {
 
                     {/* Selector de Pago Toggle */}
                     <div className="bg-black/40 p-1.5 rounded-2xl border border-white/5 mb-8 flex items-center">
-                        <button 
+                        <button
                             onClick={() => setIndividualCycle('monthly')}
                             className={clsx(
                                 "flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all outline-none",
                                 individualCycle === 'monthly' ? "bg-white text-black shadow-lg" : "text-white/40"
                             )}
                         >
-                            9,99€ (Mensual)
+                            {t('premium.price_individual_monthly')} ({t('common.month')})
                         </button>
-                        <button 
+                        <button
                             onClick={() => setIndividualCycle('annual')}
                             className={clsx(
                                 "flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all outline-none",
                                 individualCycle === 'annual' ? "bg-white text-black shadow-lg" : "text-white/40"
                             )}
                         >
-                            89,99€ (Anual)
+                            {t('premium.price_individual_annual')} ({t('common.year')})
                         </button>
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-4xl font-black italic">{individualCycle === 'monthly' ? '9,99€' : '89,99€'}</span>
-                        <span className="text-white/30 text-[9px] font-bold uppercase">/ {individualCycle === 'monthly' ? 'Mes' : 'Año'}</span>
+                        <span className="text-4xl font-black italic">{individualCycle === 'monthly' ? t('premium.price_individual_monthly') : t('premium.price_individual_annual')}</span>
+                        <span className="text-white/30 text-[9px] font-bold uppercase">/ {individualCycle === 'monthly' ? t('common.month') : t('common.year')}</span>
                     </div>
                     <p className="text-[10px] font-bold text-white/40 uppercase mb-8 italic">{t('premium.cancel_anytime')}</p>
 
-                    <button 
-                        onClick={() => handlePurchase(individualCycle === 'monthly' ? 'rc_individual_monthly' : 'rc_individual_annual')}
+                    <button
+                        onClick={() => handlePurchase(individualCycle === 'monthly' ? 'redcarpet.premium.onemonth' : 'redcarpet.premium.oneyear')}
                         disabled={processing}
-                        className="w-full h-16 bg-white text-black rounded-2xl font-black text-xl uppercase tracking-tighter italic hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center"
+                        className="w-full h-16 bg-white text-black rounded-2xl font-black text-xl uppercase tracking-tighter italic hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 disabled:active:scale-100"
                     >
                         {processing ? <Loader2 className="animate-spin" /> : t('premium.hire')}
                     </button>
+
+                    {/* Error Display */}
+                    {error && (
+                        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl animate-shake">
+                            <p className="text-red-500 text-[10px] font-black uppercase text-center leading-tight">
+                                {error}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* 4. Plan Estudiantes */}
                 <div className="bg-zinc-900/40 border border-white/5 rounded-[3rem] p-8 animate-slide-up" style={{ animationDelay: '400ms' }}>
                     <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-2">{t('premium.student.title')}</h2>
                     <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-6">{t('premium.student.subtitle')}</p>
-                    
+
                     <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl mb-6 flex flex-col gap-1">
                         <p className="text-[9px] font-black text-primary uppercase tracking-tight text-center">
                             {t('premium.includes_all_individual')}
@@ -224,16 +257,17 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-4xl font-black italic">4,99€</span>
-                        <span className="text-white/30 text-[9px] font-bold uppercase">/ Mes</span>
+                        <span className="text-4xl font-black italic">{t('premium.price_student')}</span>
+                        <span className="text-white/30 text-[9px] font-bold uppercase">/ {t('common.month')}</span>
                     </div>
                     <p className="text-[10px] font-bold text-white/40 uppercase mb-6 italic">{t('premium.cancel_anytime')}</p>
 
-                    <button 
-                        onClick={() => handlePurchase('rc_student')}
-                        className="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-zinc-700 transition-all"
+                    <button
+                        onClick={() => handlePurchase('redcarpet.premium.student')}
+                        disabled={processing}
+                        className="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-zinc-700 transition-all flex items-center justify-center"
                     >
-                        {t('premium.verify')}
+                        {processing ? <Loader2 className="animate-spin" /> : t('premium.verify')}
                     </button>
                 </div>
 
@@ -242,7 +276,7 @@ export const Subscription: React.FC = () => {
                     <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-1">{t('premium.72h.title')}</h2>
                     <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-2">{t('premium.72h.subtitle')}</p>
                     <p className="text-white/50 text-[10px] font-bold uppercase leading-none mb-6 italic">{t('premium.72h.promo')}</p>
-                    
+
                     <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl mb-6">
                         <p className="text-[9px] font-black text-primary uppercase tracking-tight text-center">
                             {t('premium.includes_all_individual')}
@@ -259,73 +293,75 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-4xl font-black italic">2,99€</span>
-                        <span className="text-white/30 text-[9px] font-bold uppercase">/ Pago único</span>
+                        <span className="text-4xl font-black italic">{t('premium.price_72h')}</span>
+                        <span className="text-white/30 text-[10px] font-bold uppercase">/ {t('common.now')}</span>
                     </div>
                     <p className="text-[10px] font-bold text-white/40 uppercase mb-6 italic">{t('premium.cancel_anytime')}</p>
 
-                    <button 
-                        onClick={() => handlePurchase('rc_72h')}
-                        className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                    <button
+                        onClick={() => handlePurchase('safe_pass_72h')}
+                        disabled={processing}
+                        className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center"
                     >
-                        {t('premium.activate')}
+                        {processing ? <Loader2 className="animate-spin" /> : t('premium.activate')}
                     </button>
                 </div>
 
                 {/* 6. Plan Familiar */}
                 <div className="bg-gradient-to-br from-zinc-900 to-primary/10 border border-white/10 rounded-[3rem] p-8 overflow-hidden relative animate-slide-up" style={{ animationDelay: '600ms' }}>
                     <div className="absolute top-0 right-0 p-6 flex flex-col items-end">
-                         <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">PRO</span>
+                        <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{t('premium.pro')}</span>
                     </div>
 
                     <div className="flex items-baseline gap-3 mb-1">
                         <h2 className="text-3xl font-black uppercase tracking-tighter italic">{t('premium.family.title')}</h2>
                         <span className="text-[9px] font-medium text-white/40 max-w-[100px] leading-tight">{t('premium.family.subtitle')}</span>
                     </div>
-                    
+
                     <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-8">
-                        La seguridad de tus seres queridos y la tuya sí importa.
+                        {t('premium.family.subtitle')}
                     </p>
 
                     <div className="grid grid-cols-1 gap-3 mb-8">
                         <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
                             <Users size={20} className="text-primary" />
                             <div className="flex-1">
-                                <p className="text-[10px] font-black uppercase">Hasta 6 Miembros</p>
-                                <p className="text-[8px] text-white/30 font-bold uppercase">Ubicación y Alertas compartidas</p>
+                                <p className="text-[10px] font-black uppercase">{t('premium.family.members')}</p>
+                                <p className="text-[8px] text-white/30 font-bold uppercase">{t('premium.family.members_desc')}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
                             <Map size={20} className="text-primary" />
                             <div className="flex-1">
-                                <p className="text-[10px] font-black uppercase">Geocercas Ilimitadas</p>
-                                <p className="text-[8px] text-white/30 font-bold uppercase">Enterate cuando lleguen a salvo</p>
+                                <p className="text-[10px] font-black uppercase">{t('premium.family.geofences')}</p>
+                                <p className="text-[8px] text-white/30 font-bold uppercase">{t('premium.family.geofences_desc')}</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-5xl font-black italic">14,99€</span>
-                        <span className="text-white/30 text-[10px] font-bold uppercase">/ Mes</span>
+                        <span className="text-5xl font-black italic">{t('premium.price_family')}</span>
+                        <span className="text-white/30 text-[10px] font-bold uppercase">/ {t('common.month')}</span>
                     </div>
                     <p className="text-[10px] font-bold text-white/40 uppercase mb-8 italic">{t('premium.cancel_anytime')}</p>
 
-                    <button 
-                        onClick={() => handlePurchase('rc_family')}
-                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-xl uppercase tracking-tighter italic shadow-xl shadow-primary/30"
+                    <button
+                        onClick={() => handlePurchase('redcarpet.premium.family')}
+                        disabled={processing}
+                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-xl uppercase tracking-tighter italic shadow-xl shadow-primary/30 flex items-center justify-center"
                     >
-                        {t('premium.protect_family')}
+                        {processing ? <Loader2 className="animate-spin" /> : t('premium.protect_family')}
                     </button>
                 </div>
 
                 {/* Grid Benefits Elite */}
                 <div className="pt-10 space-y-4">
-                    <h3 className="text-[9px] font-black text-white/30 uppercase tracking-[0.4em] px-2">Tecnología de Élite Included</h3>
-                    
+                    <h3 className="text-[9px] font-black text-white/30 uppercase tracking-[0.4em] px-2">{t('premium.tech_elite')}</h3>
+
                     {[
-                        { icon: Video, title: 'Streaming Dual', desc: 'Sincronización de cámaras en ultra HD.' },
-                        { icon: Map, title: 'SafeRoute Táctico', desc: 'Análisis de riesgo en tiempo real.' },
-                        { icon: Sparkles, title: 'IA Predictiva', desc: 'Detección proactiva de peligros.' }
+                        { icon: Video, title: t('premium.features_list.dual_stream'), desc: t('premium.feature_dual_stream_desc') },
+                        { icon: Map, title: t('premium.feature_safe_route_title'), desc: t('premium.feature_safe_route_desc') },
+                        { icon: Sparkles, title: t('premium.feature_predictive_ai_title'), desc: t('premium.feature_predictive_ai_desc') }
                     ].map((f, i) => (
                         <div key={i} className="flex items-center gap-5 p-5 rounded-[2rem] bg-white/5 border border-white/5 animate-fade-in" style={{ animationDelay: `${700 + i * 100}ms` }}>
                             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -342,7 +378,7 @@ export const Subscription: React.FC = () => {
 
                 {/* Footer Legal */}
                 <div className="mt-12 flex flex-col items-center opacity-30 gap-6 pb-20">
-                    <button 
+                    <button
                         onClick={() => RevenueCatService.restorePurchases().then(() => navigate('/'))}
                         className="text-[9px] font-black uppercase tracking-[0.2em] underline underline-offset-8"
                     >

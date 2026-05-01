@@ -65,7 +65,7 @@ export const MobileShell: React.FC = () => {
                 <div className={clsx(
                     "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-safe-top",
                     isEmergencyLive ? "bg-transparent" : "bg-background-dark",
-                    !['/login', '/onboarding'].includes(location.pathname) && "pb-[84px] pb-safe-bottom"
+                    !['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && "pb-[84px] pb-safe-bottom"
                 )}>
                     <ErrorBoundary>
                         <Outlet />
@@ -94,7 +94,7 @@ export const MobileShell: React.FC = () => {
                 <div className="hidden md:flex flex-col items-center md:items-start gap-4">
                     <img
                         src="/logo.png"
-                        alt="RedCarpet Logo"
+                        alt="Urban Guide Logo"
                         className="w-32 h-auto drop-shadow-2xl"
                     />
                 </div>
@@ -131,7 +131,7 @@ export const MobileShell: React.FC = () => {
                         {/* Content Area */}
                         <div className={clsx(
                             "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-8 bg-background-dark",
-                            !['/login', '/onboarding'].includes(location.pathname) && "pb-[84px]"
+                            !['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && "pb-[84px]"
                         )}>
                             <ErrorBoundary>
                                 <Outlet />
@@ -139,7 +139,7 @@ export const MobileShell: React.FC = () => {
                         </div>
 
                         {/* Bottom Navigation */}
-                        {!['/login', '/onboarding'].includes(location.pathname) && <BottomNav />}
+                        {!['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && <BottomNav />}
                     </div>
 
                     {/* Hardware Buttons */}
@@ -156,7 +156,7 @@ export const MobileShell: React.FC = () => {
                 <div className="md:hidden absolute top-4 left-4">
                     <img
                         src="/logo.png"
-                        alt="RedCarpet Logo"
+                        alt="Urban Guide Logo"
                         className="w-12 h-auto opacity-80"
                     />
                 </div>
@@ -182,7 +182,7 @@ const BottomNav = () => {
         <div className="h-[84px] w-full bg-background-dark/80 backdrop-blur-xl border-t border-white/5 grid grid-cols-5 items-center px-2 pb-4 pt-2 z-40 absolute bottom-0 shadow-[0_-10px_20px_rgba(0,0,0,0.4)]">
             {tabs.map((tab) => {
                 const isActive = location.pathname === tab.path;
-                const isSOS = tab.label === 'SOS';
+                const isSOS = tab.path === '/emergency';
 
                 return (
                     <button

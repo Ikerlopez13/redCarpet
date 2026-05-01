@@ -30,19 +30,14 @@ export async function searchPlaces(
         access_token: MAPBOX_TOKEN,
         autocomplete: 'true',
         fuzzyMatch: 'true',
-        language: 'es',
-        country: 'es',
-        limit: '20',
+        limit: '25',
         types: 'poi,address,neighborhood,locality,place'
     });
 
-    // Use provided proximity or fallback to a broad geographic bias if none provided
+    // High-priority proximity bias for local relevance
     if (proximity) {
         params.append('proximity', `${proximity.lng},${proximity.lat}`);
-    } else {
-        // Broad bias for Spain if no location available
-        params.append('proximity', '2.1734,41.3851');
-    }
+    } 
 
     const url = `${GEOCODING_API_BASE}/${encodeURIComponent(query)}.json?${params}`;
 

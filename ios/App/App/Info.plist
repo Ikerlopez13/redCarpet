@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>RedCarpet</string>
+	<string>Urban Guide</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,13 +48,13 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Requerimos tu ubicación para mostrarte en el mapa y activar seguimiento.</string>
+	<string>We need your location to show you on the map and recommend comfortable routes.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Requerimos tu ubicación para seguir tus movimientos en segundo plano.</string>
+	<string>We need your location to follow your journey in the background for your safety.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Requerimos acceso a la cámara para grabar evidencia durante una emergencia SOS.</string>
+	<string>We need camera access to stream your journey to your trusted contacts.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Requerimos acceso al micrófono para grabar audio durante una emergencia SOS.</string>
+	<string>We need microphone access to record audio during your journey stream.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -67,8 +67,8 @@
 		</dict>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Requerimos acceso a tu biblioteca de fotos para que puedas adjuntar evidencias o guardar capturas de seguridad.</string>
+	<string>We need access to your photo library to save journey captures.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Requerimos permiso para guardar fotos y videos de seguridad en tu biblioteca.</string>
+	<string>We need permission to save photos and videos from your journey to your library.</string>
 </dict>
 </plist>

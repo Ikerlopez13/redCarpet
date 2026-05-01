@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import clsx from 'clsx';
+import { X, Shield, Phone, Bell, MapPin, Mic, Info } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
-import { supabase } from '../services/supabaseClient';
-import { useAuth } from '../contexts/AuthContext';
-import { TrustedContactsService } from '../services/trustedContactsService';
+import { useTranslation } from 'react-i18next';
 
-export const CONSENT_KEY = 'emergency_recording_consent';
-
-interface SOSContact {
-    id: string;
-    name: string;
-    phone: string;
-    avatar: string;
+export interface SOSConfigData {
+    contacts: string[];
+    pin: string;
+    autoCall112: boolean;
+    shareLocation: boolean;
+    recordAudio: boolean;
+    privacyPolicyAccepted: boolean;
+    isConfigured: boolean;
 }
 
 interface SOSConfigSheetProps {
@@ -22,445 +20,179 @@ interface SOSConfigSheetProps {
     currentConfig?: SOSConfigData;
 }
 
-export interface SOSConfigData {
-    contacts: SOSContact[];
-    pin: string;
-    autoCall112: boolean;
-    shareLocation: boolean;
-    recordAudio: boolean;
-    privacyPolicyAccepted: boolean;
-    isConfigured: boolean;
-}
-
-export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
-    isOpen,
-    onClose,
+export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({ 
+    isOpen, 
+    onClose, 
     onSave,
-    currentConfig
+    currentConfig 
 }) => {
-    const navigate = useNavigate();
-    const { user, refreshProfile } = useAuth();
-    const [step, setStep] = useState<'main' | 'pin' | 'contacts'>('main');
-    const [contacts, setContacts] = useState<SOSContact[]>([]);
-    const [pin, setPin] = useState(currentConfig?.pin || user?.profile?.sos_pin || '');
+    const { t } = useTranslation();
+    const [pin, setPin] = useState(currentConfig?.pin || '');
     const [autoCall112, setAutoCall112] = useState(currentConfig?.autoCall112 ?? true);
     const [shareLocation, setShareLocation] = useState(currentConfig?.shareLocation ?? true);
-    const [recordAudio] = useState(currentConfig?.recordAudio ?? true);
-    const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(currentConfig?.privacyPolicyAccepted ?? false);
-    const [pinInput, setPinInput] = useState('');
-    const [pinConfirm, setPinConfirm] = useState('');
-    const [pinStep, setPinStep] = useState<'create' | 'confirm'>('create');
+    const [recordAudio, setRecordAudio] = useState(currentConfig?.recordAudio ?? true);
+    const [step, setStep] = useState<'intro' | 'pin' | 'options'>('intro');
 
     useEffect(() => {
-        if (!user) return;
-
-        const loadTrustedContacts = async () => {
-            const trusted = await TrustedContactsService.getContacts(user.id);
-            // Filter only those who should be notified in emergency
-            const emergencyContacts = trusted
-                .filter(c => c.notify_emergency && c.status === 'accepted')
-                .map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    phone: c.phone,
-                    avatar: c.relation === 'Madre' ? '👩' : c.relation === 'Padre' ? '👨' : '👤'
-                }));
-            setContacts(emergencyContacts);
-        };
-
-        loadTrustedContacts();
-    }, [user]);
-
-    // Sync PIN from profile when it loads
-    useEffect(() => {
-        if (user?.profile?.sos_pin && !pin) {
-            setPin(user.profile.sos_pin);
+        if (currentConfig?.pin) {
+            setPin(currentConfig.pin);
+            setStep('options');
         }
-    }, [user?.profile?.sos_pin]);
+    }, [currentConfig]);
 
-    const handleSave = async () => {
-        // Persist privacy acceptance if enabled
-        if (privacyPolicyAccepted) {
-            // 1. Local Storage
-            await Preferences.set({ key: CONSENT_KEY, value: 'true' });
-            await Preferences.set({ key: 'SOS_PIN', value: pin });
+    if (!isOpen) return null;
 
-            // 2. Database Profile
-            if (user) {
-                if (user.id === 'mock-user-123') {
-                    if (user.profile) {
-                        user.profile.sos_pin = pin;
-                        user.profile.has_accepted_privacy_policy = true;
-                    }
-                } else {
-                    await (supabase.from('profiles') as any)
-                    .update({
-                        has_accepted_privacy_policy: true,
-                        sos_pin: pin
-                    } as any)
-                    .eq('id', user.id);
-                }
-
-                if (refreshProfile) await refreshProfile();
-            }
+    const handleSave = () => {
+        if (pin.length < 4) {
+            alert(t('settings.sos.pin_error'));
+            return;
         }
 
         onSave({
-            contacts,
+            contacts: [],
             pin,
             autoCall112,
             shareLocation,
             recordAudio,
-            privacyPolicyAccepted,
-            isConfigured: true,
+            privacyPolicyAccepted: true,
+            isConfigured: true
         });
         onClose();
     };
 
-    const handlePinEnter = (digit: string) => {
-        if (pinStep === 'create') {
-            if (pinInput.length < 4) {
-                const newPin = pinInput + digit;
-                setPinInput(newPin);
-                if (newPin.length === 4) {
-                    setTimeout(() => setPinStep('confirm'), 300);
-                }
-            }
-        } else {
-            if (pinConfirm.length < 4) {
-                const newConfirm = pinConfirm + digit;
-                setPinConfirm(newConfirm);
-                if (newConfirm.length === 4) {
-                    if (newConfirm === pinInput) {
-                        setPin(newConfirm);
-                        setTimeout(() => {
-                            setStep('main');
-                            setPinInput('');
-                            setPinConfirm('');
-                            setPinStep('create');
-                        }, 300);
-                    } else {
-                        // PIN doesn't match, reset
-                        setTimeout(() => {
-                            setPinConfirm('');
-                        }, 500);
-                    }
-                }
-            }
-        }
-    };
-
-    const handlePinBackspace = () => {
-        if (pinStep === 'create') {
-            setPinInput(pinInput.slice(0, -1));
-        } else {
-            setPinConfirm(pinConfirm.slice(0, -1));
-        }
-    };
-
-    const removeContact = (id: string) => {
-        setContacts(contacts.filter(c => c.id !== id));
-    };
-
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={onClose}
-            />
-
-            {/* Sheet */}
-            <div className={clsx(
-                "relative w-full max-w-lg bg-background-dark rounded-t-3xl p-6 pb-10 border-t border-white/10",
-                "transform transition-transform duration-300 ease-out",
-                "max-h-[85vh] overflow-y-auto"
-            )}>
-                {/* Drag Handle */}
-                <div className="flex justify-center mb-6">
-                    <div className="w-12 h-1.5 bg-white/20 rounded-full" onClick={onClose} />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-lg bg-zinc-900 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl animate-slide-up">
+                {/* Header */}
+                <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">
+                        {t('settings.sos.title')}
+                    </h2>
+                    <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40">
+                        <X size={20} />
+                    </button>
                 </div>
 
-                {step === 'main' && (
-                    <>
-                        {/* Header */}
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="size-14 rounded-full bg-primary/20 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                    sos
-                                </span>
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold">Configurar SOS</h2>
-                                <p className="text-sm text-white/60">Personaliza tu botón de emergencia</p>
-                            </div>
-                        </div>
-
-                        {/* PIN Section */}
-                        <button
-                            onClick={() => setStep('pin')}
-                            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 mb-3 text-left"
-                        >
-                            <div className="size-12 rounded-full bg-white/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-white">lock</span>
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-semibold">PIN de Desactivación</p>
-                                <p className="text-xs text-white/40">
-                                    {pin ? '••••  Configurado' : 'No configurado'}
+                <div className="px-8 pb-10 space-y-6">
+                    {step === 'intro' && (
+                        <div className="space-y-6">
+                            <div className="p-5 bg-primary/10 rounded-3xl border border-primary/20 space-y-3">
+                                <div className="flex items-center gap-3 text-primary">
+                                    <Shield size={24} />
+                                    <span className="font-bold uppercase tracking-tight italic">{t('settings.sos.protocol')}</span>
+                                </div>
+                                <p className="text-sm text-white/70 leading-relaxed font-medium">
+                                    {t('settings.sos.protocol_desc')}
                                 </p>
                             </div>
-                            <span className={clsx(
-                                "material-symbols-outlined",
-                                pin ? "text-green-400" : "text-white/40"
-                            )}>
-                                {pin ? 'check_circle' : 'chevron_right'}
-                            </span>
-                        </button>
-
-                        {/* Contacts Section */}
-                        <button
-                            onClick={() => setStep('contacts')}
-                            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 mb-3 text-left"
-                        >
-                            <div className="size-12 rounded-full bg-white/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-white">group</span>
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-semibold">Contactos de Emergencia (Opciones)</p>
-                                <p className="text-xs text-white/40">
-                                    {contacts.length} contactos añadidos
-                                </p>
-                            </div>
-                            <div className="flex -space-x-2">
-                                {contacts.slice(0, 3).map((c) => (
-                                    <div key={c.id} className="size-8 rounded-full bg-zinc-700 flex items-center justify-center text-sm border-2 border-background-dark">
-                                        {c.avatar}
-                                    </div>
-                                ))}
-                            </div>
-                        </button>
-
-                        {/* Toggle Options */}
-                        <div className="flex flex-col gap-3 mt-6">
-                            <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">
-                                Acciones Automáticas
-                            </h3>
-
-                            {/* Auto Call 112 */}
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                                <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-primary text-lg">call</span>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-sm">Llamar al 112</p>
-                                    <p className="text-[10px] text-white/40">Llamada automática a emergencias</p>
-                                </div>
-                                <button
-                                    onClick={() => setAutoCall112(!autoCall112)}
-                                    className={clsx(
-                                        "w-12 h-7 rounded-full flex items-center px-1 transition-colors",
-                                        autoCall112 ? "bg-primary" : "bg-white/20"
-                                    )}
-                                >
-                                    <div className={clsx(
-                                        "size-5 bg-white rounded-full transition-transform",
-                                        autoCall112 ? "translate-x-5" : "translate-x-0"
-                                    )} />
-                                </button>
-                            </div>
-
-                            {/* Share Location */}
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                                <div className="size-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-green-400 text-lg">location_on</span>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-sm">Compartir Ubicación</p>
-                                    <p className="text-[10px] text-white/40">Envía tu GPS a los contactos</p>
-                                </div>
-                                <button
-                                    onClick={() => setShareLocation(!shareLocation)}
-                                    className={clsx(
-                                        "w-12 h-7 rounded-full flex items-center px-1 transition-colors",
-                                        shareLocation ? "bg-green-500" : "bg-white/20"
-                                    )}
-                                >
-                                    <div className={clsx(
-                                        "size-5 bg-white rounded-full transition-transform",
-                                        shareLocation ? "translate-x-5" : "translate-x-0"
-                                    )} />
-                                </button>
-                            </div>
-
-                            {/* Privacy Policy */}
-                            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/20 mt-2">
-                                <div className="flex items-center gap-4">
-                                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                        <span className="material-symbols-outlined text-primary text-lg">policy</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-bold text-sm">Política de Seguridad</p>
-                                        <p className="text-[10px] text-white/60 leading-tight">Acepto el uso de mis datos y sensores en caso de emergencia según los términos de SOS.</p>
-                                    </div>
-                                    <button
-                                        onClick={() => setPrivacyPolicyAccepted(!privacyPolicyAccepted)}
-                                        className={clsx(
-                                            "w-12 h-7 rounded-full flex items-center px-1 transition-colors",
-                                            privacyPolicyAccepted ? "bg-primary" : "bg-white/20"
-                                        )}
-                                    >
-                                        <div className={clsx(
-                                            "size-5 bg-white rounded-full transition-transform",
-                                            privacyPolicyAccepted ? "translate-x-5" : "translate-x-0"
-                                        )} />
-                                    </button>
-                                </div>
-                            </div>
+                            
+                            <button 
+                                onClick={() => setStep('pin')}
+                                className="w-full py-5 bg-white text-black rounded-[2rem] font-black text-xl italic uppercase tracking-tighter active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
+                            >
+                                {t('settings.sos.start')}
+                            </button>
                         </div>
+                    )}
 
-                        {/* Save Button */}
-                        <button
-                            onClick={handleSave}
-                            disabled={!pin || !privacyPolicyAccepted}
-                            className={clsx(
-                                "w-full mt-8 py-4 rounded-2xl font-bold text-lg transition-all",
-                                pin && privacyPolicyAccepted
-                                    ? "bg-primary text-white shadow-lg shadow-primary/30"
-                                    : "bg-white/10 text-white/40"
-                            )}
-                        >
-                            {!privacyPolicyAccepted
-                                ? 'Acepta la política para continuar'
-                                : (pin ? 'Guardar Configuración' : 'Completa la configuración')}
-                        </button>
-                    </>
-                )}
+                    {step === 'pin' && (
+                        <div className="space-y-6">
+                            <div className="space-y-2 text-center">
+                                <p className="text-sm font-bold text-white/40 uppercase tracking-widest">{t('settings.sos.pin_title')}</p>
+                                <p className="text-xs text-white/20">{t('settings.sos.pin_desc')}</p>
+                            </div>
 
-                {step === 'pin' && (
-                    <>
-                        <button
-                            onClick={() => {
-                                setStep('main');
-                                setPinInput('');
-                                setPinConfirm('');
-                                setPinStep('create');
-                            }}
-                            className="flex items-center gap-2 text-white/60 mb-6"
-                        >
-                            <span className="material-symbols-outlined">arrow_back</span>
-                            <span className="text-sm">Volver</span>
-                        </button>
+                            <input
+                                type="password"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={pin}
+                                onChange={(e) => setPin(e.target.value)}
+                                placeholder="----"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-center text-4xl font-black tracking-[1em] text-white outline-none focus:border-primary transition-all"
+                            />
 
-                        <h3 className="text-center text-xl font-bold mb-2">
-                            {pinStep === 'create' ? 'Crear PIN de Desactivación' : 'Confirmar PIN'}
-                        </h3>
-                        <p className="text-center text-white/60 text-sm mb-8">
-                            {pinStep === 'create'
-                                ? 'Este PIN será necesario para cancelar una emergencia'
-                                : 'Ingresa el PIN nuevamente para confirmar'
-                            }
-                        </p>
+                            <button 
+                                onClick={() => setStep('options')}
+                                disabled={pin.length < 4}
+                                className={`w-full py-5 rounded-[2rem] font-black text-xl italic uppercase tracking-tighter transition-all ${
+                                    pin.length >= 4 ? 'bg-primary text-white active:scale-95 shadow-lg shadow-primary/20' : 'bg-white/5 text-white/20'
+                                }`}
+                            >
+                                {t('settings.sos.continue')}
+                            </button>
+                        </div>
+                    )}
 
-                        {/* PIN Dots */}
-                        <div className="flex justify-center gap-4 mb-10">
-                            {[0, 1, 2, 3].map((i) => (
-                                <div
-                                    key={i}
-                                    className={clsx(
-                                        "size-4 rounded-full border-2 transition-colors",
-                                        i < (pinStep === 'create' ? pinInput.length : pinConfirm.length)
-                                            ? "bg-primary border-primary"
-                                            : "border-white/20"
-                                    )}
+                    {step === 'options' && (
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                <ToggleOption 
+                                    icon={<Phone size={20} />}
+                                    label={t('settings.sos.call_112')}
+                                    description={t('settings.sos.call_112_desc')}
+                                    enabled={autoCall112}
+                                    onChange={setAutoCall112}
                                 />
-                            ))}
-                        </div>
-
-                        {/* Keypad */}
-                        <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                                <button
-                                    key={num}
-                                    onClick={() => handlePinEnter(num.toString())}
-                                    className="flex items-center justify-center size-16 rounded-full bg-white/5 text-2xl font-semibold hover:bg-white/10 active:scale-95 transition-all"
-                                >
-                                    {num}
-                                </button>
-                            ))}
-                            <div />
-                            <button
-                                onClick={() => handlePinEnter('0')}
-                                className="flex items-center justify-center size-16 rounded-full bg-white/5 text-2xl font-semibold hover:bg-white/10 active:scale-95 transition-all"
-                            >
-                                0
-                            </button>
-                            <button
-                                onClick={handlePinBackspace}
-                                className="flex items-center justify-center size-16 rounded-full text-white/40 hover:text-white active:scale-95 transition-all"
-                            >
-                                <span className="material-symbols-outlined">backspace</span>
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {step === 'contacts' && (
-                    <>
-                        <button
-                            onClick={() => setStep('main')}
-                            className="flex items-center gap-2 text-white/60 mb-6"
-                        >
-                            <span className="material-symbols-outlined">arrow_back</span>
-                            <span className="text-sm">Volver</span>
-                        </button>
-
-                        <h3 className="text-xl font-bold mb-2">Contactos de Emergencia</h3>
-                        <p className="text-white/60 text-sm mb-6">
-                            Estas personas serán notificadas cuando actives el SOS
-                        </p>
-
-                        <div className="flex flex-col gap-3 mb-6">
-                            {contacts.map((contact) => (
-                                <div
-                                    key={contact.id}
-                                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10"
-                                >
-                                    <div className="size-12 rounded-full bg-zinc-700 flex items-center justify-center text-xl">
-                                        {contact.avatar}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-semibold">{contact.name}</p>
-                                        <p className="text-xs text-white/40">{contact.phone}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => removeContact(contact.id)}
-                                        className="size-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center"
-                                    >
-                                        <span className="material-symbols-outlined text-lg">close</span>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Add Contact Button */}
-                        <button
-                            onClick={() => {
-                                onClose();
-                                navigate('/trusted-contacts');
-                            }}
-                            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/50 transition-all text-left"
-                        >
-                            <div className="size-12 rounded-full bg-white/5 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-xl">person_add</span>
+                                <ToggleOption 
+                                    icon={<MapPin size={20} />}
+                                    label={t('settings.sos.share_location')}
+                                    description={t('settings.sos.share_location_desc')}
+                                    enabled={shareLocation}
+                                    onChange={setShareLocation}
+                                />
+                                <ToggleOption 
+                                    icon={<Mic size={20} />}
+                                    label={t('settings.sos.record_media')}
+                                    description={t('settings.sos.record_media_desc')}
+                                    enabled={recordAudio}
+                                    onChange={setRecordAudio}
+                                />
                             </div>
-                            <span className="font-medium">Añadir o gestionar contactos</span>
-                        </button>
-                    </>
-                )}
+
+                            <div className="pt-2">
+                                <button 
+                                    onClick={handleSave}
+                                    className="w-full py-5 bg-white text-black rounded-[2rem] font-black text-xl italic uppercase tracking-tighter active:scale-95 transition-all shadow-xl"
+                                >
+                                    {t('settings.sos.save')}
+                                </button>
+                                <button 
+                                    onClick={() => setStep('pin')}
+                                    className="w-full py-3 text-white/40 text-xs font-bold uppercase tracking-widest mt-2"
+                                >
+                                    {t('settings.sos.change_pin')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
+
+const ToggleOption: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    description: string;
+    enabled: boolean;
+    onChange: (val: boolean) => void;
+}> = ({ icon, label, description, enabled, onChange }) => (
+    <div className={`p-4 rounded-3xl border transition-all flex items-center gap-4 ${
+        enabled ? 'bg-white/10 border-white/10' : 'bg-transparent border-white/5 opacity-50'
+    }`} onClick={() => onChange(!enabled)}>
+        <div className={`size-10 rounded-2xl flex items-center justify-center shrink-0 ${
+            enabled ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/40'
+        }`}>
+            {icon}
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+            <p className="font-bold text-white text-sm">{label}</p>
+            <p className="text-[11px] text-white/40 leading-tight">{description}</p>
+        </div>
+        <div className={`w-12 h-6 rounded-full p-1 transition-all ${enabled ? 'bg-primary' : 'bg-zinc-800'}`}>
+            <div className={`size-4 bg-white rounded-full transition-transform ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+        </div>
+    </div>
+);

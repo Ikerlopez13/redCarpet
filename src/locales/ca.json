@@ -2,14 +2,38 @@
   "nav": {
     "map": "Mapa",
     "contacts": "Contactes",
-    "sos": "SOS",
+    "sos": "Rutes",
     "premium": "Premium",
     "settings": "Ajustos"
   },
   "home": {
     "greeting": "Hola, {{name}}",
-    "emergency_active": "ALERTA SOS ACTIVA",
-    "report_incident": "Reportar Incidència"
+    "emergency_active": "RUTA RECOMANADA",
+    "report_incident": "Compartir Trajecte",
+    "me": "Tu",
+    "current_location": "Ubicació actual",
+    "no_location": "Sense ubicació"
+  },
+  "common": {
+    "now": "Ara",
+    "ago": "Fa",
+    "no_data": "Sense dades",
+    "month": "Mes",
+    "year": "Any"
+  },
+  "chat": {
+    "welcome": "Hola, soc en Red, la teva guia d'experiències urbanes. En què et puc ajudar avui?",
+    "default_fallback": "Entenc la teva consulta. Com el teu assistent de Urban Guide, soc aquí per guiar-te en rutes agradables i còmodes.",
+    "faq_sos": "Si ho necessites, pots avisar els teus contactes ràpidament des de l'aplicació. He avisat als teus contactes prioritaris perquè vegin el teu trajecte.",
+    "faq_route": "Puc calcular la ruta més còmoda per a tu. Obre el mapa i selecciona la teva destinació; prioritzaré carrers ben il·luminats i zones agradables.",
+    "faq_family": "Pots veure la ubicació del teu grup en temps real des de la pestanya 'Cercle' al mapa principal.",
+    "faq_premium": "La subscripció Premium desbloqueja l'acompanyament en temps real il·limitat i la visualització de rutes millorades.",
+    "faq_greeting": "Hola! Soc en Red. T'acompanyo en el teu trajecte. Hi ha alguna cosa específica en què et pugui ajudar ara?"
+  },
+  "transit": {
+    "loading": "Buscant opcions de transport...",
+    "stops": "parades",
+    "next": "Després"
   },
   "settings": {
     "title": "Ajustos",
@@ -18,30 +42,33 @@
       "free_member": "Membre Gratuït"
     },
     "groups": {
-      "security_circle": "CERCLE DE SEGURETAT",
+      "security_circle": "GRUP DE VIATGE",
       "account_access": "COMPTE I ACCÉS",
-      "security_network": "XARXA DE SEGURETAT",
+      "security_network": "EXPLORACIÓ URBANA",
       "support_legal": "SUPORT I LEGAL",
       "privacy_data": "PRIVACITAT I DADES (RGPD)",
       "debug": "🛠️ DEBUG (DEMO)"
     },
     "items": {
-      "circle_management": "Gestió de Cercles",
-      "protection_level": "Nivell de Protecció",
+      "circle_management": "Gestió de Grups",
+      "protection_level": "Nivell de Confort",
       "my_account": "El meu Compte",
-      "emergency_history": "Registre d'Emergències",
+      "emergency_history": "Historial de rutes",
       "trusted_contacts": "Contactes de confiança",
-      "ai_chat": "Chat amb IA",
+      "ai_chat": "Xat de l'Assistent",
       "greencarpet": "GreenCarpet",
       "contact": "Contacte",
       "feedback": "Feedback",
-      "faq": "FAQ",
+      "faq": "Preguntes freqüents",
       "privacy_policy": "Polítiques de privacitat",
       "terms_of_use": "Condicions d'ús",
       "language": "Idioma",
       "notifications": "Notificacions",
-      "advanced_tracking": "Seguiment avançat",
-      "download_data": "Descarregar les meves dades",
+      "measurement_system": "Sistema de Mesura",
+      "unit_metric": "Quilòmetres (km)",
+      "unit_imperial": "Milles (mi)",
+      "advanced_tracking": "Acompanyament avançat",
+      "download_data": "Descarregar dades",
       "withdraw_consent": "Retirar consentiment",
       "view_onboarding": "Veure guia d'inici",
       "reset_onboarding": "Reiniciar guia"
@@ -51,29 +78,39 @@
       "denied": "Desactivada (Toca per activar)"
     },
     "logout": "Tancar sessió",
-    "delete_account": "Eliminar el meu compte"
+    "delete_account": "Eliminar el meu compte",
+    "report_disclaimer": "Aquesta aplicació és una eina d'experiència urbana. No permet la denúncia oficial de delictes i no està connectada amb forces de seguretat. Per a emergències contacta amb el 112."
   },
   "emergency": {
-    "sos_title": "CENTRE D'EMERGÈNCIA",
-    "instructions": "Mantén premut per activar SOS",
-    "cancel": "Cancel·lar"
+    "sos_title": "NOTES DEL TRAJECTE",
+    "instructions": "Mantén premut per avisar del teu trajecte",
+    "cancel": "Cancel·lar",
+    "share_whatsapp": "Compartir via WhatsApp",
+    "disclaimer": "Urban Guide és una aplicació de mobilitat urbana. No és un servei d'emergències ni està afiliat a la policia. Facilita la comunicació amb contactes de confiança. No garanteix resposta d'autoritats."
+  },
+  "sos": {
+    "video_premium_only": "Mode Vídeo disponible en Premium"
   },
   "premium": {
     "individual": {
       "title": "Premium Individual",
-      "subtitle": "Ves un pas per davant del perill."
+      "subtitle": "Gaudeix de la ciutat amb total comoditat."
     },
     "student": {
-      "title": "Plan Estudiants",
-      "subtitle": "Sigues qui sempre vagi més segur."
+      "title": "Pla Estudiants",
+      "subtitle": "Fes que els teus trajectes siguin més agradables."
     },
     "72h": {
       "title": "Passi 72h",
       "subtitle": "Activa'l quan més ho necessitis."
     },
     "family": {
-      "title": "Plan Familiar",
-      "subtitle": "Perquè el més valuós no té preu."
+      "title": "Pla Familiar",
+      "subtitle": "Pels que viatgen sempre acompanyats."
+    },
+    "duo": {
+      "title": "Premium Duo",
+      "subtitle": "La millor experiència, millor en parella."
     },
     "cancel_anytime": "Cancel·la quan vulguis",
     "includes_all_individual": "Inclou tot el del Premium Individual",
@@ -81,8 +118,26 @@
     "hire": "CONTRACTAR",
     "activate": "ACTIVAR PASSI",
     "verify": "VERIFICAR ELEGIBILITAT",
-    "protect_family": "PROTEGIR LA MEVA FAMÍLIA",
-    "main_subtitle": "Amb tecnologia d'elit, activa el mode tranquil·litat.",
+    "protect_family": "AFEGIR AL MEU GRUP",
+    "main_subtitle": "Amb tecnologia avançada, gaudeix de cada trajecte.",
+    "features_list": {
+      "ai_shield": "Assistent Urbà Personal 24/7",
+      "hd_video": "Vídeo HD 1080p en Directe",
+      "cloud_recording": "Gravació de Trajecte al Núvol",
+      "tactical_nav": "Navegació de Confort Urbà",
+      "fall_detection": "Zones d'Interès i Visibilitat",
+      "priority_connection": "Freqüència de Xarxa Prioritària",
+      "dual_stream": "Streaming de Càmera Dual",
+      "safe_route": "Ruta Il·luminada amb IA",
+      "predictive_ai": "IA de Confort Urbà"
+    },
+    "tech_elite": "Enginyeria avançada a un clic",
+    "feature_dual_stream_title": "Visió Dual",
+    "feature_dual_stream_desc": "Sincronització total de càmera frontal i trasera.",
+    "feature_safe_route_title": "Ruta Il·luminada Pro",
+    "feature_safe_route_desc": "Anàlisi intel·ligent de rutes i visibilitat.",
+    "feature_predictive_ai_title": "IA de Confort",
+    "feature_predictive_ai_desc": "Suggeriments proactius basats en il·luminació i rutes.",
     "72h.promo": "Passi temporal, tranquil·litat total.",
     "restore_purchases": "Restaurar Compres"
   }

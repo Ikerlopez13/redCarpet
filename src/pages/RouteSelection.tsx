@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { UnifiedMap, LOCATIONS, type RouteGeometry } from '../components/UnifiedMap';
 import {
@@ -40,6 +41,7 @@ interface RoutesState {
 export const RouteSelection: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { t } = useTranslation();
     const { isPremium } = useAuth();
     const { openPaywall } = useSOS();
 
@@ -143,8 +145,8 @@ export const RouteSelection: React.FC = () => {
                         safe: {
                             time: formatDuration(safeOpt.totalDuration),
                             distance: formatDistance(safeOpt.totalDistance),
-                            description: safeOpt.summary + ' (Recomendada)',
-                            extra: 'Paradas con alta afluencia e iluminación',
+                            description: safeOpt.summary + ' ' + t('route.recommended'),
+                            extra: t('route.transit_desc'),
                         },
                         balanced: {
                             time: formatDuration(balOpt.totalDuration),
@@ -154,7 +156,7 @@ export const RouteSelection: React.FC = () => {
                         fast: {
                             time: formatDuration(fastOpt.totalDuration),
                             distance: formatDistance(fastOpt.totalDistance),
-                            description: fastOpt.summary + ' (Más directa)',
+                            description: fastOpt.summary + ' ' + t('route.more_direct'),
                         }
                     });
                 }
@@ -179,22 +181,22 @@ export const RouteSelection: React.FC = () => {
                 const safeRoute: RouteData = {
                     time: formatDuration(Math.round(baseRoute.duration * 1.3)),
                     distance: formatDistance(Math.round(baseRoute.distance * 1.2)),
-                    description: isNightMode ? aiAnalysis.description : 'Calles bien iluminadas y transitadas',
-                    extra: isNightMode ? 'IA Priorizando cámaras y comercios' : 'Presencia policial frecuente',
+                    description: isNightMode ? aiAnalysis.description : t('route.safe_desc'),
+                    extra: isNightMode ? t('route.ai_prioritizing') : t('route.police_presence'),
                     geometry: baseRoute.geometry.coordinates as [number, number][]
                 };
 
                 const balancedRoute: RouteData = {
                     time: formatDuration(baseRoute.duration),
                     distance: formatDistance(baseRoute.distance),
-                    description: 'Equilibrio entre seguridad y tiempo',
+                    description: t('route.balanced_desc'),
                     geometry: baseRoute.geometry.coordinates as [number, number][]
                 };
 
                 const fastRoute: RouteData = {
                     time: formatDuration(Math.round(baseRoute.duration * 0.85)),
                     distance: formatDistance(Math.round(baseRoute.distance * 0.9)),
-                    description: 'Ruta más directa, menos iluminada',
+                    description: t('route.fast_desc'),
                     geometry: baseRoute.geometry.coordinates as [number, number][]
                 };
 
@@ -257,7 +259,7 @@ export const RouteSelection: React.FC = () => {
                     </div>
                     <div className="flex flex-col items-center flex-1">
                         <h2 className="text-white text-base font-bold leading-tight tracking-tight">
-                            {selectedDestination ? 'Selección de Ruta' : '¿A dónde vas?'}
+                            {selectedDestination ? t('route.title') : t('route.where_to')}
                         </h2>
                     </div>
                     <div className="size-9" />
@@ -290,7 +292,7 @@ export const RouteSelection: React.FC = () => {
                                 <input
                                     ref={searchInputRef}
                                     type="text"
-                                    placeholder="Buscar destino..."
+                                    placeholder={t('route.search_placeholder')}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
@@ -334,7 +336,7 @@ export const RouteSelection: React.FC = () => {
                 <div className="absolute inset-0 z-0">
                     <UnifiedMap
                         showMarkers={!selectedDestination}
-                        showDangerZones={true}
+                        showIncidenceZones={true}
                         showRoutes={!!selectedDestination}
                         showTransit={transportMode === 'transit'}
                         transportMode={transportMode}
@@ -350,7 +352,7 @@ export const RouteSelection: React.FC = () => {
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
                         <div className="bg-zinc-900 rounded-2xl px-6 py-4 flex items-center gap-3">
                             <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="text-white font-medium">Calculando rutas...</span>
+                            <span className="text-white font-medium">{t('route.calculating')}</span>
                         </div>
                     </div>
                 )}
@@ -370,22 +372,22 @@ export const RouteSelection: React.FC = () => {
                     <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0d0d0d]/90 backdrop-blur-md p-1 shadow-xl border border-white/20">
                         <label className={clsx("flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-xs font-semibold transition-all", transportMode === 'walking' ? "bg-primary text-white" : "text-gray-400")}>
                             <span className="material-symbols-outlined mr-1 text-[18px]">directions_walk</span>
-                            <span className="truncate">A pie</span>
+                            <span className="truncate">{t('route.walking')}</span>
                             <input type="radio" name="transport_mode" value="walking" className="invisible w-0" checked={transportMode === 'walking'} onChange={() => setTransportMode('walking')} />
                         </label>
                         <label className={clsx("flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-xs font-semibold transition-all", transportMode === 'cycling' ? "bg-primary text-white" : "text-gray-400")}>
                             <span className="material-symbols-outlined mr-1 text-[18px]">directions_bike</span>
-                            <span className="truncate">Bici</span>
+                            <span className="truncate">{t('route.cycling')}</span>
                             <input type="radio" name="transport_mode" value="cycling" className="invisible w-0" checked={transportMode === 'cycling'} onChange={() => setTransportMode('cycling')} />
                         </label>
                         <label className={clsx("flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-xs font-semibold transition-all", transportMode === 'transit' ? "bg-primary text-white" : "text-gray-400")}>
                             <span className="material-symbols-outlined mr-1 text-[18px]">directions_transit</span>
-                            <span className="truncate">Transporte</span>
+                            <span className="truncate">{t('route.transit')}</span>
                             <input type="radio" name="transport_mode" value="transit" className="invisible w-0" checked={transportMode === 'transit'} onChange={() => setTransportMode('transit')} />
                         </label>
                         <label className={clsx("flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-xs font-semibold transition-all", transportMode === 'driving' ? "bg-primary text-white" : "text-gray-400")}>
                             <span className="material-symbols-outlined mr-1 text-[18px]">directions_car</span>
-                            <span className="truncate">Coche</span>
+                            <span className="truncate">{t('route.driving')}</span>
                             <input type="radio" name="transport_mode" value="driving" className="invisible w-0" checked={transportMode === 'driving'} onChange={() => setTransportMode('driving')} />
                         </label>
                     </div>
@@ -409,7 +411,7 @@ export const RouteSelection: React.FC = () => {
                                 <div className="mb-4">
                                     <h3 className="text-white text-sm font-bold mb-2 flex items-center gap-2">
                                         <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>family_restroom</span>
-                                        Trayectos de Familiares
+                                        {t('route.family_journeys')}
                                     </h3>
                                     <div className="flex flex-col gap-2">
                                         {familyRoutes.map((route) => (
@@ -449,7 +451,7 @@ export const RouteSelection: React.FC = () => {
                             <div>
                                 <h3 className="text-white text-sm font-bold mb-2 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-gray-400 text-lg">bookmark</span>
-                                    Destinos Guardados
+                                    {t('route.saved_destinations')}
                                 </h3>
                                 <div className="flex flex-col gap-1.5">
                                     {savedDestinations.map((dest) => (
@@ -480,7 +482,7 @@ export const RouteSelection: React.FC = () => {
                                 <div
                                     onClick={() => {
                                         if (!isPremium) {
-                                            openPaywall('Navegación con Rutas Seguras');
+                                            openPaywall(t('route.gate_safe_nav'));
                                         } else {
                                             setSelectedRoute('safe');
                                         }
@@ -501,12 +503,12 @@ export const RouteSelection: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col justify-center">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-white text-sm font-bold leading-tight">Ruta más segura</p>
+                                                <p className="text-white text-sm font-bold leading-tight">{t('route.safe_route')}</p>
                                                 {isPremium && isNightTime() && <span className="bg-indigo-500/20 text-indigo-400 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">auto_awesome</span> AI Night</span>}
-                                                {isPremium && !isNightTime() && <span className="bg-green-500/20 text-green-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Mejorada</span>}
+                                                {isPremium && !isNightTime() && <span className="bg-green-500/20 text-green-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{t('route.enhanced')}</span>}
                                             </div>
                                             <p className={clsx("text-xs font-medium line-clamp-1", isPremium && isNightTime() ? "text-indigo-300" : "text-gray-400")}>
-                                                {routes.safe ? routes.safe.description : 'Calculando...'}
+                                                {routes.safe ? routes.safe.description : t('route.calculating_dots')}
                                             </p>
                                         </div>
                                     </div>
@@ -529,9 +531,9 @@ export const RouteSelection: React.FC = () => {
                                             <span className="material-symbols-outlined text-xl">balance</span>
                                         </div>
                                         <div className="flex flex-col justify-center">
-                                            <p className="text-white text-sm font-bold leading-tight">Equilibrada</p>
+                                            <p className="text-white text-sm font-bold leading-tight">{t('route.balanced_route')}</p>
                                             <p className="text-gray-400 text-xs font-medium line-clamp-1">
-                                                {routes.balanced ? routes.balanced.description : 'Calculando...'}
+                                                {routes.balanced ? routes.balanced.description : t('route.calculating_dots')}
                                             </p>
                                         </div>
                                     </div>
@@ -555,11 +557,11 @@ export const RouteSelection: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col justify-center">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-white text-sm font-bold leading-tight">Más rápida</p>
-                                                <span className="bg-safety-red/20 text-safety-red text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Precaución</span>
+                                                <p className="text-white text-sm font-bold leading-tight">{t('route.fast_route')}</p>
+                                                <span className="bg-safety-red/20 text-safety-red text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{t('route.caution')}</span>
                                             </div>
                                             <p className="text-safety-red/80 text-xs font-medium line-clamp-1">
-                                                {routes.fast ? routes.fast.description : 'Calculando...'}
+                                                {routes.fast ? routes.fast.description : t('route.calculating_dots')}
                                             </p>
                                         </div>
                                     </div>
@@ -574,10 +576,10 @@ export const RouteSelection: React.FC = () => {
                                 <button
                                     onClick={() => {
                                         if (!canStartRoute(isPremium)) {
-                                            setToastMessage('Límite diario de rutas alcanzado (3/3).');
+                                            setToastMessage(t('route.limit_reached'));
                                             setTimeout(() => {
                                                 setToastMessage(null);
-                                                openPaywall('Rutas Ilimitadas');
+                                                openPaywall(t('route.gate_unlimited'));
                                             }, 2000);
                                             return;
                                         }
@@ -606,10 +608,10 @@ export const RouteSelection: React.FC = () => {
                                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-base py-3.5 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] relative overflow-hidden"
                                 >
                                     <span className="material-symbols-outlined">navigation</span>
-                                    Iniciar Navegación
+                                    {t('route.start_nav')}
                                     {!isPremium && (
                                         <div className="absolute top-1 right-2 bg-black/30 rounded-full px-2 py-0.5 text-[10px] font-bold text-white/90">
-                                            {getRemainingRoutes(false)} restantes
+                                            {getRemainingRoutes(false)} {t('route.remaining')}
                                         </div>
                                     )}
                                 </button>

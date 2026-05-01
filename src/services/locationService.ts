@@ -20,9 +20,9 @@ export async function updateLocation(
 ): Promise<{ error: string | null }> {
     // Child Privacy: Only share if SOS is active
     if (role === 'child' && !isSOSActive) {
-        // We still check danger zones locally for the child, to trigger alerts if needed!
+        // We still check incidence zones locally for the child, to trigger alerts if needed!
         // But we do NOT save to DB for parents to see live location.
-        checkDangerZones(userId, position.coords.latitude, position.coords.longitude);
+        checkIncidenceZones(userId, position.coords.latitude, position.coords.longitude);
         return { error: null };
     }
 
@@ -36,8 +36,8 @@ export async function updateLocation(
         heading: position.coords.heading,
     };
 
-    // Also check danger zones for everyone
-    checkDangerZones(userId, position.coords.latitude, position.coords.longitude);
+    // Also check incidence zones for everyone
+    checkIncidenceZones(userId, position.coords.latitude, position.coords.longitude);
 
     const { error } = await (supabase.from('locations') as any)
         .insert(location);
@@ -329,16 +329,16 @@ async function updateFamilyStats(familyId: string, type: 'safe_arrival' | 'risk_
     }
 }
 
-// ============ Danger Zones & Parental Alerts ============
+// ============ Incidence Zones & Parental Alerts ============
 
-const userDangerZoneState: Record<string, string | null> = {};
+const userIncidenceZoneState: Record<string, string | null> = {};
 
-export async function checkDangerZones(
+export async function checkIncidenceZones(
     userId: string,
     lat: number,
     lng: number
 ): Promise<void> {
-    // Fetch danger zones (in real app, user would cache this according to viewport)
+    // Fetch incidence zones (in real app, user would cache this according to viewport)
     // For now we get all (assuming small number)
     const { data } = await (supabase
         .from('danger_zones') as any)
@@ -352,24 +352,24 @@ export async function checkDangerZones(
     for (const zone of zones) {
         const distance = calculateDistance(lat, lng, zone.lat, zone.lng);
         const isInside = distance <= zone.radius;
-        const lastZone = userDangerZoneState[userId];
+        const lastZone = userIncidenceZoneState[userId];
 
         if (isInside && lastZone !== zone.id) {
-            console.log(`User ${userId} entered DANGER zone: ${zone.type}`);
-            userDangerZoneState[userId] = zone.id;
+            console.log(`User ${userId} entered incidence zone: ${zone.type}`);
+            userIncidenceZoneState[userId] = zone.id;
 
-            // Trigger Parental Alert (Risk)
+            // Trigger Parental Alert (Journey Status)
             const { data: membership } = await (supabase.from('family_members') as any).select('group_id').eq('user_id', userId).single();
             if (membership) {
                 await updateFamilyStats(membership.group_id, 'risk_alert');
 
-                // Send Notification to Parents
+                // Send Notification to Family
                 await supabase.functions.invoke('send-sos-notifications', {
                     body: {
-                        alertId: 'risk-' + Date.now(),
+                        alertId: 'incidence-' + Date.now(),
                         groupId: membership.group_id,
                         config: {
-                            message: `⚠️ ALERTA DE RIESGO: Un familiar ha entrado en una zona peligrosa (${zone.type}).`,
+                            message: `📍 NOTA DE TRAYECTO: Un familiar ha entrado en una zona de interés (${zone.type}).`,
                             notifyContacts: true
                         }
                     }
@@ -380,13 +380,13 @@ export async function checkDangerZones(
             const createdAt = new Date(zone.created_at).getTime();
             const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
             if (createdAt < twelveHoursAgo) {
-                window.dispatchEvent(new CustomEvent('danger-zone-check', { 
+                window.dispatchEvent(new CustomEvent('incidence-zone-check', { 
                     detail: { zoneId: zone.id, type: zone.type, description: zone.description } 
                 }));
             }
 
         } else if (!isInside && lastZone === zone.id) {
-            userDangerZoneState[userId] = null;
+            userIncidenceZoneState[userId] = null;
         }
     }
 }

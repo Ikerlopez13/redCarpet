@@ -76,10 +76,10 @@ function handleForegroundNotification(notification: any): void {
 
     // Show in-app notification
     if (data?.type === 'sos') {
-        // High priority - SOS alert
+        // High priority - Community alert
         showInAppAlert({
             type: 'sos',
-            title: title || '🚨 Alerta SOS',
+            title: title || '🚨 Alerta Comunitaria',
             body: body || 'Un miembro de tu familia necesita ayuda',
             data,
         });

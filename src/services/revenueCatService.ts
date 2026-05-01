@@ -16,7 +16,7 @@ export class RevenueCatService {
         LIFETIME: 'lifetime',
     };
 
-    static readonly ENTITLEMENT_ID = 'RedCarpet Pro';
+    static readonly ENTITLEMENT_ID = 'Urban Guide Pro';
 
     static async initialize(appUserId?: string) {
         if (!Capacitor.isNativePlatform()) {
@@ -56,8 +56,14 @@ export class RevenueCatService {
 
     static async getOfferings(): Promise<PurchasesPackage[]> {
         if (!Capacitor.isNativePlatform()) {
-            console.warn('⚠️ Skipping offerings: Not a native platform');
-            return [];
+            console.warn('⚠️ Web Mock: Simulando paquetes de RevenueCat para el navegador');
+            return [
+                { identifier: 'redcarpet.premium.onemonth', product: { identifier: 'redcarpet.premium.onemonth', priceString: '9,99 €', title: 'Mensual' } } as any,
+                { identifier: 'redcarpet.premium.oneyear', product: { identifier: 'redcarpet.premium.oneyear', priceString: '49,99 €', title: 'Anual' } } as any,
+                { identifier: 'redcarpet.premium.student', product: { identifier: 'redcarpet.premium.student', priceString: '4,99 €', title: 'Estudiante' } } as any,
+                { identifier: 'safe_pass_72h', product: { identifier: 'safe_pass_72h', priceString: '1,99 €', title: 'Pase 72h' } } as any,
+                { identifier: 'redcarpet.premium.family', product: { identifier: 'redcarpet.premium.family', priceString: '14,99 €', title: 'Familiar' } } as any,
+            ];
         }
         
         if (!this.isConfigured) {
@@ -68,10 +74,22 @@ export class RevenueCatService {
         try {
             console.log('🔍 Fetching offerings from RevenueCat...');
             const offerings = await Purchases.getOfferings();
+            
             if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
-                console.log(`✅ Found ${offerings.current.availablePackages.length} packages`);
+                console.log(`✅ Found ${offerings.current.availablePackages.length} packages in current offering`);
                 return offerings.current.availablePackages;
             }
+            
+            // Fallbacks in case "current" is not set but the offering exists
+            if (offerings.all['default'] && offerings.all['default'].availablePackages.length !== 0) {
+                console.log(`✅ Found packages in 'default' offering fallback`);
+                return offerings.all['default'].availablePackages;
+            }
+            if (offerings.all['ofrngdd8378ed83'] && offerings.all['ofrngdd8378ed83'].availablePackages.length !== 0) {
+                console.log(`✅ Found packages in 'ofrngdd8378ed83' offering fallback`);
+                return offerings.all['ofrngdd8378ed83'].availablePackages;
+            }
+            
             console.warn('⚠️ No active offerings found in RevenueCat');
         } catch (error) {
             console.error('❌ Error getting offerings:', error);
@@ -80,8 +98,18 @@ export class RevenueCatService {
     }
 
     static async purchasePackage(rcPackage: PurchasesPackage): Promise<{ customerInfo: CustomerInfo; productIdentifier: string; } | null> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) {
-            console.error('❌ Cannot purchase: Native/Config check failed', { isNative: Capacitor.isNativePlatform(), isConfigured: this.isConfigured });
+        if (!Capacitor.isNativePlatform()) {
+            console.log('🌐 Web Mock: Simulando compra exitosa de', rcPackage.product.identifier);
+            // Simulate native purchase modal delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return {
+                customerInfo: { entitlements: { active: { [this.ENTITLEMENT_ID]: {} } } } as any,
+                productIdentifier: rcPackage.product.identifier
+            };
+        }
+
+        if (!this.isConfigured) {
+            console.error('❌ Cannot purchase: Native/Config check failed', { isConfigured: this.isConfigured });
             return null;
         }
 

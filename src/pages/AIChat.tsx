@@ -1,35 +1,44 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Bot, Sparkles, ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 
 export const AIChat: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [messages, setMessages] = useState([
-        { role: 'bot', text: 'Hola, soy Red, tu asistente de seguridad IA. ¿En qué puedo ayudarte hoy?' }
+        { role: 'bot', text: t('chat.welcome') }
     ]);
     const [input, setInput] = useState('');
+    const [supportRequired, setSupportRequired] = useState(false);
 
     const handleSend = () => {
         if (!input.trim()) return;
-        setMessages([...messages, { role: 'user', text: input }]);
+        const newMessages = [...messages, { role: 'user', text: input }];
+        setMessages(newMessages);
         const userMsg = input.toLowerCase();
         setInput('');
         
-        // Simulate bot response with logic
         setTimeout(() => {
-            let response = 'Entiendo tu consulta. Como tu asistente RedCarpet, estoy aquí para guiarte en rutas seguras y protocolos de emergencia.';
+            let response = t('chat.default_fallback');
+            let matched = false;
             
             if (userMsg.includes('sos') || userMsg.includes('ayuda') || userMsg.includes('emergencia')) {
-                response = 'Si estás en peligro, mantén pulsado el botón central SOS. He avisado a tus contactos prioritarios para que estén alerta.';
+                response = t('chat.faq_sos'); matched = true;
             } else if (userMsg.includes('ruta') || userMsg.includes('camino') || userMsg.includes('ir a')) {
-                response = 'Puedo calcular la ruta más segura para ti. Abre el mapa y selecciona tu destino; priorizaré calles iluminadas y zonas con alta actividad.';
-            } else if (userMsg.includes('familia') || userMsg.includes('hijo') || userMsg.includes('hija')) {
-                response = 'Puedes ver la ubicación de tu familia en tiempo real desde la pestaña "Familia" en el mapa principal.';
-            } else if (userMsg.includes('premium') || userMsg.includes('pago')) {
-                response = 'La suscripción Premium desbloquea el seguimiento en tiempo real ilimitado y la grabación de seguridad en la nube.';
+                response = t('chat.faq_route'); matched = true;
+            } else if (userMsg.includes('familia') || userMsg.includes('hijo') || userMsg.includes('hija') || userMsg.includes('contacto')) {
+                response = t('chat.faq_family'); matched = true;
+            } else if (userMsg.includes('premium') || userMsg.includes('pago') || userMsg.includes('suscribir')) {
+                response = t('chat.faq_premium'); matched = true;
             } else if (userMsg.includes('hola') || userMsg.includes('buenos dias')) {
-                response = '¡Hola! Soy Red. Estoy monitorizando tu seguridad. ¿Hay algo específico en lo que pueda ayudarte ahora?';
+                response = t('chat.faq_greeting'); matched = true;
+            }
+
+            // Fallback to support if no match on subsequent tries
+            if (!matched && newMessages.filter(m => m.role === 'user').length >= 2) {
+                setSupportRequired(true);
             }
 
             setMessages(prev => [...prev, { 
@@ -51,10 +60,10 @@ export const AIChat: React.FC = () => {
                         <Bot size={24} />
                     </div>
                     <div>
-                        <h1 className="text-lg font-black uppercase italic tracking-tighter">RED IA</h1>
+                        <h1 className="text-lg font-black uppercase italic tracking-tighter">{t('chat.name')}</h1>
                         <div className="flex items-center gap-1.5">
                             <div className="size-1.5 bg-green-500 rounded-full animate-pulse" />
-                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">En línea</p>
+                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">{t('chat.online')}</p>
                         </div>
                     </div>
                 </div>
@@ -73,13 +82,31 @@ export const AIChat: React.FC = () => {
                         <div className={clsx(
                             "max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
                             m.role === 'user' 
-                                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                                : 'bg-white/5 border border-white/10 text-white/80'
+                                ? 'bg-primary text-white shadow-lg shadow-primary/20 font-bold' 
+                                : 'bg-white/5 border border-white/10 text-white/80 font-medium'
                         )}>
                             {m.text}
                         </div>
                     </div>
                 ))}
+                
+                {supportRequired && (
+                    <div className="flex flex-col items-center gap-4 py-6 px-4 bg-primary/5 border border-primary/20 rounded-3xl animate-slide-up">
+                        <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                            <Sparkles size={24} />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm font-bold uppercase tracking-tight mb-1">{t('chat.not_found_prompt')}</p>
+                            <p className="text-xs text-white/40 mb-4 px-4 font-medium italic">{t('chat.contact_support_desc')}</p>
+                            <a 
+                                href="mailto:soporte.urbanguide@gmail.com"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-full text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/30 active:scale-95 transition-all"
+                            >
+                                {t('chat.contact_support_btn')}
+                            </a>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Input Area */}
@@ -90,7 +117,7 @@ export const AIChat: React.FC = () => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="Pregunta a Red..."
+                        placeholder={t('chat.placeholder')}
                         className="flex-1 bg-transparent outline-none text-sm text-white placeholder-white/20"
                     />
                     <button 
@@ -102,7 +129,7 @@ export const AIChat: React.FC = () => {
                 </div>
                 <div className="mt-4 flex items-center justify-center gap-2 opacity-20">
                     <Sparkles size={12} />
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Powered by RedCarpet AI Engine</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest">{t('chat.powered_by')}</p>
                 </div>
             </div>
         </div>

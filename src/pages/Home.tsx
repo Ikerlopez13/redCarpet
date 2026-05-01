@@ -25,7 +25,6 @@ import { NightModeWarning } from '../components/safety/NightModeWarning';
 import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
 import { ShieldAlert, Send, Users, Battery } from 'lucide-react';
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
-import { useRef } from 'react';
 
 // Tipos para el estado de la UI
 interface UIMember {
@@ -55,7 +54,7 @@ export const Home: React.FC = () => {
     const [familyMembers, setFamilyMembers] = useState<UIMember[]>([]);
     const [familyGroup, setFamilyGroup] = useState<FamilyGroup | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'family' | 'places' | 'alerts'>('alerts');
+    const [activeTab, setActiveTab] = useState<'places' | 'alerts' | 'family'>('places');
     const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
     const [showSOSConfig, setShowSOSConfig] = useState(false);
 
@@ -69,15 +68,12 @@ export const Home: React.FC = () => {
     const [activeAlerts, setActiveAlerts] = useState<SOSAlert[]>([]);
     const [pendingZoneCheck, setPendingZoneCheck] = useState<{ zoneId: string; type: string; description: string } | null>(null);
 
-    // Búsqueda en Home
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [sosCountdown, setSOSCountdown] = useState<number | null>(null);
-    const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Cargar familia y zonas
     const loadData = async () => {
@@ -104,34 +100,33 @@ export const Home: React.FC = () => {
                     setActiveAlerts(alerts);
                     
                     if (isPremium || alerts.length > 0) {
-                        setActiveTab(alerts.length > 0 ? 'alerts' : 'family');
+                        setActiveTab('family');
                     }
                 }
 
                 if (group && members.length > 0) {
                     // Mapear datos de DB a UI (Optimized mapping)
-                    const uiMembers: UIMember[] = members.map((m) => {
+                    const uiMembers: UIMember[] = members.map((m: any) => {
                         const loc = m.location;
-                        const hasActiveAlert = activeAlerts.some(a => a.user_id === m.profile.id);
-
+                        const hasActiveAlert = activeAlerts.some((a: any) => a.user_id === m.profile.id);
                         // Format last update time
-                        let timeString = 'Sin datos';
+                        let timeString = t('common.no_data') || 'Sin datos';
                         if (loc?.created_at) {
                             const date = new Date(loc.created_at);
                             const now = new Date();
                             const diff = (now.getTime() - date.getTime()) / 1000 / 60; // minutes
-                            if (diff < 1) timeString = 'Ahora';
-                            else if (diff < 60) timeString = `Hace ${Math.floor(diff)} min`;
+                            if (diff < 1) timeString = t('common.now');
+                            else if (diff < 60) timeString = `${t('common.ago')} ${Math.floor(diff)} min`;
                             else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         }
 
                         return {
                             id: m.profile.id,
-                            name: m.profile.full_name?.split(' ')[0] || (m.profile.id === user.id ? t('home.greeting', { name: 'Tú' }) : 'Usuario'),
+                            name: m.profile.full_name?.split(' ')[0] || (m.profile.id === user.id ? t('home.me') : t('home.user_placeholder')),
                             avatar: m.role === 'child' ? '👧' : m.role === 'admin' ? '👨' : '👤',
                             avatarUrl: m.profile.avatar_url,
                             avatarBg: hasActiveAlert ? 'bg-red-600' : 'bg-slate-600',
-                            location: hasActiveAlert ? `⚠️ ${t('home.emergency_active')}` : (loc ? 'Ubicación actual' : 'Sin ubicación'),
+                            location: hasActiveAlert ? `⚠️ ${t('home.emergency_active')}` : (loc ? t('home.current_location') : t('home.no_location')),
                             lat: loc ? loc.lat : 0,
                             lng: loc ? loc.lng : 0,
                             status: loc && loc.speed && loc.speed > 5 ? 'moving' : 'stationary',
@@ -148,7 +143,7 @@ export const Home: React.FC = () => {
                     if (myAlert && !uiMembers.find(m => m.id === user.id)) {
                         uiMembers.push({
                             id: user.id,
-                            name: 'Tú',
+                            name: t('home.me'),
                             avatar: '👤',
                             avatarUrl: user.profile?.avatar_url,
                             avatarBg: 'bg-red-600',
@@ -158,7 +153,7 @@ export const Home: React.FC = () => {
                             status: 'stationary',
                             speed: null,
                             battery: 100,
-                            lastUpdate: 'Ahora',
+                            lastUpdate: t('common.now'),
                             isEmergency: true,
                             route: null
                         });
@@ -183,7 +178,7 @@ export const Home: React.FC = () => {
         const { unsubscribe } = subscribeToSOSAlerts(familyGroup.id, (newAlert) => {
             console.log('New SOS alert received:', newAlert);
             setActiveAlerts(prev => [newAlert, ...prev.filter(a => a.id !== newAlert.id)]);
-            setActiveTab('alerts');
+            setActiveTab('family');
             loadData(); // Reload to update member icons
         });
 
@@ -199,14 +194,25 @@ export const Home: React.FC = () => {
         };
     }, [user, familyGroup]);
 
-    // Cargar si ya estaba configurado SOS localmente 
+    // Onboarding check
     useEffect(() => {
-        import('@capacitor/preferences').then(({ Preferences }) => {
-            Preferences.get({ key: 'SOS_PIN' }).then(({ value }) => {
-                if (value && !sosConfig) {
+        const onboarding = localStorage.getItem('onboarding_complete');
+        if (!onboarding) {
+            navigate('/onboarding');
+        }
+    }, [navigate]);
+
+    // Cargar si ya estaba configurado SOS localmente y forzar si no
+    useEffect(() => {
+        const checkSOSConfig = async () => {
+            const { Preferences } = await import('@capacitor/preferences');
+            const { value: pin } = await Preferences.get({ key: 'SOS_PIN' });
+            
+            if (pin) {
+                if (!sosConfig) {
                     setSOSConfig({
                         contacts: [],
-                        pin: value,
+                        pin: pin,
                         autoCall112: true,
                         shareLocation: true,
                         recordAudio: true,
@@ -214,9 +220,17 @@ export const Home: React.FC = () => {
                         isConfigured: true,
                     });
                 }
-            });
-        });
-    }, [user]);
+            }
+            if (user?.profile?.sos_pin) {
+                // All good
+            } else {
+                // If NO PIN, force open setup immediately for security compliance
+                setShowSOSConfig(true);
+            }
+        };
+
+        checkSOSConfig();
+    }, [user, sosConfig]);
 
     useEffect(() => {
         loadData();
@@ -249,7 +263,7 @@ export const Home: React.FC = () => {
                 event: 'INSERT', 
                 schema: 'public', 
                 table: 'locations' 
-            }, (payload) => {
+            }, (payload: any) => {
                 const newLoc = payload.new;
                 setFamilyMembers(prev => prev.map(m => {
                     if (m.id === newLoc.user_id) {
@@ -260,7 +274,7 @@ export const Home: React.FC = () => {
                             battery: newLoc.battery_level || m.battery,
                             speed: newLoc.speed ? `${Math.round(newLoc.speed)} km/h` : m.speed,
                             status: newLoc.speed > 5 ? 'moving' : 'stationary',
-                            lastUpdate: 'Ahora'
+                            lastUpdate: t('common.now')
                         };
                     }
                     return m;
@@ -312,43 +326,6 @@ export const Home: React.FC = () => {
         });
     };
 
-    const startSOSCountdown = () => {
-        setSOSCountdown(3);
-        countdownIntervalRef.current = setInterval(() => {
-            setSOSCountdown(prev => {
-                if (prev === null || prev <= 1) {
-                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-                    triggerSOSProtocol();
-                    return null;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-    };
-
-    const cancelSOSCountdown = () => {
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-        setSOSCountdown(null);
-    };
-
-    const triggerSOSProtocol = async () => {
-        if (!user || !familyGroup) return;
-        setSOSCountdown(null);
-        
-        // Execute Protocol: 112 + Notify
-        const { alert, error } = await executeSOSProtocol(user.id, familyGroup.id);
-        
-        if (!error && alert) {
-             navigate('/emergency-live', { 
-                state: { 
-                    alertId: alert.id, 
-                    reason: 'security',
-                    mode: 'visible'
-                } 
-            });
-        }
-    };
-
     return (
         <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative">
 
@@ -363,7 +340,7 @@ export const Home: React.FC = () => {
                         <input
                             ref={searchInputRef}
                             type="text"
-                            placeholder="Buscar destino..."
+                            placeholder={t('home.search_placeholder')}
                             value={searchQuery}
                             autoComplete="off"
                             autoCorrect="off"
@@ -393,7 +370,7 @@ export const Home: React.FC = () => {
                                 {isSearching && suggestions.length === 0 ? (
                                     <div className="px-5 py-8 text-center flex flex-col items-center gap-3">
                                         <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                        <span className="text-white/40 text-sm font-medium">Buscando destinos...</span>
+                                        <span className="text-white/40 text-sm font-medium">{t('home.searching')}</span>
                                     </div>
                                 ) : suggestions.length > 0 ? (
                                     <div className="flex flex-col">
@@ -419,7 +396,7 @@ export const Home: React.FC = () => {
                                 ) : !isSearching && (
                                     <div className="px-5 py-10 text-center">
                                         <span className="material-symbols-outlined text-white/20 text-4xl mb-2">search_off</span>
-                                        <p className="text-white/40 text-sm">No se encontraron resultados</p>
+                                        <p className="text-white/40 text-sm">{t('home.no_results')}</p>
                                     </div>
                                 )}
                             </div>
@@ -463,7 +440,7 @@ export const Home: React.FC = () => {
                 <UnifiedMap
                     showMarkers={true}
                     familyMembers={familyMembers.filter(m => m.lat !== 0 && m.lng !== 0)}
-                    showDangerZones={true}
+                    showIncidenceZones={true}
                     showPOIs={true}
                     onPOIClick={(poi) => {
                         setShowSuggestions(false);
@@ -498,34 +475,17 @@ export const Home: React.FC = () => {
                                 <button
                                     onClick={() => setShowSOSConfig(true)}
                                     className="size-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg shrink-0"
-                                    title="Ajustes SOS"
+                                    title={t('nav.settings')}
                                 >
                                     <span className="material-symbols-outlined">tune</span>
                                 </button>
                             )}
-                            <button
-                                onClick={() => navigate('/report')}
-                                className="size-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg hover:scale-105 transition-transform shrink-0"
-                                aria-label="Reportar incidente"
-                            >
-                                <span className="material-symbols-outlined text-orange-500 text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
-                            </button>
                         </div>
                     </div>
                 }
             >
                 {/* Tabs estilo Life360 */}
                 <div className="flex items-center justify-center gap-1 px-4 pb-3 shrink-0">
-                    <button
-                        onClick={() => setActiveTab('family')}
-                        className={clsx(
-                            "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                            activeTab === 'family' ? "bg-primary text-white" : "bg-white/5 text-white/60"
-                        )}
-                    >
-                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
-                        {t('nav.family')}
-                    </button>
                     <button
                         onClick={() => setActiveTab('places')}
                         className={clsx(
@@ -536,123 +496,32 @@ export const Home: React.FC = () => {
                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'places' ? "'FILL' 1" : "" }}>location_on</span>
                         {t('nav.map')}
                     </button>
+
                     <button
-                        onClick={() => setActiveTab('alerts')}
+                        onClick={() => setActiveTab('family')}
                         className={clsx(
                             "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                            activeTab === 'alerts' ? "bg-primary text-white" : "bg-white/5 text-white/60"
+                            activeTab === 'family' ? "bg-primary text-white" : "bg-white/5 text-white/60"
                         )}
                     >
-                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'alerts' ? "'FILL' 1" : "" }}>shield</span>
-                        {t('settings.groups.security_circle')}
+                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
+                        {t('nav.family') || 'Family'}
                     </button>
                 </div>
 
                 {/* Content area */}
                 <div className="px-4 pb-28 flex-1 overflow-y-auto no-scrollbar">
 
-                    {activeTab === 'family' && (
-                        <div className="flex flex-col gap-3">
-                            {familyMembers.length === 0 ? (
-                                <div className="p-8 text-center text-white/40 flex flex-col items-center gap-4">
-                                    <div className="size-16 rounded-full bg-white/5 flex items-center justify-center">
-                                        <Users className="text-white/20" size={32} />
-                                    </div>
-                                    <p className="text-sm font-bold uppercase tracking-tight">Todavía no has agregado a nadie</p>
-                                    <button 
-                                        onClick={() => navigate('/settings/family')}
-                                        className="py-3 px-6 bg-primary/20 text-primary text-xs font-black uppercase tracking-widest rounded-xl border border-primary/30"
-                                    >
-                                        Configurar Familia
-                                    </button>
-                                </div>
-                            ) : (
-                                familyMembers.map((member) => (
-                                    <button
-                                        key={member.id}
-                                        onClick={() => {
-                                            if (member.lat !== 0) {
-                                                setSelectedMember(member.id);
-                                            }
-                                        }}
-                                        className={clsx(
-                                            "flex items-center gap-4 p-4 rounded-3xl transition-all border",
-                                            member.isEmergency ? "bg-red-600/10 border-red-600/30" : "bg-white/5 border-white/5 hover:bg-white/10"
-                                        )}
-                                    >
-                                        <div className={clsx(
-                                            "size-14 rounded-full border-2 flex items-center justify-center text-2xl shrink-0 overflow-hidden shadow-lg",
-                                            member.avatarBg,
-                                            member.status === 'moving' ? 'border-primary' : 'border-white/10'
-                                        )}>
-                                            {member.avatarUrl ? (
-                                                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                member.avatar
-                                            )}
-                                        </div>
-                                        <div className="flex-1 text-left min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-black uppercase tracking-tighter truncate">{member.name}</p>
-                                                {member.isEmergency && (
-                                                    <span className="px-1.5 py-0.5 bg-red-600 text-[8px] font-black uppercase rounded text-white animate-pulse">SOS</span>
-                                                )}
-                                            </div>
-                                            <p className={clsx(
-                                                "text-[10px] font-bold uppercase truncate mt-0.5",
-                                                member.isEmergency ? "text-red-500" : "text-white/40"
-                                            )}>
-                                                {member.location}
-                                            </p>
-                                            
-                                            <div className="flex items-center gap-3 mt-1.5 opacity-60">
-                                                <div className="flex items-center gap-1">
-                                                    <Battery size={10} className={member.battery < 20 ? "text-red-500" : "text-primary"} />
-                                                    <span className="text-[9px] font-black">{member.battery}%</span>
-                                                </div>
-                                                {member.speed && (
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-[10px]">speed</span>
-                                                        <span className="text-[9px] font-black">{member.speed}</span>
-                                                    </div>
-                                                )}
-                                                <div className="ml-auto text-[8px] font-bold uppercase tracking-widest">
-                                                    {member.lastUpdate}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <span className="material-symbols-outlined text-white/20">chevron_right</span>
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    )}
+
 
                     {activeTab === 'places' && (
                         <div className="flex flex-col gap-3">
-                            {/* Agregar nuevo lugar */}
-                            {/* Agregar nuevo lugar */}
-                            <button
-                                onClick={() => {
-                                    // Gate: Allow 1 safe zone for free, unlimited for premium
-                                    if (safeZones.length >= 1 && !isPremium) {
-                                        openPaywall('Zonas Seguras Ilimitadas');
-                                    } else {
-                                        setShowAddZoneModal(true);
-                                    }
-                                }}
-                                className="flex items-center gap-4 p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary"
-                            >
-                                <div className="size-10 rounded-full bg-primary flex items-center justify-center text-white">
-                                    <span className="material-symbols-outlined">add</span>
-                                </div>
-                                <span className="font-semibold">Agregar un nuevo lugar</span>
-                            </button>
+
 
                             {/* Lugares guardados */}
                             {safeZones.length === 0 ? (
                                 <div className="p-4 text-center text-white/40 text-sm">
-                                    No hay lugares guardados.
+                                    {t('home.no_saved_places')}
                                 </div>
                             ) : (
                                 safeZones.map((zone) => (
@@ -668,7 +537,7 @@ export const Home: React.FC = () => {
                                         </div>
                                         <div className="flex-1">
                                             <p className="font-semibold">{zone.name}</p>
-                                            <p className="text-xs text-white/40">Radio: {zone.radius}m</p>
+                                            <p className="text-xs text-white/40">{t('home.radius')}: {zone.radius}m</p>
                                         </div>
                                         <span className="material-symbols-outlined text-white/40">chevron_right</span>
                                     </button>
@@ -677,110 +546,49 @@ export const Home: React.FC = () => {
                         </div>
                     )}
 
-                    {activeTab === 'alerts' && (
+
+
+                    {activeTab === 'family' && (
                         <div className="flex flex-col gap-3">
-                            {/* SOS Alerts de Familiares */}
-                            {activeAlerts.length > 0 && (
-                                <div className="space-y-3">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500 px-1">Alertas en Curso</h4>
-                                    {activeAlerts.map(alert => {
-                                        const member = familyMembers.find(m => m.id === alert.user_id);
-                                        return (
-                                            <div 
-                                                key={alert.id}
-                                                onClick={() => {
-                                                    if (alert.lat && alert.lng) {
-                                                        setSelectedMember(alert.user_id);
-                                                    }
-                                                }}
-                                                className="p-4 rounded-2xl bg-red-600/10 border border-red-600/30 flex items-center gap-4 animate-pulse cursor-pointer transition-colors hover:bg-red-600/20"
-                                            >
-                                                <div className="size-12 rounded-full bg-red-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-600/20 font-bold text-xl">
-                                                    {member?.avatar || '⚠️'}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-red-500 uppercase tracking-tight truncate">SOS: {member?.name || 'Familiar'}</h3>
-                                                    <p className="text-xs text-white/70 line-clamp-1">{alert.message || 'Sin mensaje adicional'}</p>
-                                                </div>
-                                                <div className="size-8 rounded-full bg-red-600/20 flex items-center justify-center text-red-500">
-                                                    <span className="material-symbols-outlined text-lg">chevron_right</span>
-                                                </div>
+                            {familyMembers.length === 0 ? (
+                                <div className="p-4 text-center text-white/40 text-sm">
+                                    {t('home.no_family_members')}
+                                </div>
+                            ) : (
+                                familyMembers.map((member) => (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => setSelectedMember(member.id)}
+                                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors"
+                                    >
+                                        <div className={clsx(
+                                            "size-10 rounded-full flex items-center justify-center text-xl overflow-hidden",
+                                            member.avatarBg
+                                        )}>
+                                            {member.avatarUrl ? (
+                                                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                                            ) : member.avatar}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-semibold">{member.name}</p>
+                                            <p className="text-xs text-white/40">{member.location}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <div className="flex items-center gap-1 text-[10px] text-white/40">
+                                                <Battery size={12} className={member.battery < 20 ? 'text-red-500' : ''} />
+                                                {member.battery}%
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                            <p className="text-[10px] text-white/20">{member.lastUpdate}</p>
+                                        </div>
+                                    </button>
+                                ))
                             )}
-
-                            {/* Zonas de peligro - Diferenciador de RedCarpet */}
-                            <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="size-10 rounded-full bg-primary flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-white">warning</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold">Zonas de Peligro</h3>
-                                        <p className="text-xs text-white/60">Alertas automáticas en zonas inseguras</p>
-                                    </div>
-                                    <div className="ml-auto">
-                                        <div className="w-12 h-7 bg-primary rounded-full flex items-center px-1">
-                                            <div className="size-5 bg-white rounded-full ml-auto"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-white/50">
-                                    Explora el mapa para ver las zonas de riesgo reportadas por la comunidad.
-                                </p>
-                            </div>
-
-                            {/* Rutas seguras - Diferenciador de RedCarpet */}
-                            <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/30">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="size-10 rounded-full bg-green-500 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold">Rutas Seguras GPS</h3>
-                                        <p className="text-xs text-white/60">Navegación evitando zonas peligrosas</p>
-                                    </div>
-                                    <div className="ml-auto">
-                                        <div className="w-12 h-7 bg-green-500 rounded-full flex items-center px-1">
-                                            <div className="size-5 bg-white rounded-full ml-auto"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => navigate('/route')}
-                                    className="w-full mt-2 py-2.5 bg-green-500/20 text-green-400 rounded-xl text-sm font-semibold"
-                                >
-                                    Planificar ruta segura →
-                                </button>
-                            </div>
-
-                            {/* Alertas de choque */}
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                                <span className="material-symbols-outlined text-2xl text-white/60">car_crash</span>
-                                <div className="flex-1">
-                                    <p className="font-semibold">Alertas de choque</p>
-                                    <p className="text-xs text-white/40">Detección automática de accidentes</p>
-                                </div>
-                                <span className="material-symbols-outlined text-green-400">check_circle</span>
-                            </div>
-
-                            {/* Contactos de emergencia */}
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                                <span className="material-symbols-outlined text-2xl text-white/60">contacts</span>
-                                <div className="flex-1">
-                                    <p className="font-semibold">Contactos de emergencia</p>
-                                    <p className="text-xs text-white/40">2 contactos agregados</p>
-                                </div>
-                                <span className="material-symbols-outlined text-white/40">chevron_right</span>
-                            </div>
                         </div>
                     )}
                 </div>
             </DraggableSheet>
 
-            {/* SOS Configuration Sheet */}
+            {/* Guard Configuration Sheet */}
             <SOSConfigSheet
                 isOpen={showSOSConfig}
                 onClose={() => setShowSOSConfig(false)}
@@ -839,15 +647,15 @@ export const Home: React.FC = () => {
                         <div className="flex gap-3 mb-6">
                             <div className="flex-1 p-3 rounded-xl bg-white/5 text-center">
                                 <span className="material-symbols-outlined text-white/60 text-xl">schedule</span>
-                                <p className="text-xs text-white/40 mt-1">Abierto</p>
+                                <p className="text-xs text-white/40 mt-1">{t('home.poi_open')}</p>
                             </div>
                             <div className="flex-1 p-3 rounded-xl bg-white/5 text-center">
                                 <span className="material-symbols-outlined text-white/60 text-xl">star</span>
-                                <p className="text-xs text-white/40 mt-1">4.5 ★</p>
+                                <p className="text-xs text-white/40 mt-1">4.5 {t('home.poi_rating')}</p>
                             </div>
                             <div className="flex-1 p-3 rounded-xl bg-white/5 text-center">
                                 <span className="material-symbols-outlined text-white/60 text-xl">euro</span>
-                                <p className="text-xs text-white/40 mt-1">€€</p>
+                                <p className="text-xs text-white/40 mt-1">{t('home.poi_price')}</p>
                             </div>
                         </div>
 
@@ -866,7 +674,7 @@ export const Home: React.FC = () => {
                                 className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30"
                             >
                                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
-                                Cómo llegar
+                                {t('home.how_to_get_there')}
                             </button>
                             <button className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-white/80">bookmark</span>
@@ -934,7 +742,7 @@ export const Home: React.FC = () => {
                                                     </div>
                                                 )}
                                                 <div className="text-[10px] text-white/40">
-                                                    Actualizado: {member.lastUpdate}
+                                                    {t('common.updated')}: {member.lastUpdate}
                                                 </div>
                                             </div>
                                         </div>
@@ -948,19 +756,19 @@ export const Home: React.FC = () => {
                                                 navigate('/route', {
                                                     state: {
                                                         destination: { lat: member.lat, lng: member.lng },
-                                                        destinationName: `Ubicación de ${member.name}`
+                                                        destinationName: t('home.member_location', { name: member.name })
                                                     }
                                                 });
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 transition-transform active:scale-95 text-sm"
                                         >
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
-                                            Ir
+                                            {t('common.go')}
                                         </button>
                                         <button
                                             onClick={() => {
                                                 if (!isPremium) {
-                                                    openPaywall('Historial de Ubicación de 30 días');
+                                                    openPaywall(t('home.gate_history'));
                                                 } else {
                                                     setShowHistoryModal(member);
                                                 }
@@ -968,7 +776,7 @@ export const Home: React.FC = () => {
                                             className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors text-sm"
                                         >
                                             <span className="material-symbols-outlined text-lg">history</span>
-                                            Historial
+                                            {t('home.history')}
                                         </button>
                                         <button className="size-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
                                             <span className="material-symbols-outlined text-white/80">call</span>
@@ -989,82 +797,6 @@ export const Home: React.FC = () => {
                 memberName={showHistoryModal?.name || ''}
             />
 
-            {/* Danger Zone Re-confirmation Overlay */}
-            {pendingZoneCheck && (
-                <div className="fixed inset-x-4 bottom-32 z-[60] animate-slide-up">
-                    <div className="bg-zinc-900 border border-red-600/30 p-5 rounded-[32px] shadow-2xl backdrop-blur-xl">
-                        <div className="flex items-start gap-4 mb-4">
-                            <div className="size-12 rounded-full bg-red-600/20 text-red-600 flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined">warning</span>
-                            </div>
-                            <div>
-                                <h4 className="font-black text-lg">¿Sigue el peligro?</h4>
-                                <p className="text-sm text-white/60">Has entrado en un area reportada como "{pendingZoneCheck.description || pendingZoneCheck.type}".</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-3">
-                            <button 
-                                onClick={() => setPendingZoneCheck(null)}
-                                className="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl active:scale-95 transition-all"
-                            >
-                                Sí, sigue igual
-                            </button>
-                            <button 
-                                onClick={async () => {
-                                    // Mark as expired immediately in DB
-                                    const { supabase } = await import('../services/supabaseClient');
-                                    await supabase.from('danger_zones').update({ expires_at: new Date().toISOString() }).eq('id', pendingZoneCheck.zoneId);
-                                    setPendingZoneCheck(null);
-                                    loadData(); // Reload map
-                                }}
-                                className="flex-1 py-3 bg-white/10 text-white font-bold rounded-2xl active:scale-95 transition-all"
-                            >
-                                Ya es seguro
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* SOS Countdown Overlay */}
-            {sosCountdown !== null && (
-                <div className="fixed inset-0 z-[10000] bg-red-600/90 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center text-white animate-fade-in">
-                    <div className="size-40 rounded-full border-8 border-white/20 flex items-center justify-center mb-12 relative animate-scale-in">
-                        <span className="text-7xl font-black italic">{sosCountdown}</span>
-                        <svg className="absolute inset-0 -rotate-90">
-                            <circle
-                                cx="80" cy="80" r="72"
-                                stroke="white"
-                                strokeWidth="8"
-                                fill="transparent"
-                                strokeDasharray="452.39"
-                                strokeDashoffset={452.39 * (1 - sosCountdown / 3)}
-                                className="transition-all duration-1000 ease-linear"
-                            />
-                        </svg>
-                    </div>
-                    
-                    <h2 className="text-4xl font-black uppercase tracking-tight italic mb-4">¿EMERGENCIA?</h2>
-                    <p className="text-white/80 font-bold max-w-xs mb-16 uppercase tracking-widest text-xs leading-loose">
-                        Alertando al 112 y a tus contactos de confianza en segundos...
-                    </p>
-
-                    <div className="flex flex-col gap-4 w-full max-w-xs">
-                         <button
-                            onClick={triggerSOSProtocol}
-                            className="w-full py-5 bg-white text-red-600 rounded-3xl font-black uppercase tracking-tighter italic shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
-                        >
-                            <Send size={24} fill="currentColor" />
-                            ALERTAR YA
-                        </button>
-                        <button
-                            onClick={cancelSOSCountdown}
-                            className="w-full py-5 bg-black/20 border border-white/20 text-white rounded-3xl font-black uppercase tracking-tighter italic active:scale-95 transition-all"
-                        >
-                            CANCELAR
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

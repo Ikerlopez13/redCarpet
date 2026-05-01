@@ -7,8 +7,8 @@ export default defineConfig({
   base: './',
   build: {
     target: 'es2020',
-    minify: 'esbuild',
-    cssMinify: true,
+    minify: false,
+    cssMinify: false,
     sourcemap: false,
     outDir: 'dist',
     emptyOutDir: true,

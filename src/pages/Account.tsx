@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, User, Mail, Shield, Smartphone, LogOut, ChevronRight, X, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ChevronLeft, User, Mail, Shield, Smartphone, LogOut, X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Preferences } from '@capacitor/preferences';
 import { supabase } from '../services/supabaseClient';
 
 export const Account: React.FC = () => {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
-    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const { t } = useTranslation();
+    const { user, logout, refreshProfile } = useAuth();
     const [isEditingPin, setIsEditingPin] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
-    const [newEmail, setNewEmail] = useState(user?.email || '');
-    const [newPin, setNewPin] = useState('');
     const [newName, setNewName] = useState(user?.profile?.full_name || '');
+    const [newPin, setNewPin] = useState('');
     const [currentPin, setCurrentPin] = useState('****');
     const [isLoading, setIsLoading] = useState(false);
-    const { refreshProfile } = useAuth();
 
     useEffect(() => {
         const loadPin = async () => {
@@ -37,9 +36,9 @@ export const Account: React.FC = () => {
             if (error) throw error;
             await refreshProfile();
             setIsEditingName(false);
-            alert('Nombre actualizado correctamente');
+            alert(t('account.update_success'));
         } catch (err: any) {
-            alert('Error al actualizar nombre: ' + err.message);
+            alert(t('account.update_error') + ': ' + err.message);
         } finally {
             setIsLoading(false);
         }
@@ -50,27 +49,9 @@ export const Account: React.FC = () => {
         navigate('/login');
     };
 
-    const handleUpdateEmail = async () => {
-        if (!newEmail || newEmail === user?.email) {
-            setIsEditingEmail(false);
-            return;
-        }
-        setIsLoading(true);
-        try {
-            const { error } = await supabase.auth.updateUser({ email: newEmail });
-            if (error) throw error;
-            alert('Se ha enviado un correo de confirmación a tu nueva dirección.');
-            setIsEditingEmail(false);
-        } catch (err: any) {
-            alert('Error al actualizar email: ' + err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const handleUpdatePin = async () => {
         if (newPin.length < 4) {
-            alert('El PIN debe tener al menos 4 dígitos');
+            alert(t('account.pin_min_length'));
             return;
         }
         setIsLoading(true);
@@ -79,9 +60,9 @@ export const Account: React.FC = () => {
             setCurrentPin(newPin);
             setNewPin('');
             setIsEditingPin(false);
-            alert('PIN actualizado correctamente');
+            alert(t('account.pin_success'));
         } catch (err: any) {
-            alert('Error al actualizar PIN');
+            alert(t('account.pin_error'));
         } finally {
             setIsLoading(false);
         }
@@ -94,7 +75,7 @@ export const Account: React.FC = () => {
                 <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white/40 hover:text-white">
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className="text-xl font-black uppercase italic tracking-tighter">Cuenta</h1>
+                <h1 className="text-xl font-black uppercase italic tracking-tighter">{t('account.title')}</h1>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
@@ -111,8 +92,8 @@ export const Account: React.FC = () => {
                         </div>
                     </div>
                     <div className="text-center">
-                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">{user?.profile?.full_name || user?.email?.split('@')[0] || 'Usuario'}</h2>
-                        <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">Miembro Activo</p>
+                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">{user?.profile?.full_name || user?.email?.split('@')[0] || t('common.user')}</h2>
+                        <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">{t('account.active_member')}</p>
                     </div>
                 </div>
 
@@ -126,12 +107,12 @@ export const Account: React.FC = () => {
                                     <User size={20} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Nombre Completo</p>
-                                    <p className="text-sm font-bold text-white/80">{user?.profile?.full_name || 'No configurado'}</p>
+                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">{t('account.full_name')}</p>
+                                    <p className="text-sm font-bold text-white/80">{user?.profile?.full_name || t('account.not_configured')}</p>
                                 </div>
                             </div>
                             {!isEditingName && (
-                                <button onClick={() => setIsEditingName(true)} className="text-primary text-xs font-bold uppercase tracking-wider">Cambiar</button>
+                                <button onClick={() => setIsEditingName(true)} className="text-primary text-xs font-bold uppercase tracking-wider">{t('account.change')}</button>
                             )}
                         </div>
                         {isEditingName && (
@@ -141,7 +122,7 @@ export const Account: React.FC = () => {
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary font-bold"
-                                    placeholder="Tu nombre..."
+                                    placeholder={t('account.name_placeholder')}
                                 />
                                 <button onClick={handleUpdateName} disabled={isLoading} className="size-10 bg-primary rounded-xl flex items-center justify-center text-white">
                                     {isLoading ? <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
@@ -161,31 +142,14 @@ export const Account: React.FC = () => {
                                     <Mail size={20} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Email</p>
+                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">{t('account.email')}</p>
                                     <p className="text-sm font-bold text-white/80">{user?.email}</p>
                                 </div>
                             </div>
-                            {!isEditingEmail && (
-                                <button onClick={() => setIsEditingEmail(true)} className="text-primary text-xs font-bold uppercase tracking-wider">Cambiar</button>
-                            )}
-                        </div>
-                        {isEditingEmail && (
-                            <div className="flex gap-2 animate-in fade-in slide-in-from-top-2">
-                                <input 
-                                    type="email" 
-                                    value={newEmail}
-                                    onChange={(e) => setNewEmail(e.target.value)}
-                                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary"
-                                    placeholder="Nuevo email..."
-                                />
-                                <button onClick={handleUpdateEmail} disabled={isLoading} className="size-10 bg-primary rounded-xl flex items-center justify-center text-white">
-                                    {isLoading ? <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
-                                </button>
-                                <button onClick={() => setIsEditingEmail(false)} className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-white/40">
-                                    <X size={18} />
-                                </button>
+                            <div className="text-white/20 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
+                                {t('account.verified')}
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* PIN */}
@@ -196,12 +160,12 @@ export const Account: React.FC = () => {
                                     <Shield size={20} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">PIN de Seguridad</p>
+                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">{t('account.security_pin')}</p>
                                     <p className="text-sm font-bold text-white/80 tracking-widest">{isEditingPin ? '****' : currentPin.replace(/./g, '*')}</p>
                                 </div>
                             </div>
                             {!isEditingPin && (
-                                <button onClick={() => setIsEditingPin(true)} className="text-primary text-xs font-bold uppercase tracking-wider">Editar</button>
+                                <button onClick={() => setIsEditingPin(true)} className="text-primary text-xs font-bold uppercase tracking-wider">{t('account.edit')}</button>
                             )}
                         </div>
                         {isEditingPin && (
@@ -213,7 +177,7 @@ export const Account: React.FC = () => {
                                     value={newPin}
                                     onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
                                     className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary tracking-widest"
-                                    placeholder="Nuevo PIN..."
+                                    placeholder={t('account.pin_placeholder')}
                                 />
                                 <button onClick={handleUpdatePin} disabled={isLoading} className="size-10 bg-primary rounded-xl flex items-center justify-center text-white">
                                     {isLoading ? <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
@@ -231,8 +195,8 @@ export const Account: React.FC = () => {
                                 <Smartphone size={20} />
                             </div>
                             <div>
-                                <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Dispositivo</p>
-                                <p className="text-sm font-bold text-white/80">RedCarpet Guard v1</p>
+                                <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">{t('account.device')}</p>
+                                <p className="text-sm font-bold text-white/80">{t('account.companion_v1')}</p>
                             </div>
                         </div>
                     </div>
@@ -244,11 +208,11 @@ export const Account: React.FC = () => {
                     className="w-full py-5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all mt-12"
                 >
                     <LogOut size={20} />
-                    <span className="text-sm font-black uppercase tracking-widest">Cerrar Sesión</span>
+                    <span className="text-sm font-black uppercase tracking-widest">{t('account.logout')}</span>
                 </button>
 
                 <div className="text-center py-8">
-                    <p className="text-[9px] text-white/10 font-bold uppercase tracking-[0.4em]">RedCarpet Secure Protocol v3.5</p>
+                    <p className="text-[9px] text-white/10 font-bold uppercase tracking-[0.4em]">{t('account.secure_protocol')}</p>
                 </div>
             </div>
         </div>

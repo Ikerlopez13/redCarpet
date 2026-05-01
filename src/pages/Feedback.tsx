@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Send, ChevronLeft, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const Feedback: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [submitted, setSubmitted] = useState(false);
@@ -17,7 +19,7 @@ export const Feedback: React.FC = () => {
         // If high rating, redirect to store after a short delay
         if (rating >= 4) {
             setTimeout(() => {
-                const confirmReview = window.confirm('¡Muchas gracias por tu valoración! ¿Te gustaría dedicarnos 1 minuto y dejarnos una reseña positiva en la tienda? Nos ayudaría muchísimo.');
+                const confirmReview = window.confirm(t('feedback.store_review_confirm'));
                 if (confirmReview) {
                     // For demo purposes, we'll use a generic store link
                     window.open('https://apps.apple.com/app/id6479100000?action=write-review', '_blank');
@@ -37,8 +39,8 @@ export const Feedback: React.FC = () => {
                 >
                     <Star size={48} fill="currentColor" />
                 </div>
-                <h1 className="text-2xl font-black uppercase italic tracking-tighter mb-2">¡Gracias!</h1>
-                <p className="text-white/40 text-sm">Tu opinión nos ayuda a hacer RedCarpet cada vez más seguro.</p>
+                <h1 className="text-2xl font-black uppercase italic tracking-tighter mb-2">{t('feedback.thanks')}</h1>
+                <p className="text-white/40 text-sm">{t('feedback.thanks_desc')}</p>
             </div>
         );
     }
@@ -50,12 +52,12 @@ export const Feedback: React.FC = () => {
                 <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white/40 hover:text-white transition-transform active:scale-90">
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className="text-xl font-black uppercase italic tracking-tighter">Feedback</h1>
+                <h1 className="text-xl font-black uppercase italic tracking-tighter">{t('feedback.title')}</h1>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
                 <div className="space-y-2">
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-white/40 animate-fade-in">Califica tu experiencia</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-white/40 animate-fade-in">{t('feedback.rate_experience')}</h2>
                     <div className="flex gap-4">
                         {[1, 2, 3, 4, 5].map((s) => (
                             <button 
@@ -72,11 +74,11 @@ export const Feedback: React.FC = () => {
                 </div>
 
                 <div className="space-y-4 animate-slide-up" style={{ animationDelay: '100ms' }}>
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-white/40">¿Cómo podemos mejorar?</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-white/40">{t('feedback.how_to_improve')}</h2>
                     <textarea 
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        placeholder="Escribe aquí tus sugerencias..."
+                        placeholder={t('feedback.placeholder')}
                         className="w-full h-40 bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm outline-none focus:border-primary transition-colors resize-none"
                     />
                 </div>
@@ -87,7 +89,7 @@ export const Feedback: React.FC = () => {
                     className="w-full py-5 bg-white text-black font-black text-lg rounded-2xl shadow-xl shadow-white/5 active:scale-95 transition-all uppercase italic tracking-tighter disabled:opacity-20 disabled:scale-100 animate-slide-up"
                     style={{ animationDelay: '200ms' }}
                 >
-                    Enviar Comentario
+                    {t('feedback.send')}
                 </button>
             </div>
         </div>

@@ -44,25 +44,25 @@ export const Notifications: React.FC = () => {
                 const alerts = await getSOSHistory(group.id, 20);
                 const mapped: NotificationItem[] = alerts.map(a => {
                     const member = members.find(m => m.profile?.id === a.user_id);
-                    const name = member?.profile?.full_name?.split(' ')[0] || 'Un contacto';
+                    const name = member?.profile?.full_name?.split(' ')[0] || t('notifications.unknown_contact');
                     
                     const date = new Date(a.created_at);
                     const now = new Date();
                     const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
-                    let timeStr = 'Hace un momento';
-                    if (diffMins > 0 && diffMins < 60) timeStr = `Hace ${diffMins} min`;
-                    else if (diffMins >= 60 && diffMins < 1440) timeStr = `Hace ${Math.floor(diffMins/60)} h`;
-                    else if (diffMins >= 1440) timeStr = `Hace ${Math.floor(diffMins/1440)} d`;
+                    let timeStr = t('notifications.just_now');
+                    if (diffMins > 0 && diffMins < 60) timeStr = t('notifications.mins_ago', { count: diffMins });
+                    else if (diffMins >= 60 && diffMins < 1440) timeStr = t('notifications.hours_ago', { count: Math.floor(diffMins/60) });
+                    else if (diffMins >= 1440) timeStr = t('notifications.days_ago', { count: Math.floor(diffMins/1440) });
 
                     return {
                         id: a.id,
                         alertId: a.id,
                         type: a.status === 'active' ? 'emergency' : 'family',
-                        title: a.status === 'active' ? `EMERGENCIA: ${name}` : `SOS Resuelto: ${name}`,
-                        message: a.message || `Alerta de seguridad procesada.`,
+                        title: a.status === 'active' ? t('notifications.journey_alert_title', { name }) : t('notifications.journey_finished_title', { name }),
+                        message: a.message || t('notifications.update_processed'),
                         time: timeStr,
                         isRead: a.status !== 'active',
-                        action: a.status === 'active' ? 'Abrir mapa' : 'Ver historial'
+                        action: a.status === 'active' ? t('notifications.open_map') : t('notifications.view_history')
                     };
                 });
                 // Add a welcome notification if it's too empty
@@ -70,9 +70,9 @@ export const Notifications: React.FC = () => {
                   mapped.push({
                     id: 'welcome',
                     type: 'system',
-                    title: 'Centro de Seguridad Activo',
-                    message: 'Aquí aparecerán las alertas SOS y avisos de zonas de peligro de tu círculo familiar.',
-                    time: 'Ahora',
+                    title: t('notifications.welcome_title'),
+                    message: t('notifications.welcome_message'),
+                    time: t('notifications.just_now'),
                     isRead: false
                   });
                 }
@@ -88,9 +88,9 @@ export const Notifications: React.FC = () => {
   }, [user]);
 
   const handleAction = (notif: NotificationItem) => {
-    if (notif.action === 'Abrir mapa') {
+    if (notif.action === t('notifications.open_map')) {
         navigate('/');
-    } else if (notif.action === 'Ver historial') {
+    } else if (notif.action === t('notifications.view_history')) {
         navigate('/history');
     }
   };
@@ -106,7 +106,7 @@ export const Notifications: React.FC = () => {
           <ChevronLeft size={24} />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black uppercase italic tracking-tighter">Centro de Notificaciones</h1>
+          <h1 className="text-xl font-black uppercase italic tracking-tighter">{t('notifications.title')}</h1>
         </div>
         <div className="p-2 bg-primary/10 rounded-xl text-primary">
           <Bell size={20} />
@@ -180,8 +180,8 @@ export const Notifications: React.FC = () => {
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-30 animate-fade-in">
             <CheckCircle2 size={64} className="text-primary" />
             <div className="space-y-1">
-              <p className="text-sm font-black uppercase tracking-widest">Todo en orden</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider">No tienes notificaciones nuevas</p>
+              <p className="text-sm font-black uppercase tracking-widest">{t('notifications.all_clear')}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider">{t('notifications.no_notifications')}</p>
             </div>
           </div>
         )}
@@ -190,7 +190,7 @@ export const Notifications: React.FC = () => {
       {/* Footer / Privacy Info */}
       <div className="p-6 text-center border-t border-white/5 bg-zinc-900/30">
         <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.2em] leading-relaxed">
-          Tus notificaciones están protegidas con<br/>encriptación de grado militar.
+          {t('notifications.privacy_footer')}
         </p>
       </div>
     </div>

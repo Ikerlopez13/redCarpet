@@ -2,14 +2,14 @@
   "nav": {
     "map": "Carte",
     "contacts": "Contacts",
-    "sos": "SOS",
+    "sos": "Alerte",
     "premium": "Premium",
     "settings": "Paramètres"
   },
   "home": {
     "greeting": "Bonjour, {{name}}",
-    "emergency_active": "ALERTE SOS ACTIVE",
-    "report_incident": "Signaler un incident"
+    "emergency_active": "ALERTE COMMUNAUTAIRE ACTIVE",
+    "report_incident": "Partager une Alerte"
   },
   "settings": {
     "title": "Paramètres",
@@ -18,22 +18,22 @@
       "free_member": "Membre Gratuit"
     },
     "groups": {
-      "security_circle": "CERCLE DE SÉCURITÉ",
+      "security_circle": "CERCLE DE CONFIANCE",
       "account_access": "COMPTE ET ACCÈS",
-      "security_network": "RÉSEAU DE SÉCURITÉ",
+      "security_network": "RÉSEAU COMMUNAUTAIRE",
       "support_legal": "SUPPORT ET JURIDIQUE",
       "privacy_data": "CONFIDENTIALITÉ ET DONNÉES (RGPD)",
       "debug": "🛠️ DEBUG (DÉMO)"
     },
     "items": {
       "circle_management": "Gestion des cercles",
-      "protection_level": "Niveau de protection",
+      "protection_level": "Niveau d'alerte",
       "my_account": "Mon compte",
-      "emergency_history": "Historique des urgences",
+      "emergency_history": "Historique des alertes",
       "trusted_contacts": "Contacts de confiance",
-      "ai_chat": "Chat IA",
+      "ai_chat": "Chat Communautaire",
       "greencarpet": "GreenCarpet",
-      "contact": "Contact",
+      "contact": "Support",
       "feedback": "Commentaires",
       "faq": "FAQ",
       "privacy_policy": "Politique de confidentialité",
@@ -54,18 +54,18 @@
     "delete_account": "Supprimer mon compte"
   },
   "emergency": {
-    "sos_title": "CENTRE D'URGENCE",
-    "instructions": "Maintenez pour activer SOS",
+    "sos_title": "ALERTES COMMUNAUTAIRES",
+    "instructions": "Maintenez pour alerter vos contacts",
     "cancel": "Annuler"
   },
   "premium": {
     "individual": {
       "title": "Premium Individuel",
-      "subtitle": "Gardez une longueur d'avance sur le danger."
+      "subtitle": "Gardez une longueur d'avance sur les risques."
     },
     "student": {
       "title": "Plan Étudiant",
-      "subtitle": "Soyez celui qui est toujours en sécurité."
+      "subtitle": "Soyez toujours le plus en sécurité."
     },
     "72h": {
       "title": "Passe 72h",

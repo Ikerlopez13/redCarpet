@@ -1,0 +1,22 @@
+#!/usr/bin/expect -f
+set timeout 20
+spawn /opt/homebrew/bin/npx surge ./web_deploy redcarpet-app-2026.surge.sh
+expect {
+    "email:" {
+        send "\r"
+        exp_continue
+    }
+    "password:" {
+        send "\r"
+        exp_continue
+    }
+    "project:" {
+        send "\r"
+        exp_continue
+    }
+    "domain:" {
+        send "\r"
+        exp_continue
+    }
+    eof
+}

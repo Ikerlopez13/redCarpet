@@ -6,7 +6,7 @@ import './index.css'
 import './i18n' // Initialize i18n
 import { SplashScreen } from '@capacitor/splash-screen'
 
-console.log("RedCarpet V3 Production Mode");
+console.log("Urban Guide V3 Production Mode");
 
 if (typeof window !== 'undefined') {
   window.onerror = function(msg, url, lineNo, columnNo, error) {

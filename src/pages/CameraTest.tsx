@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Camera, RefreshCw, AlertCircle, ShieldAlert, X, Delete, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 
 import { 
@@ -13,9 +14,9 @@ import {
     updateSOSAlertMedia 
 } from '../services/sosService';
 import { useAuth } from '../contexts/AuthContext';
-import { useSOS } from '../contexts/SOSContext.base';
 
 export const CameraTest: React.FC = () => {
+    const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const { user, isPremium } = useAuth();
@@ -28,7 +29,7 @@ export const CameraTest: React.FC = () => {
         mode?: 'visible' | 'discrete';
     } | null;
     
-    const isSOS = sosState?.isSOS || false;
+    const isSOS = sosState?.isSOS ?? true;
     const alertId = sosState?.alertId || null;
     const sosMode = sosState?.mode || 'visible';
 
@@ -96,7 +97,7 @@ export const CameraTest: React.FC = () => {
             }
         } catch (err) {
             console.error('Error starting camera:', err);
-            setError('No se pudo acceder a la cámara frontal.');
+            setError(t('camera.access_error'));
             setIsStreaming(false);
         }
     };
@@ -200,13 +201,13 @@ export const CameraTest: React.FC = () => {
                         <div className="flex-1 flex flex-col items-center justify-between py-12 px-6 relative z-50">
                             <div className="text-center space-y-4">
                                 <div
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-red-600 font-black text-xs tracking-widest uppercase shadow-2xl animate-pulse"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-zinc-900 font-black text-xs tracking-widest uppercase shadow-2xl animate-pulse"
                                 >
-                                    <div className="size-2 rounded-full bg-red-600" />
-                                    SOS EN CURSO
+                                    <div className="size-2 rounded-full bg-amber-500" />
+                                    {t('camera.active_companion')}
                                 </div>
-                                <h1 className="text-4xl font-black uppercase tracking-tight">Cámara Activa</h1>
-                                <p className="text-white/60 text-sm font-medium">Grabando y enviando señal de auxilio...</p>
+                                <h1 className="text-4xl font-black uppercase tracking-tight">{t('camera.guardia_digital')}</h1>
+                                <p className="text-white/60 text-sm font-medium">{t('camera.transmitting')}</p>
                             </div>
 
                             {/* Transparent Area for Native Camera */}
@@ -223,7 +224,7 @@ export const CameraTest: React.FC = () => {
                                         />
                                         <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 bg-red-600 rounded-full animate-pulse">
                                             <div className="size-2 rounded-full bg-white" />
-                                            <span className="text-[10px] font-black tracking-widest uppercase">REC</span>
+                                            <span className="text-[10px] font-black tracking-widest uppercase">{t('camera.rec')}</span>
                                         </div>
                                     </div>
                                 )}
@@ -240,7 +241,7 @@ export const CameraTest: React.FC = () => {
                                     </div>
                                 </button>
                                 <p className="text-white/40 font-black text-[10px] uppercase tracking-[0.3em]">
-                                    Mantén para detener
+                                    {t('camera.hold_to_stop')}
                                 </p>
                             </div>
                         </div>
@@ -252,8 +253,8 @@ export const CameraTest: React.FC = () => {
                                     <Camera className="text-primary w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold">Prueba de Cámara</h1>
-                                    <p className="text-sm text-slate-400">Verificando stream frontal</p>
+                                    <h1 className="text-2xl font-bold">{t('camera.test_title')}</h1>
+                                    <p className="text-sm text-slate-400">{t('camera.verify_stream')}</p>
                                 </div>
                             </header>
 
@@ -268,7 +269,7 @@ export const CameraTest: React.FC = () => {
                                                 className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors flex items-center gap-2"
                                             >
                                                 <RefreshCw size={18} />
-                                                Reintentar
+                                                {t('camera.retry')}
                                             </button>
                                         </div>
                                     ) : (
@@ -295,7 +296,7 @@ export const CameraTest: React.FC = () => {
 
                             <footer className="mt-auto pt-6 text-center">
                                 <p className="text-[10px] text-slate-600 uppercase tracking-widest font-medium">
-                                    Modo Diagnóstico
+                                    {t('camera.diagnostic_mode')}
                                 </p>
                             </footer>
                         </>
@@ -309,8 +310,8 @@ export const CameraTest: React.FC = () => {
                         <div className="inline-flex items-center justify-center size-20 rounded-full bg-red-600/20 text-red-600 mb-4 animate-scale-in">
                             <ShieldAlert size={40} />
                         </div>
-                        <h1 className="text-3xl font-black uppercase tracking-tight">Seguridad PIN</h1>
-                        <p className="text-white/60 font-medium max-w-[280px] mx-auto">Introduce el código para desactivar la alerta SOS de forma segura.</p>
+                        <h1 className="text-3xl font-black uppercase tracking-tight">{t('camera.pin_security')}</h1>
+                        <p className="text-white/60 font-medium max-w-[280px] mx-auto">{t('camera.pin_desc')}</p>
                     </div>
 
                     {/* PIN Dots */}

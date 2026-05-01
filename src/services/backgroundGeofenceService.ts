@@ -1,7 +1,7 @@
 import { registerPlugin } from '@capacitor/core';
 import type { BackgroundGeolocationPlugin } from '@capacitor-community/background-geolocation';
 import { supabase } from './supabaseClient';
-import { getSafeZones, updateLocation, checkDangerZones, checkGeofence } from './locationService';
+import { getSafeZones, updateLocation, checkIncidenceZones, checkGeofence } from './locationService';
 
 // Initialize the plugin
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
@@ -66,8 +66,8 @@ export class BackgroundGeofenceService {
 
                     await updateLocation(userId, position);
 
-                    // 2. Check Danger Zones
-                    await checkDangerZones(userId, location.latitude, location.longitude);
+                    // 2. Check Incidence Zones
+                    await checkIncidenceZones(userId, location.latitude, location.longitude);
 
                     // 3. Check Safe Zones (Geofencing) 
                     await checkGeofence(userId, location.latitude, location.longitude, safeZones);

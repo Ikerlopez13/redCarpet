@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
     appId: 'com.vibecode.redcarpet',
-    appName: 'RedCarpet V2',
+    appName: 'Urban Guide',
     webDir: 'dist',
     server: {
         androidScheme: 'https',

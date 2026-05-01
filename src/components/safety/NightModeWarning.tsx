@@ -44,7 +44,7 @@ export function NightModeWarning({ userLat, userLng }: NightModeWarningProps) {
             });
 
             if (nearRiskyZone) {
-                setWarning("Esta calle es segura de día, pero no de noche. Mantente alerta.");
+                setWarning("La visibilidad en esta zona es reducida de noche. Tenlo en cuenta en tu trayecto.");
                 setIsVisible(true);
             } else {
                 setIsVisible(false);
@@ -61,7 +61,7 @@ export function NightModeWarning({ userLat, userLng }: NightModeWarningProps) {
                     <span className="material-symbols-outlined text-purple-400 text-xl">nights_stay</span>
                 </div>
                 <div>
-                    <h4 className="font-bold text-sm text-purple-300">Modo Noche Activado</h4>
+                    <h4 className="font-bold text-sm text-purple-300">Aviso de Baja Visibilidad</h4>
                     <p className="text-xs text-white/90 mt-0.5">{warning}</p>
                 </div>
                 <button

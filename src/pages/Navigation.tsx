@@ -1,33 +1,16 @@
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Geolocation } from '@capacitor/geolocation';
+import { useTranslation } from 'react-i18next';
 
 import Map, { Marker, Popup, GeolocateControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { RouteLine, ROUTE_COLORS } from '../components/map/RouteLine';
-import { DangerZones } from '../components/map/DangerZone';
+import { IncidenceZones } from '../components/map/IncidenceZone';
 import { getRoute, formatDuration, formatDistance, type RouteStep } from '../services/directionsService';
+import { searchPlaces } from '../services/geocodingService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
-// Barcelona danger zones - same as UnifiedMap
-const barcelonaDangerZones = [
-    {
-        id: 'zone-bcn-1',
-        lat: 41.4070,
-        lng: 2.1850,
-        radius: 80,
-        label: 'Zona con incidentes'
-    },
-    {
-        id: 'zone-bcn-2',
-        lat: 41.4100,
-        lng: 2.1920,
-        radius: 60,
-        label: 'Zona poco iluminada'
-    }
-];
 
 // Icons for maneuvers
 const getManeuverIcon = (type: string, modifier?: string): string => {
@@ -64,6 +47,25 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     transportMode,
     onClose
 }) => {
+    const { t, i18n } = useTranslation();
+
+    // Barcelona danger zones - same as UnifiedMap
+    const barcelonaIncidenceZones = [
+        {
+            id: 'zone-bcn-1',
+            lat: 41.4070,
+            lng: 2.1850,
+            radius: 80,
+            label: t('navigation.incidence_alert')
+        },
+        {
+            id: 'zone-bcn-2',
+            lat: 41.4100,
+            lng: 2.1920,
+            radius: 60,
+            label: t('navigation.attention_zone')
+        }
+    ];
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [routeGeometry, setRouteGeometry] = useState<[number, number][] | null>(null);
@@ -79,7 +81,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
         pitch: 60
     });
     const [userLocation, setUserLocation] = useState({ lat: origin.lat, lng: origin.lng });
-    const geoControlRef = React.useRef<any>(null);
+    const geoControlRef = useRef<any>(null);
 
     // Fetch route on mount
     useEffect(() => {
@@ -95,7 +97,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                 // Calculate ETA
                 const now = new Date();
                 now.setSeconds(now.getSeconds() + route.duration);
-                setEta(now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+                setEta(now.toLocaleTimeString(i18n.language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit' }));
                 
                 // Set initial view focusing on the first step
                 setViewState(prev => ({
@@ -161,7 +163,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     const [nearbyPOIs, setNearbyPOIs] = useState<any[]>([]);
     useEffect(() => {
         const fetchPOIs = async () => {
-            const results = await searchPlaces('lugares de interés', { lat: origin.lat, lng: origin.lng });
+            const results = await searchPlaces(t('navigation.searching_poi'), { lat: origin.lat, lng: origin.lng });
             setNearbyPOIs(results);
         };
         fetchPOIs();
@@ -172,7 +174,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             <div className="h-full w-full bg-[#0d0d0d] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4 text-center">
                     <div className="size-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    <p className="text-white text-xl font-bold">Preparando tu ruta segura...</p>
+                    <p className="text-white text-xl font-bold">{t('navigation.loading')}</p>
                 </div>
             </div>
         );
@@ -194,7 +196,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     attributionControl={false}
                 >
                     <RouteLine id="navigation-route" coordinates={routeGeometry || []} color={ROUTE_COLORS.safe} isSelected={true} />
-                    <DangerZones zones={barcelonaDangerZones} />
+                    <IncidenceZones zones={barcelonaIncidenceZones} />
 
                     {/* POI Icons on Map */}
                     {nearbyPOIs.map(poi => (
@@ -236,7 +238,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                                     {currentStep ? formatDistance(currentStep.distance) : '--'}
                                 </p>
                                 <p className="text-xs font-semibold text-zinc-500 leading-tight">
-                                    {currentStep?.maneuver.instruction || 'Sigue recto'}
+                                    {currentStep?.maneuver.instruction || t('navigation.continue_straight')}
                                 </p>
                             </div>
                         </div>
@@ -266,10 +268,10 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         <span className="material-symbols-outlined text-2xl">volume_up</span>
                     </button>
                     <button 
-                        onClick={() => window.location.href = '/report'}
+                        onClick={() => navigate('/feedback')}
                         className="size-14 bg-amber-500 rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
                     >
-                        <span className="material-symbols-outlined text-2xl font-black">warning</span>
+                        <span className="material-symbols-outlined text-2xl font-black">chat_bubble</span>
                     </button>
                 </div>
             </div>
@@ -282,7 +284,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                             <span className="text-3xl font-black text-white">{formatDuration(totalDuration)}</span>
                             <span className="text-sm text-white/40 font-medium">({formatDistance(totalDistance)})</span>
                         </div>
-                        <p className="text-xs text-white/40 font-bold uppercase tracking-wider mt-1">Llegada a las {eta}</p>
+                        <p className="text-xs text-white/40 font-bold uppercase tracking-wider mt-1">{t('navigation.arrival', { time: eta })}</p>
                     </div>
                     
                     <button
@@ -290,7 +292,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         className="h-14 px-6 bg-red-600/20 hover:bg-red-600/30 text-red-500 rounded-2xl flex items-center justify-center gap-2 border border-red-500/30 transition-all active:scale-95 shadow-lg"
                     >
                         <span className="material-symbols-outlined font-black">cancel</span>
-                        <span className="font-black uppercase text-sm tracking-tighter">Finalizar</span>
+                        <span className="font-black uppercase text-sm tracking-tighter">{t('navigation.finish')}</span>
                     </button>
                 </div>
             </div>
@@ -302,6 +304,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 
 // Page wrapper for routing
 export const Navigation: React.FC = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const state = location.state as any;
@@ -316,7 +319,7 @@ export const Navigation: React.FC = () => {
         <NavigationView
             origin={state.origin}
             destination={state.destination}
-            destinationName={state.destinationName || 'Destino'}
+            destinationName={state.destinationName || t('navigation.destination')}
             transportMode={state.transportMode || 'walking'}
             onClose={() => navigate('/')}
         />

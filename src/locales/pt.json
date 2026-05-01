@@ -2,14 +2,14 @@
   "nav": {
     "map": "Mapa",
     "contacts": "Contatos",
-    "sos": "SOS",
+    "sos": "Avisos",
     "premium": "Premium",
     "settings": "Configurações"
   },
   "home": {
     "greeting": "Olá, {{name}}",
-    "emergency_active": "ALERTA SOS ATIVO",
-    "report_incident": "Reportar Incidente"
+    "emergency_active": "AVISO COMUNITÁRIO ATIVO",
+    "report_incident": "Compartilhar Aviso"
   },
   "settings": {
     "title": "Configurações",
@@ -18,22 +18,22 @@
       "free_member": "Membro Gratuito"
     },
     "groups": {
-      "security_circle": "CÍRCULO DE SEGURANÇA",
+      "security_circle": "CÍRCULO DE CONFIANÇA",
       "account_access": "CONTA E ACESSO",
-      "security_network": "REDE DE SEGURANÇA",
+      "security_network": "REDE COMUNITÁRIA",
       "support_legal": "SUPORTE E JURÍDICO",
       "privacy_data": "PRIVACIDADE E DADOS (RGPD)",
       "debug": "🛠️ DEBUG (DEMO)"
     },
     "items": {
       "circle_management": "Gestão de Círculos",
-      "protection_level": "Nível de Proteção",
+      "protection_level": "Nível de Aviso",
       "my_account": "Minha Conta",
-      "emergency_history": "Histórico de Emergências",
+      "emergency_history": "Histórico de avisos",
       "trusted_contacts": "Contatos de Confiança",
-      "ai_chat": "Chat IA",
+      "ai_chat": "Chat Comunitário",
       "greencarpet": "GreenCarpet",
-      "contact": "Contato",
+      "contact": "Suporte",
       "feedback": "Feedback",
       "faq": "FAQ",
       "privacy_policy": "Política de Privacidade",
@@ -48,24 +48,24 @@
     },
     "status": {
       "granted": "Ativa",
-      "denied": "Desativada (Toque para ativar)"
+      "denied": "Desactivada (Toque para ativar)"
     },
     "logout": "Sair",
     "delete_account": "Excluir minha conta"
   },
   "emergency": {
-    "sos_title": "CENTRO DE EMERGÊNCIA",
-    "instructions": "Segure para ativar SOS",
+    "sos_title": "CENTRO DE AVISOS",
+    "instructions": "Segure para avisar os contatos",
     "cancel": "Cancelar"
   },
   "premium": {
     "individual": {
       "title": "Premium Individual",
-      "subtitle": "Fique um passo à frente do perigo."
+      "subtitle": "Um passo à frente de qualquer risco."
     },
     "student": {
       "title": "Plano Estudantes",
-      "subtitle": "Seja quem sempre vai mais seguro."
+      "subtitle": "Esteja sempre o mais seguro possível."
     },
     "72h": {
       "title": "Passe 72h",

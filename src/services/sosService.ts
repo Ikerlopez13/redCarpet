@@ -1,13 +1,13 @@
 import { supabase } from './supabaseClient';
 import type { SOSAlert } from './database.types';
 // @ts-ignore
-import { Camera } from '@capacitor/camera';
+// import { Camera } from '@capacitor/camera';
 import { VoiceRecorder } from 'capacitor-voice-recorder';
 import { Capacitor } from '@capacitor/core';
 
 interface SOSConfig {
     message: string;
-    callPolice: boolean;
+    highPriority: boolean;
     notifyContacts: boolean;
     shareLocation: boolean;
     mode?: 'discrete' | 'visible';
@@ -19,13 +19,13 @@ interface SOSConfig {
 let mediaRecorder: MediaRecorder | null = null;
 let recordedChunks: Blob[] = [];
 
-export async function startSOSPreview() {
+export async function startSOSPreview(options: { position?: 'front' | 'rear' } = { position: 'rear' }) {
     if (!Capacitor.isNativePlatform()) return;
     try {
         const { CameraPreview } = await import('@capacitor-community/camera-preview');
         await CameraPreview.start({
             parent: "sos-native-preview",
-            position: "rear",
+            position: options.position || "rear",
             toBack: true,
             storeToFile: false,
             className: "sos-native-preview"
@@ -48,6 +48,7 @@ export async function stopSOSPreview() {
 export async function requestSOSPermissions(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) return true;
     try {
+        const { Camera } = await import('@capacitor/camera');
         const cameraStatus = await Camera.requestPermissions({ permissions: ['camera'] });
         const voiceStatus = await VoiceRecorder.requestAudioRecordingPermission();
         return cameraStatus.camera === 'granted' && voiceStatus.value === true;
@@ -57,10 +58,15 @@ export async function requestSOSPermissions(): Promise<boolean> {
     }
 }
 
-export async function startRecording(videoEnabled: boolean = true): Promise<{ success: boolean; stream?: MediaStream }> {
+/**
+ * Starts recording (Audio for Free, Video for Premium on supported platforms)
+ */
+export async function startRecording(isPremium: boolean = false, options: { position?: 'user' | 'environment' } = { position: 'user' }): Promise<{ success: boolean; stream?: MediaStream }> {
     try {
         await requestSOSPermissions();
         const isNative = Capacitor.isNativePlatform();
+        
+        // Native Platform currently uses dedicated VoiceRecorder (Better for background/lock)
         if (isNative) {
             const { value: canRecord } = await VoiceRecorder.canDeviceVoiceRecord();
             if (canRecord) {
@@ -68,10 +74,13 @@ export async function startRecording(videoEnabled: boolean = true): Promise<{ su
                 return { success: true };
             }
         }
+
         recordedChunks = [];
-        const constraints = (videoEnabled && !isNative)
-            ? { video: { facingMode: 'user' }, audio: true }
+        // Video is a Premium-only feature
+        const constraints = (isPremium && !isNative)
+            ? { video: { facingMode: options.position || 'user' }, audio: true }
             : { audio: true };
+
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         mediaRecorder = new MediaRecorder(stream);
         mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
@@ -157,14 +166,14 @@ export async function activateSOS(
         const battery = await getBatteryLevel();
         
         let msg = config.message;
-        if (config.type) msg = `🚨 EMERGENCIA SOS: ${config.type.toUpperCase()}\n\n` + msg;
+        if (config.type) msg = `🚨 NOTA DE TRAYECTO: ${config.type.toUpperCase()}\n\n` + msg;
         
         if (config.shareLocation && position) {
             msg += `\n\n📍 UBICACIÓN EN TIEMPO REAL:\nhttps://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}`;
         }
 
         // Add Video Placeholder Link (will be updated when recording finishes)
-        msg += `\n\n🎥 VER VÍDEO PRUEBA:\nEsperando secuencia...`;
+        msg += `\n\n🎥 VER VÍDEO DEL TRAYECTO:\nEsperando secuencia...`;
         msg += `\n\n🔋 Batería: ${battery}`;
 
         const alertData: any = {
@@ -181,7 +190,7 @@ export async function activateSOS(
         const dbTimeout = new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera de base de datos agotado')), 8000));
         const { data: alert, error } = await Promise.race([alertPromise, dbTimeout]) as any;
         if (error) return { alert: null, error: error.message };
-        if (!alert) return { alert: null, error: 'No se pudo crear la alerta' };
+        if (!alert) return { alert: null, error: 'No se pudo crear el aviso' };
         supabase.functions.invoke('send-sos-notifications', { body: { alertId: alert.id, userId, groupId, config } })
             .catch((err: any) => console.error('[SOS-Service] Notification fail:', err));
         return { alert, error: null };
@@ -258,22 +267,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
     }
 }
 
-/**
- * Execute Full SOS Protocol
- * 1. Dial 112
- * 2. Activate Alert (Notify Contacts + Location)
- * 3. Return alert info
- */
 export async function executeSOSProtocol(userId: string, groupId: string, type: string = 'security') {
-    console.log('[SOS-Service] EXECUTING FULL SOS PROTOCOL');
+    console.log('[SOS-Service] EXECUTING ROUTE NOTICE PROTOCOL');
     
-    // 1. Trigger 112 Call Immediately
+    // 1. Trigger 112 Call Immediately (Dialer)
     call112();
 
-    // 2. Trigger Database Alert & Notifications
+    // 2. Trigger Database Alert & Notifications to Trusted Contacts
     const { alert, error } = await activateSOS(userId, groupId, {
-        message: `⚠️ ALGO ESTÁ PASANDO. \nHe activado una alerta SOS y las autoridades han sido notificadas. Por favor, revisa mi ubicación.`,
-        callPolice: true,
+        message: `⚠️ AVISO DE TRAYECTO. \nHe activado una nota de trayecto. Mi ubicación y cámara han sido compartidas con mis contactos seleccionados. Por favor, revisa mi progreso.`,
+        highPriority: false,
         notifyContacts: true,
         shareLocation: true,
         mode: 'visible',

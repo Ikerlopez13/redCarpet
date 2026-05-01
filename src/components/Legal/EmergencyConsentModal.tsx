@@ -61,9 +61,9 @@ export function EmergencyConsentModal({ isOpen, onConsent, onDecline }: Emergenc
                         <ShieldCheck size={40} strokeWidth={2.5} />
                     </div>
                     <div className="space-y-2">
-                        <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Protocolo Legal</h2>
+                        <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Consentimiento de Aviso</h2>
                         <p className="text-sm text-zinc-400 leading-relaxed font-medium">
-                            Para tu protección, la app grabará audio y vídeo y compartirá tu ubicación en caso de SOS. ¿Confirmas tu consentimiento?
+                            Para tu protección, la app grabará audio y vídeo y compartirá tu ubicación con tus contactos en caso de Aviso. ¿Confirmas tu consentimiento?
                         </p>
                     </div>
                 </div>
@@ -77,7 +77,7 @@ export function EmergencyConsentModal({ isOpen, onConsent, onDecline }: Emergenc
                             className="mt-0.5 size-5 rounded border-white/20 bg-transparent text-primary focus:ring-primary shadow-inner"
                         />
                         <span className="text-xs font-bold text-white/70 leading-relaxed">
-                            He leído y acepto que se graben evidencias multimedia en caso de emergencia.
+                            He leído y acepto que se graben evidencias multimedia en caso de aviso comunitario.
                         </span>
                     </label>
 

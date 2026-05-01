@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import Map, { Marker } from 'react-map-gl/mapbox';
@@ -54,6 +55,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
     destinationName,
     onClose
 }) => {
+    const { t } = useTranslation();
     const [routes, setRoutes] = useState<TransitRoute[]>([]);
     const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -98,7 +100,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
             <div className="h-full w-full bg-[#0d0d0d] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    <p className="text-white font-medium">Buscando opciones de transporte...</p>
+                    <p className="text-white font-medium">{t('transit.loading')}</p>
                 </div>
             </div>
         );
@@ -137,7 +139,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                                         <p className="text-sm opacity-90 truncate">
                                             {currentLeg.fromStop} → {currentLeg.toStop}
                                         </p>
-                                        <p className="text-xs opacity-70">{currentLeg.stops} paradas</p>
+                                        <p className="text-xs opacity-70">{currentLeg.stops} {t('transit.stops')}</p>
                                     </>
                                 )}
                             </div>
@@ -152,7 +154,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                                     nextLeg.type === 'metro' ? 'subway' : 'directions_bus'}
                             </span>
                             <span className="text-sm opacity-80 truncate flex-1">
-                                Después: {nextLeg.instruction}
+                                {t('transit.next')}: {nextLeg.instruction}
                             </span>
                         </div>
                     )}
@@ -195,7 +197,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                             onClick={advanceStep}
                             className="absolute left-4 top-4 px-4 py-2 bg-zinc-800 text-white text-xs rounded-lg"
                         >
-                            Siguiente paso →
+                            {t('transit.next_step')} →
                         </button>
                     )}
                 </div>
@@ -211,7 +213,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                             <p className="text-xs text-white/60">{formatDistance(selectedRoute.totalDistance)}</p>
                         </div>
                         <button onClick={onClose} className="px-5 py-2.5 bg-primary text-white font-bold rounded-xl text-sm">
-                            Finalizar
+                            {t('transit.finish')}
                         </button>
                     </div>
                 </div>
@@ -230,7 +232,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                     </button>
                     <div className="flex-1">
                         <p className="text-white font-bold">{destinationName}</p>
-                        <p className="text-white/50 text-xs">Opciones de transporte público</p>
+                        <p className="text-white/50 text-xs">{t('transit.options')}</p>
                     </div>
                 </div>
             </div>
@@ -301,7 +303,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                                             <p className="text-white text-sm font-medium">{leg.instruction}</p>
                                             <p className="text-white/50 text-xs">
                                                 {formatDistance(leg.distance)} · {formatDuration(leg.duration)}
-                                                {leg.stops && ` · ${leg.stops} paradas`}
+                                                {leg.stops && ` · ${leg.stops} ${t('transit.stops')}`}
                                             </p>
                                         </div>
                                     </div>
@@ -319,7 +321,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                     className="w-full bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2"
                 >
                     <span className="material-symbols-outlined">navigation</span>
-                    Iniciar Navegación
+                    {t('transit.start_nav')}
                 </button>
             </div>
         </div>
@@ -328,6 +330,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
 
 // Page wrapper
 export const TransitNavigationPage: React.FC = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const state = location.state as any;
@@ -341,7 +344,7 @@ export const TransitNavigationPage: React.FC = () => {
         <TransitNavigation
             origin={state.origin}
             destination={state.destination}
-            destinationName={state.destinationName || 'Destino'}
+            destinationName={state.destinationName || t('transit.destination')}
             onClose={() => navigate('/')}
         />
     );

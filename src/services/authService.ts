@@ -396,3 +396,37 @@ export async function sendPasswordResetEmail(email: string): Promise<{ error: st
         return { error: error.message || 'Error al enviar el correo de recuperación' };
     }
 }
+
+/**
+ * Delete current user account (DB and Auth)
+ */
+export async function deleteUserAccount(): Promise<{ error: string | null }> {
+    if (getIsMockMode()) {
+        localStorage.removeItem('mock_user');
+        localStorage.removeItem('redcarpet_demo_mode');
+        return { error: null };
+    }
+
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { error: 'No se encontró el usuario activo.' };
+
+        // 1. Delete user profiles row (Trigger should handle the rest)
+        const { error: dbError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', user.id);
+
+        if (dbError) {
+            console.error('[AuthService] Error deleting profile:', dbError);
+            return { error: 'Error al eliminar los datos del perfil.' };
+        }
+
+        // 2. Sign out locally
+        await supabase.auth.signOut();
+        return { error: null };
+    } catch (error: any) {
+        console.error('[AuthService] Deletion error:', error);
+        return { error: error.message || 'Error desconocido al eliminar la cuenta.' };
+    }
+}

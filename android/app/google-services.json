@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "499737537692",
+    "project_id": "redcarpet-1eb15",
+    "storage_bucket": "redcarpet-1eb15.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499737537692:android:c4746b6916f503e31e5159",
+        "android_client_info": {
+          "package_name": "com.redcarpet.redcarpet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRwpPhh5uKi2t5e3F4MY5eCRmXjyMFrsw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499737537692:android:48895215428d55301e5159",
+        "android_client_info": {
+          "package_name": "com.redcarpet.secure"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRwpPhh5uKi2t5e3F4MY5eCRmXjyMFrsw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499737537692:android:b2a04cba5a5b6ff21e5159",
+        "android_client_info": {
+          "package_name": "com.vibecode.redcarpet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRwpPhh5uKi2t5e3F4MY5eCRmXjyMFrsw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

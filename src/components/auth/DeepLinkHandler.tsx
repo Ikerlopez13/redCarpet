@@ -17,7 +17,15 @@ export const DeepLinkHandler = () => {
             return;
         }
 
-        // 2. Parse URL for tokens (Implicit Flow)
+        // 2. Handle SOS Widget Trigger
+        if (url.includes('sos/activate')) {
+            console.log('🚨 SOS WIDGET TRIGGERED!');
+            window.dispatchEvent(new CustomEvent('sos:activate_trigger', { detail: { type: 'widget' } }));
+            navigate('/emergency');
+            return;
+        }
+
+        // 3. Parse URL for tokens (Implicit Flow)
         if (url.includes('access_token') && url.includes('refresh_token')) {
             try {
                 // Close browser first

@@ -2,14 +2,14 @@
   "nav": {
     "map": "Mappa",
     "contacts": "Contatti",
-    "sos": "SOS",
+    "sos": "Avvisi",
     "premium": "Premium",
     "settings": "Impostazioni"
   },
   "home": {
     "greeting": "Ciao, {{name}}",
-    "emergency_active": "ALLERTA SOS ATTIVA",
-    "report_incident": "Segnala incidente"
+    "emergency_active": "AVVISO COMUNITARIO ATTIVO",
+    "report_incident": "Condividi Avviso"
   },
   "settings": {
     "title": "Impostazioni",
@@ -18,22 +18,22 @@
       "free_member": "Membro Gratuito"
     },
     "groups": {
-      "security_circle": "CERCHIO DI SICUREZZA",
+      "security_circle": "CERCHIO DI FIDUCIA",
       "account_access": "ACCOUNT E ACCESSO",
-      "security_network": "RETE DI SICUREZZA",
+      "security_network": "RETE COMUNITARIA",
       "support_legal": "SUPPORTO E LEGALE",
       "privacy_data": "PRIVACY E DATI (GDPR)",
       "debug": "🛠️ DEBUG (DEMO)"
     },
     "items": {
       "circle_management": "Gestione cerchi",
-      "protection_level": "Livello di protezione",
+      "protection_level": "Livello di Avviso",
       "my_account": "Il mio account",
-      "emergency_history": "Cronologia emergenze",
+      "emergency_history": "Cronologia avvisi",
       "trusted_contacts": "Contatti fidati",
-      "ai_chat": "Chat IA",
+      "ai_chat": "Chat Comunitaria",
       "greencarpet": "GreenCarpet",
-      "contact": "Contatti",
+      "contact": "Supporto",
       "feedback": "Feedback",
       "faq": "FAQ",
       "privacy_policy": "Informativa sulla privacy",
@@ -54,18 +54,18 @@
     "delete_account": "Elimina il mio account"
   },
   "emergency": {
-    "sos_title": "CENTRO EMERGENZE",
-    "instructions": "Tieni premuto per attivare SOS",
+    "sos_title": "CENTRO AVVISI",
+    "instructions": "Tieni premuto per avvisare i contatti",
     "cancel": "Annulla"
   },
   "premium": {
     "individual": {
       "title": "Premium Individuale",
-      "subtitle": "Resta un passo avanti al pericolo."
+      "subtitle": "Sempre un passo avanti a ogni rischio."
     },
     "student": {
       "title": "Piano Studenti",
-      "subtitle": "Sii colui che va sempre più al sicuro."
+      "subtitle": "Sii sempre il più al sicuro."
     },
     "72h": {
       "title": "Pass 72h",
@@ -78,7 +78,7 @@
     "cancel_anytime": "Cancella quando vuoi",
     "includes_all_individual": "Include tutto il Premium Individuale",
     "student_discount": "E sconto studenti!",
-    "hire": "ABBONATI",
+    "hire": "ABONNATI",
     "activate": "ATTIVA PASS",
     "verify": "VERIFICA IDONEITÀ",
     "protect_family": "PROTEGGI LA MIA FAMIGLIA",

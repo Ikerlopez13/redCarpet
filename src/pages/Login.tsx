@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
 
 export const Login: React.FC = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { login, register, loginWithGoogle, loginWithApple, loginAsDemo, resetPassword, isLoading } = useAuth();
 
@@ -34,14 +36,14 @@ export const Login: React.FC = () => {
         }
 
         let result;
-        if (mode === 'login') {
-            result = await login(email, password);
-        } else {
+        if (mode === 'register') {
             if (!fullName.trim()) {
-                setError('Por favor ingresa tu nombre');
+                setError(t('auth.error_name_required'));
                 return;
             }
             result = await register(email, password, fullName);
+        } else if (mode === 'login') {
+            result = await login(email, password);
         }
 
         if (result.error) {
@@ -59,9 +61,9 @@ export const Login: React.FC = () => {
                 >
                     <span className="material-symbols-outlined text-4xl">mail</span>
                 </div>
-                <h2 className="text-2xl font-black uppercase tracking-tight mb-2">Correo Enviado</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tight mb-2">{t('auth.mail_sent_title')}</h2>
                 <p className="text-white/60 text-sm mb-12 max-w-[280px]">
-                    Revisa tu bandeja de entrada. Te hemos enviado un enlace para restablecer tu contraseña.
+                    {t('auth.mail_sent_desc')}
                 </p>
                 <button
                     onClick={() => {
@@ -70,7 +72,7 @@ export const Login: React.FC = () => {
                     }}
                     className="w-full max-w-xs h-14 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all text-white"
                 >
-                    Volver al inicio
+                    {t('auth.back_to_home')}
                 </button>
             </div>
         );
@@ -88,15 +90,15 @@ export const Login: React.FC = () => {
                     </span>
                 </div>
                 <h1 
-                    className="text-2xl font-bold tracking-tight animate-fade-in"
+                    className="text-2xl font-black uppercase italic tracking-tighter animate-fade-in"
                 >
-                    RedCarpet
+                    Urban Guide
                 </h1>
                 <p 
-                    className="text-white/50 text-sm animate-fade-in"
+                    className="text-white/50 text-[10px] font-bold uppercase tracking-[0.2em] animate-fade-in"
                     style={{ animationDelay: '200ms' }}
                 >
-                    Tu seguridad, siempre contigo
+                    {t('auth.app_subtitle')}
                 </p>
             </div>
 
@@ -109,20 +111,20 @@ export const Login: React.FC = () => {
                         <button
                             onClick={() => setMode('login')}
                             className={clsx(
-                                "flex-1 py-3 rounded-xl text-sm font-bold transition-all",
+                                "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
                                 mode === 'login' ? "bg-white text-black shadow-lg" : "text-white/40"
                             )}
                         >
-                            Ingresar
+                            {t('auth.login_tab')}
                         </button>
                         <button
                             onClick={() => setMode('register')}
                             className={clsx(
-                                "flex-1 py-3 rounded-xl text-sm font-bold transition-all",
+                                "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
                                 mode === 'register' ? "bg-white text-black shadow-lg" : "text-white/40"
                             )}
                         >
-                            Registro
+                            {t('auth.register_tab')}
                         </button>
                     </div>
                 )}
@@ -133,19 +135,19 @@ export const Login: React.FC = () => {
                         className="flex items-center gap-2 text-white/40 mb-6 font-bold text-sm"
                     >
                         <span className="material-symbols-outlined text-sm">arrow_back</span>
-                        Volver al Login
+                        {t('auth.back_to_login')}
                     </button>
                 )}
 
                 <h2 className="text-3xl font-black uppercase tracking-tighter italic mb-2">
-                    {mode === 'login' ? 'Bienvenida' : mode === 'register' ? 'Crea tu Cuenta' : 'Recuperar Cuenta'}
+                    {mode === 'login' ? t('auth.welcome_title') : mode === 'register' ? t('auth.register_title') : t('auth.forgot_title')}
                 </h2>
-                <p className="text-white/40 text-sm mb-8 leading-tight">
+                <p className="text-white/40 text-[11px] font-bold uppercase tracking-wide mb-8 leading-tight">
                     {mode === 'login' 
-                        ? 'Accede a tu red de protección ciudadana.' 
+                        ? t('auth.welcome_subtitle') 
                         : mode === 'register' 
-                            ? 'Únete para proteger y ser protegida.' 
-                            : 'Te enviaremos un código para restablecer tu acceso.'}
+                            ? t('auth.register_subtitle') 
+                            : t('auth.forgot_subtitle')}
                 </p>
 
                 {error && (
@@ -162,7 +164,7 @@ export const Login: React.FC = () => {
                         <div
                             className="space-y-1.5 animate-slide-up"
                         >
-                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Nombre Completo</label>
+                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">{t('auth.name_label')}</label>
                             <div className="relative group">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-white/20 group-focus-within:text-primary transition-colors text-xl">person</span>
                                 <input
@@ -170,7 +172,7 @@ export const Login: React.FC = () => {
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
                                     className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-white/10 font-bold"
-                                    placeholder="Ej: Maria Garcia"
+                                    placeholder={t('auth.name_placeholder')}
                                     required
                                 />
                             </div>
@@ -178,7 +180,7 @@ export const Login: React.FC = () => {
                     )}
 
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Email de Acceso</label>
+                        <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">{t('auth.email_label')}</label>
                         <div className="relative group">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-white/20 group-focus-within:text-primary transition-colors text-xl">mail</span>
                             <input
@@ -186,7 +188,7 @@ export const Login: React.FC = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-white/10 font-bold"
-                                placeholder="tu@email.com"
+                                placeholder={t('auth.email_placeholder')}
                                 required
                             />
                         </div>
@@ -195,14 +197,14 @@ export const Login: React.FC = () => {
                     {mode !== 'forgot-password' && (
                         <div className="space-y-1.5">
                             <div className="flex justify-between items-center px-1">
-                                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Contraseña</label>
+                                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t('auth.password_label')}</label>
                                 {mode === 'login' && (
                                     <button
                                         type="button"
                                         onClick={() => setMode('forgot-password')}
                                         className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
                                     >
-                                        ¿Olvidaste tu contraseña?
+                                        {t('auth.forgot_password_link')}
                                     </button>
                                 )}
                             </div>
@@ -213,7 +215,7 @@ export const Login: React.FC = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-white/10 font-bold"
-                                    placeholder="••••••••"
+                                    placeholder={t('auth.password_placeholder')}
                                     required
                                 />
                             </div>
@@ -229,7 +231,7 @@ export const Login: React.FC = () => {
                             <div className="size-6 border-3 border-white/20 border-t-white rounded-full animate-spin" />
                         ) : (
                             <>
-                                {mode === 'login' ? 'Iniciar Sesión' : mode === 'register' ? 'Registrarme' : 'Recuperar Cuenta'}
+                                {mode === 'login' ? t('auth.login_btn') : mode === 'register' ? t('auth.register_btn') : t('auth.reset_btn')}
                                 <span className="material-symbols-outlined">arrow_forward</span>
                             </>
                         )}
@@ -243,7 +245,7 @@ export const Login: React.FC = () => {
                             <div className="w-full border-t border-white/5"></div>
                         </div>
                         <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
-                            <span className="px-4 bg-background-dark text-white/20">O continúa con</span>
+                            <span className="px-4 bg-background-dark text-white/20">{t('auth.continue_with')}</span>
                         </div>
                     </div>
 
@@ -258,7 +260,7 @@ export const Login: React.FC = () => {
                             className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
                         >
                             <img src="https://www.google.com/favicon.ico" alt="G" className="size-5 grayscale opacity-50" />
-                            <span className="text-sm font-bold">Google</span>
+                            <span className="text-sm font-bold">{t('auth.google')}</span>
                         </button>
                         <button
                             type="button"
@@ -270,15 +272,15 @@ export const Login: React.FC = () => {
                             className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
                         >
                             <span className="material-symbols-outlined text-white/50 text-xl">apple</span>
-                            <span className="text-sm font-bold">Apple ID</span>
+                            <span className="text-sm font-bold">{t('auth.apple')}</span>
                         </button>
                     </div>
 
                 {/* Support generic footer */}
                 <div className="pt-8 pb-12 flex flex-col items-center gap-4">
                     <p className="text-[10px] font-black text-white/20 uppercase tracking-widest text-center leading-relaxed">
-                        Al continuar, aceptas nuestros<br/>
-                        <button onClick={() => navigate('/terms')} className="underline">Términos</button> y <button onClick={() => navigate('/privacy')} className="underline">Privacidad</button>.
+                        {t('auth.terms_prefix')}<br/>
+                        <button onClick={() => navigate('/terms')} className="underline">{t('auth.terms_link')}</button> {t('auth.and')} <button onClick={() => navigate('/privacy')} className="underline">{t('auth.privacy_link')}</button>.
                     </p>
                 </div>
                 </div>

@@ -2,14 +2,14 @@
   "nav": {
     "map": "Karte",
     "contacts": "Kontakte",
-    "sos": "SOS",
+    "sos": "Warnung",
     "premium": "Premium",
     "settings": "Einstellungen"
   },
   "home": {
     "greeting": "Hallo, {{name}}",
-    "emergency_active": "SOS-ALARM AKTIV",
-    "report_incident": "Vorfall melden"
+    "emergency_active": "GEMEINSCHAFTSALARM AKTIV",
+    "report_incident": "Warnung teilen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -18,22 +18,22 @@
       "free_member": "Kostenloses Mitglied"
     },
     "groups": {
-      "security_circle": "SICHERHEITSKREIS",
+      "security_circle": "VERTRAUENSKREIS",
       "account_access": "KONTO & ZUGANG",
-      "security_network": "SICHERHEITSNETZWERK",
+      "security_network": "GEMEINSCHAFTSNETZWERK",
       "support_legal": "SUPPORT & RECHTLICHES",
       "privacy_data": "DATENSCHUTZ & DATEN (DSGVO)",
       "debug": "🛠️ DEBUG (DEMO)"
     },
     "items": {
       "circle_management": "Kreisverwaltung",
-      "protection_level": "Schutzniveau",
+      "protection_level": "Warnstufe",
       "my_account": "Mein Konto",
-      "emergency_history": "Notfallhistorie",
+      "emergency_history": "Warnungshistorie",
       "trusted_contacts": "Vertrauenswürdige Kontakte",
-      "ai_chat": "KI-Chat",
+      "ai_chat": "Gemeinschafts-Chat",
       "greencarpet": "GreenCarpet",
-      "contact": "Kontakt",
+      "contact": "Support",
       "feedback": "Feedback",
       "faq": "FAQ",
       "privacy_policy": "Datenschutzrichtlinie",
@@ -54,18 +54,18 @@
     "delete_account": "Mein Konto löschen"
   },
   "emergency": {
-    "sos_title": "NOTFALLZENTRUM",
-    "instructions": "Halten, um SOS zu aktivieren",
+    "sos_title": "GEMEINSCHAFTSALARM",
+    "instructions": "Halten, um Kontakte zu warnen",
     "cancel": "Abbrechen"
   },
   "premium": {
     "individual": {
       "title": "Premium Individual",
-      "subtitle": "Bleiben Sie der Gefahr einen Schritt voraus."
+      "subtitle": "Bleiben Sie Risiken einen Schritt voraus."
     },
     "student": {
       "title": "Studenten-Plan",
-      "subtitle": "Sei derjenige, der immer am sichersten ist."
+      "subtitle": "Immer sicher unterwegs sein."
     },
     "72h": {
       "title": "72h-Pass",

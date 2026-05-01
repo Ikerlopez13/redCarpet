@@ -1,0 +1,35 @@
+src/components/auth/DeepLinkHandler.tsx:20:        // 2. Handle SOS Widget Trigger
+src/components/auth/DeepLinkHandler.tsx:22:            console.log('🚨 SOS WIDGET TRIGGERED!');
+src/components/layout/MobileShell.tsx:185:                const isSOS = tab.label === 'SOS';
+src/components/map/MapMarker.tsx:65:                        {/* SOS Indicator */}
+src/components/map/MapMarker.tsx:69:                                SOS
+src/pages/TrustedContacts.tsx:48:                alert(`¡${name} usa RedCarpet! Le hemos enviado una solicitud de sincronización. Mientras tanto, tu alerta SOS funcionará de manera tradicional (SMS).`);
+src/pages/Home.tsx:141:                    // Extra safety: If I am in an active SOS but not in members list (unlikely), add me
+src/pages/Home.tsx:179:            console.log('New SOS alert received:', newAlert);
+src/pages/Home.tsx:205:    // Cargar si ya estaba configurado SOS localmente y forzar si no
+src/pages/Home.tsx:238:        // Request permissions on entry for better SOS readiness
+src/pages/Home.tsx:567:                            {/* SOS Alerts de Familiares - FILTERED TO EXCLUDE ME */}
+src/pages/CameraTest.tsx:23:    // SOS State from Navigation
+src/pages/CameraTest.tsx:47:        console.log('[Camera SOS Page] Mounted. State:', { 
+src/pages/CameraTest.tsx:65:            console.log('[Camera SOS Page] Unmounting');
+src/pages/CameraTest.tsx:71:        console.log('[Camera SOS Page] handleStartSOS triggered. Initializing emergency recording...');
+src/pages/CameraTest.tsx:164:    // Nuclear Transparency Effect for SOS
+src/pages/CameraTest.tsx:195:            {/* SOS Active UI */}
+src/pages/CameraTest.tsx:199:                        /* SOS OVERLAY */
+src/pages/CameraTest.tsx:206:                                    SOS EN CURSO
+src/pages/CameraTest.tsx:313:                        <p className="text-white/60 font-medium max-w-[280px] mx-auto">Introduce el código para desactivar la alerta SOS de forma segura.</p>
+src/pages/Notifications.tsx:61:                        title: a.status === 'active' ? `EMERGENCIA: ${name}` : `SOS Resuelto: ${name}`,
+src/pages/Notifications.tsx:74:                    message: 'Aquí aparecerán las alertas SOS y avisos de zonas de peligro de tu círculo familiar.',
+src/services/sosService.ts:34:        console.error('[SOS-Service] Native Preview fail:', err);
+src/services/sosService.ts:44:        console.log('[SOS-Service] stopSOSPreview check:', err);
+src/services/sosService.ts:55:        console.error('[SOS-Service] Permission fail:', err);
+src/services/sosService.ts:89:        console.error('[SOS-Service] startRecording error:', error);
+src/services/sosService.ts:112:            console.error('[SOS-Service] Native upload fail:', err);
+src/services/sosService.ts:194:            .catch((err: any) => console.error('[SOS-Service] Notification fail:', err));
+src/services/sosService.ts:248:    console.log('[SOS-Service] Initiating 112 call...');
+src/services/sosService.ts:264:        console.error('[SOS-Service] Notification permission fail:', err);
+src/services/sosService.ts:270:    console.log('[SOS-Service] EXECUTING COMMUNITY ALERT PROTOCOL');
+src/services/cameraService.ts:41:        // For SOS, we always start with 'rear' usually.
+src/services/locationService.ts:21:    // Child Privacy: Only share if SOS is active
+src/services/locationService.ts:261:            // We use the existing SOS notification function or a generic push function
+src/services/pushService.ts:105:        // Navigate to SOS screen

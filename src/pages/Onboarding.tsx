@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { ShieldCheck, Camera, MapPin, BellRing, ChevronRight } from 'lucide-react';
+import { MapPin, BellRing, ChevronRight } from 'lucide-react';
 import { requestSOSPermissions, requestNotificationPermission } from '../services/sosService';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
@@ -11,6 +12,7 @@ type Step = 'welcome' | 'permissions' | 'privacy';
 
 export const Onboarding: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [step, setStep] = useState<Step>('welcome');
     const [isProcessing, setIsProcessing] = useState(false);
     const [hasAcceptedPrivacy, setHasAcceptedPrivacy] = useState(false);
@@ -66,11 +68,11 @@ export const Onboarding: React.FC = () => {
                 {step === 'welcome' && (
                     <div className="space-y-8 flex flex-col items-center">
                         <div className="size-24 rounded-[2rem] bg-primary/20 flex items-center justify-center text-primary">
-                            <ShieldCheck size={48} strokeWidth={2.5} />
+                            <span className="material-symbols-outlined text-5xl">explore</span>
                         </div>
                         <div className="space-y-4">
-                            <h1 className="text-4xl font-black uppercase italic tracking-tighter">Bienvenida a RedCarpet</h1>
-                            <p className="text-white/40 text-lg leading-tight max-w-[280px]">Tu red personal de seguridad pública impulsada por la comunidad.</p>
+                            <h1 className="text-4xl font-black uppercase italic tracking-tighter">{t('onboarding.welcome.title')}</h1>
+                            <p className="text-white/40 text-lg leading-tight max-w-[280px]">{t('onboarding.welcome.subtitle')}</p>
                         </div>
                     </div>
                 )}
@@ -78,25 +80,25 @@ export const Onboarding: React.FC = () => {
                 {step === 'permissions' && (
                     <div className="space-y-8 flex flex-col items-center w-full">
                         <div className="size-20 rounded-2xl bg-white/5 flex items-center justify-center text-white/40">
-                            <Camera size={40} />
+                            <MapPin size={40} />
                         </div>
                         <div className="space-y-4">
-                            <h2 className="text-3xl font-black uppercase italic tracking-tighter">Configurar Protección</h2>
-                            <p className="text-white/40 text-sm leading-relaxed px-4">Necesitamos acceso a tu ubicación y cámara para activar los protocolos de seguridad SOS en tiempo real.</p>
+                            <h2 className="text-3xl font-black uppercase italic tracking-tighter">{t('onboarding.permissions.title')}</h2>
+                            <p className="text-white/40 text-sm leading-relaxed px-4">{t('onboarding.permissions.subtitle')}</p>
                         </div>
                         <div className="grid grid-cols-1 gap-3 w-full max-w-xs">
                             <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                                 <MapPin size={24} className="text-primary" />
                                 <div className="text-left">
-                                    <p className="text-sm font-bold">Ubicación Precisa</p>
-                                    <p className="text-[10px] text-zinc-500 uppercase font-black">Incluso en segundo plano</p>
+                                    <p className="text-sm font-bold">{t('onboarding.permissions.location_title')}</p>
+                                    <p className="text-[10px] text-zinc-500 uppercase font-black">{t('onboarding.permissions.location_subtitle')}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                                 <BellRing size={24} className="text-primary" />
                                 <div className="text-left">
-                                    <p className="text-sm font-bold">Notificaciones</p>
-                                    <p className="text-[10px] text-zinc-500 uppercase font-black">Alertas de seguridad críticas</p>
+                                    <p className="text-sm font-bold">{t('onboarding.permissions.notifications_title')}</p>
+                                    <p className="text-[10px] text-zinc-500 uppercase font-black">{t('onboarding.permissions.notifications_subtitle')}</p>
                                 </div>
                             </div>
                         </div>
@@ -106,10 +108,10 @@ export const Onboarding: React.FC = () => {
                 {step === 'privacy' && (
                     <div className="space-y-8 flex flex-col items-center w-full">
                         <div className="size-20 rounded-2xl bg-green-500/20 flex items-center justify-center text-green-500">
-                            <ShieldCheck size={40} />
+                            <span className="material-symbols-outlined text-4xl">verified_user</span>
                         </div>
                         <div className="space-y-4">
-                            <h2 className="text-3xl font-black uppercase italic tracking-tighter">Tu Privacidad</h2>
+                            <h2 className="text-3xl font-black uppercase italic tracking-tighter">{t('onboarding.privacy.title')}</h2>
                             <label className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-xl cursor-pointer active:scale-95 transition-all w-full max-w-xs border border-white/5 mt-8">
                                 <input 
                                     type="checkbox" 
@@ -118,7 +120,7 @@ export const Onboarding: React.FC = () => {
                                     className="size-5 rounded border-white/20 bg-transparent text-primary focus:ring-primary shadow-inner"
                                 />
                                 <span className="text-xs font-bold text-white/80">
-                                    Acepto la <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPrivacyPolicy(true); }} className="text-blue-400 underline active:text-blue-300">política de privacidad</span>
+                                    {t('onboarding.privacy.accept')} <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPrivacyPolicy(true); }} className="text-blue-400 underline active:text-blue-300">{t('onboarding.privacy.policy')}</span>
                                 </span>
                             </label>
                         </div>
@@ -142,7 +144,7 @@ export const Onboarding: React.FC = () => {
                         <div className="size-6 border-4 border-black border-t-transparent rounded-full animate-spin" />
                     ) : (
                         <>
-                            {step === 'welcome' ? 'Comenzar' : step === 'permissions' ? 'Continuar y Permitir' : 'Finalizar Configuración'}
+                            {step === 'welcome' ? t('onboarding.buttons.start') : step === 'permissions' ? t('onboarding.buttons.continue') : t('onboarding.buttons.finish')}
                             <ChevronRight size={24} />
                         </>
                     )}

@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
-import { uploadAvatar } from '../services/authService';
+import { uploadAvatar, deleteUserAccount } from '../services/authService';
 import { useTranslation } from 'react-i18next';
 import { App } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
@@ -52,7 +52,7 @@ export const Settings: React.FC = () => {
                 if (Capacitor.getPlatform() === 'ios') {
                     window.location.href = 'app-settings:';
                 } else {
-                    alert('Por favor, abre los Ajustes del sistema para activar las notificaciones.');
+                    alert(t('settings.notifications.open_settings'));
                 }
             } else {
                 if (user?.id) {
@@ -60,18 +60,39 @@ export const Settings: React.FC = () => {
                     // We don't have direct access to PushNotifications here,
                     // so we rely on checkNotificationStatus to refresh.
                     setTimeout(checkNotificationStatus, 1000);
-                    alert('Se ha solicitado el permiso de notificaciones.');
+                    alert(t('settings.notifications.requested'));
                 }
             }
         } catch (err) {
             console.error('Error handling notification activation:', err);
-            alert('Por favor, abre los Ajustes del sistema para activar las notificaciones.');
+            alert(t('settings.notifications.open_settings'));
         }
     };
 
     const handleLogout = async () => {
         await logout();
         navigate('/login');
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmed = window.confirm(t('settings.delete_account_confirm'));
+        if (!confirmed) return;
+
+        const secondConfirmed = window.confirm(t('settings.delete_account_second_confirm'));
+        if (!secondConfirmed) return;
+
+        try {
+            const { error } = await deleteUserAccount();
+            if (error) {
+                alert(t('settings.delete_account_error') + ': ' + error);
+            } else {
+                alert(t('settings.delete_account_success'));
+                navigate('/login');
+            }
+        } catch (err) {
+            console.error('Account deletion error:', err);
+            alert(t('settings.delete_account_error'));
+        }
     };
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +104,7 @@ export const Settings: React.FC = () => {
         setIsUploading(false);
 
         if (error) {
-            alert('Error al subir la imagen: ' + error);
+            alert(t('settings.avatar_upload_error') + ': ' + error);
         } else {
             // Force reload to see changes (in a real app, context would update)
             window.location.reload();
@@ -92,12 +113,12 @@ export const Settings: React.FC = () => {
 
     const languages = [
         { code: 'es', name: 'Español', flag: '🇪🇸' },
+        { code: 'ca', name: 'Català', flag: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Flag_of_Catalonia.svg' },
         { code: 'en', name: 'English', flag: '🇺🇸' },
         { code: 'fr', name: 'Français', flag: '🇫🇷' },
         { code: 'pt', name: 'Português', flag: '🇵🇹' },
         { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
         { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-        { code: 'ca', name: 'Català', flag: '🇦🇩' },
     ];
 
     const changeLanguage = (lng: string) => {
@@ -109,19 +130,18 @@ export const Settings: React.FC = () => {
         {
             title: t('settings.groups.security_circle'),
             items: [
-                { icon: "group", label: t('settings.items.circle_management'), subLabel: "Tus grupos de confianza", path: "/contacts" },
+                { icon: "group", label: t('settings.items.circle_management'), subLabel: t('settings.items.circle_management_sub'), path: "/contacts" },
                 { icon: "verified_user", label: t('settings.items.protection_level'), subLabel: isPremium ? t('settings.profile_section.premium_member') : t('settings.profile_section.free_member'), path: "/subscription" },
             ]
         },
         {
             title: t('settings.groups.account_access'),
             items: [
-                { icon: "person", label: t('settings.items.my_account'), subLabel: "Datos y seguridad", path: "/account" },
-                { icon: "history", label: t('settings.items.emergency_history'), subLabel: "Historial de alertas", path: "/history" },
+                { icon: "person", label: t('settings.items.my_account'), subLabel: t('settings.items.my_account_sub'), path: "/account" },
                 { 
                     icon: "language", 
                     label: t('settings.items.language'), 
-                    subLabel: languages.find(l => l.code === i18n.language.split('-')[0])?.name || 'Español', 
+                    subLabel: languages.find(l => l.code === i18n.language.split('-')[0])?.name || t('languages.spanish'), 
                     action: "change-language" 
                 },
                 { 
@@ -145,17 +165,18 @@ export const Settings: React.FC = () => {
             items: [
                 { icon: "group", label: t('settings.items.trusted_contacts'), path: "/contacts" },
                 { icon: "smart_toy", label: t('settings.items.ai_chat'), path: "/chat" },
-                { icon: "eco", label: t('settings.items.greencarpet'), subLabel: "Impacto CO2", path: "/greencarpet", iconColor: "text-green-500" },
+                { icon: "eco", label: t('settings.items.greencarpet'), subLabel: t('settings.items.greencarpet_sub'), path: "/greencarpet", iconColor: "text-green-500" },
             ]
         },
         {
             title: t('settings.groups.support_legal'),
             items: [
-                { icon: "mail", label: t('settings.items.contact'), subLabel: "soporte.redcarpet@gmail.com", email: "soporte.redcarpet@gmail.com" },
+                { icon: "mail", label: t('settings.items.contact'), subLabel: "soporte.urbanguide@gmail.com", email: "soporte.urbanguide@gmail.com" },
                 { icon: "chat_bubble", label: t('settings.items.feedback'), path: "/feedback" },
                 { icon: "help", label: t('settings.items.faq'), path: "/faq" },
                 { icon: "verified_user", label: t('settings.items.privacy_policy'), path: "/privacy" },
                 { icon: "description", label: t('settings.items.terms_of_use'), path: "/terms" },
+                { icon: "gavel", label: t('settings.legal_notice'), path: "/eula" },
             ]
         },
     ];
@@ -201,7 +222,7 @@ export const Settings: React.FC = () => {
                             )}
                         </button>
                     </div>
-                    <h2 className="text-xl font-bold">{user?.profile?.full_name || user?.email || 'Usuario'}</h2>
+                    <h2 className="text-xl font-bold">{user?.profile?.full_name || user?.email || t('common.user')}</h2>
                     {isPremium ? (
                         <p className="text-primary font-bold text-sm mt-0.5">{t('settings.profile_section.premium_member')}</p>
                     ) : (
@@ -267,11 +288,22 @@ export const Settings: React.FC = () => {
                 <div className="px-6 mt-8 mb-8 flex flex-col gap-4">
                     <button
                         onClick={handleLogout}
-                        className="w-full h-14 bg-primary rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg hover:bg-primary/90 transition-colors"
+                        className="w-full h-14 bg-white/10 rounded-xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-white/20 transition-colors"
                     >
                         <span className="material-symbols-outlined">logout</span>
                         {t('settings.logout')}
                     </button>
+
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-2">{t('settings.account_actions')}</p>
+                        <button
+                            onClick={handleDeleteAccount}
+                            className="w-full h-14 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-red-500/20 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-red-500">delete_forever</span>
+                            {t('settings.delete_account')}
+                        </button>
+                    </div>
 
                 </div>
 
@@ -285,7 +317,7 @@ export const Settings: React.FC = () => {
                         <div className="relative w-full max-w-sm bg-background-dark/95 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
                             <div className="p-6 border-b border-white/10">
                                 <h3 className="text-xl font-bold">{t('settings.items.language')}</h3>
-                                <p className="text-white/40 text-xs mt-1">Selecciona tu idioma preferido</p>
+                                <p className="text-white/40 text-xs mt-1">{t('settings.language_selector_desc')}</p>
                             </div>
                             <div className="max-h-[60vh] overflow-y-auto">
                                 {languages.map((lang) => (
@@ -297,7 +329,11 @@ export const Settings: React.FC = () => {
                                             i18n.language.startsWith(lang.code) ? "bg-primary/10 text-primary" : "text-white"
                                         )}
                                     >
-                                        <span className="text-2xl">{lang.flag}</span>
+                                        {lang.flag.startsWith('http') ? (
+                                            <img src={lang.flag} alt={lang.name} className="size-6 rounded-sm object-cover" />
+                                        ) : (
+                                            <span className="text-2xl">{lang.flag}</span>
+                                        )}
                                         <span className="flex-1 text-left font-bold">{lang.name}</span>
                                         {i18n.language.startsWith(lang.code) && (
                                             <span className="material-symbols-outlined">check_circle</span>
@@ -309,17 +345,26 @@ export const Settings: React.FC = () => {
                                 onClick={() => setShowLanguageSelector(false)}
                                 className="w-full py-4 text-white/60 font-medium hover:text-white transition-colors border-t border-white/10"
                             >
-                                Cancelar
+                                {t('settings.cancel')}
                             </button>
                         </div>
                     </div>
                 )}
             </div>
 
+            {/* Mandated Disclaimer */}
+            <div className="px-6 mb-8 mt-4">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
+                    <p className="text-[10px] text-zinc-500 leading-relaxed italic">
+                        {t('settings.report_disclaimer')}
+                    </p>
+                </div>
+            </div>
+
             {/* Version / Info */}
             <div className="pb-12 text-center text-white/40 text-xs">
-                <p>Versión 1.0.0 (Build 5)</p>
-                <p className="mt-1">© 2026 RedCarpet App.</p>
+                <p>{t('settings.version')} 1.0.0 ({t('settings.build')} 5)</p>
+                <p className="mt-1">© 2026 {t('onboarding.welcome.title')} App.</p>
             </div>
         </div>
     );

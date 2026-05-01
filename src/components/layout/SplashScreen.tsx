@@ -38,7 +38,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <div className="mb-8 relative animate-scale-in">
           {/* Glow effect behind logo */}
           <div className="absolute inset-0 bg-red-600 blur-2xl opacity-20 rounded-full scale-150"></div>
-          <img src="/logo.png" alt="RedCarpet Logo" className="w-16 h-auto object-contain relative z-10 drop-shadow-2xl" />
+          <img src="/logo.png" alt="Urban Guide Logo" className="w-16 h-auto object-contain relative z-10 drop-shadow-2xl" />
         </div>
       </div>
 
