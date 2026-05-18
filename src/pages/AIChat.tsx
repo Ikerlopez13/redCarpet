@@ -36,8 +36,8 @@ export const AIChat: React.FC = () => {
                 response = t('chat.faq_greeting'); matched = true;
             }
 
-            // Fallback to support if no match on subsequent tries
-            if (!matched && newMessages.filter(m => m.role === 'user').length >= 2) {
+            // Fallback to support on second interaction if it doesn't resolve the issue
+            if (newMessages.filter(m => m.role === 'user').length >= 2) {
                 setSupportRequired(true);
             }
 

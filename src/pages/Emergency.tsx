@@ -1,194 +1,173 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, Loader2, Info, MapPin, Users, CheckCircle2 } from 'lucide-react';
+import { 
+    ShieldAlert, 
+    ChevronLeft, 
+    Info, 
+    Settings, 
+    Zap, 
+    Activity,
+    Lock,
+    Shield
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { activateSOS } from '../services/sosService';
-import { createFamilyGroup, getFamilyGroup } from '../services/familyService';
+import { useSOS } from '../contexts/SOSContext.base';
+import { executeSOSProtocol } from '../services/sosService';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export const Emergency: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { user } = useAuth();
+    const { familyGroup } = useSOS();
     const [isActivating, setIsActivating] = useState(false);
-    const [isCameraInitialized, setIsCameraInitialized] = useState(false);
-    const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
-
-    useEffect(() => {
-        let stream: MediaStream | null = null;
-        const startCamera = async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: { exact: 'user' },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-                setIsCameraInitialized(true);
-            } catch (err) {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: { ideal: 'user' } }
-                    });
-                    if (videoRef.current) videoRef.current.srcObject = stream;
-                    setIsCameraInitialized(true);
-                } catch (fallbackErr) {
-                    console.error('[SOS-Camera] All camera attempts failed:', fallbackErr);
-                }
-            }
-        };
-        startCamera();
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
+    const [error, setError] = useState<string | null>(null);
 
     const handleStartSOS = async () => {
-        if (isActivating || showSuccessOverlay) return;
-        if (!user) {
-            window.alert('Error: Sesión no iniciada');
-            return;
-        }
+        if (!user || !familyGroup || isActivating) return;
+        
         setIsActivating(true);
-        setStatusMessage("Verificando grupo...");
+        setError(null);
+
         try {
-            let group = await getFamilyGroup(user.id);
-            if (!group) {
-                setStatusMessage("Creando Círculo...");
-                const { group: newGroup, error: groupError } = await createFamilyGroup(
-                    "Mi Círculo",
-                    "parental",
-                    user.id
-                );
-                if (groupError || !newGroup) {
-                    throw new Error(groupError || "No se pudo crear el grupo de seguridad.");
-                }
-                group = newGroup;
+            console.log('[Emergency-Page] Single-click SOS Triggered');
+            
+            // Execute the full SOS protocol (112 + Contacts + Location)
+            const { alert, error: sosError } = await executeSOSProtocol(user.id, familyGroup.id, 'security');
+
+            if (sosError || !alert) {
+                throw new Error(sosError || 'Error al activar el protocolo SOS');
             }
-            setStatusMessage("Alertando...");
-            const { alert: sosAlert, error } = await activateSOS(user.id, group.id, {
-                message: `🚨 SOS ACTIVADO\nUbicación y cámara en vivo compartidas.`,
-                callPolice: true,
-                notifyContacts: true,
-                shareLocation: true,
-                mode: 'visible',
-                type: 'security'
+
+            console.log('[Emergency-Page] SOS Activated successfully');
+            
+            // Redirect to the live tracking page
+            navigate('/emergency-live', { 
+                state: { 
+                    alertId: alert.id,
+                    reason: 'security',
+                    mode: 'visible'
+                },
+                replace: true
             });
-            if (error) throw new Error(error);
-            if (sosAlert) {
-                setShowSuccessOverlay(true);
-                await new Promise(r => setTimeout(r, 2500));
-                navigate('/emergency-live', {
-                    state: {
-                        alertId: sosAlert.id,
-                        reason: 'security',
-                        mode: 'visible'
-                    },
-                    replace: true
-                });
-            }
         } catch (err: any) {
-            console.error('[SOS-Handle] Activation failed:', err);
-            window.alert('Fallo al activar SOS: ' + (err.message || 'Error desconocido'));
+            console.error('[Emergency-Page] SOS Activation failed:', err);
+            setError(err.message || 'Error al activar SOS. Por favor, intenta de nuevo.');
             setIsActivating(false);
-            setStatusMessage(null);
         }
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-black text-white font-display overflow-hidden relative">
-            {showSuccessOverlay && (
-                <div className="absolute inset-0 z-50 bg-red-600/80 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
-                    <div className="size-24 rounded-3xl bg-white flex items-center justify-center text-red-600 mb-8 shadow-2xl">
-                        <CheckCircle2 size={64} strokeWidth={3} />
-                    </div>
-                    <h2 className="text-4xl font-black uppercase tracking-tighter italic mb-4 leading-none">
-                        Protocolo Iniciado
-                    </h2>
-                    <div className="space-y-4">
-                        <div className="bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-                            <p className="text-lg font-bold">🚨 Se ha alertado a las autoridades</p>
-                        </div>
-                        <div className="bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-                            <p className="text-lg font-bold">📱 Se ha avisado a tus contactos</p>
-                        </div>
-                    </div>
-                    <p className="mt-12 text-sm font-black text-white/50 uppercase tracking-[0.3em] animate-pulse">
-                        Sincronizando Streaming...
-                    </p>
-                </div>
-            )}
+        <div className="flex flex-col h-full w-full bg-[#0d0d0d] text-white overflow-hidden font-display relative">
+            {/* Rich Background with Animated Gradients */}
             <div className="absolute inset-0 z-0">
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover scale-x-[-1] opacity-70"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 pointer-events-none" />
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_40%,_rgba(220,38,38,0.15)_0%,_transparent_70%)]" />
+                <div className="absolute -bottom-[20%] -left-[10%] size-[80vw] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute top-[10%] -right-[10%] size-[60vw] bg-red-600/5 rounded-full blur-[100px]" />
+                
+                {/* Grid Pattern Overlay */}
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay" />
             </div>
-            <div className="relative z-10 flex flex-col h-full w-full p-6 pt-12">
-                <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                         <div className="p-2.5 bg-red-600/20 backdrop-blur-md rounded-2xl text-red-500 border border-red-500/20">
-                            <ShieldAlert size={24} />
+
+            {/* Header */}
+            <div className="relative z-10 flex items-center justify-between px-6 pt-12 pb-6 backdrop-blur-sm bg-black/20">
+                <button 
+                    onClick={() => navigate(-1)} 
+                    className="p-2 -ml-2 text-white/40 hover:text-white active:scale-90 transition-transform"
+                >
+                    <ChevronLeft size={24} />
+                </button>
+                <div className="flex flex-col items-center">
+                    <h1 className="text-xl font-black uppercase italic tracking-tighter text-white/90">Central de Seguridad</h1>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">En Línea • Escudo IA Activo</span>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => navigate('/settings')}
+                    className="p-2 bg-white/5 rounded-xl text-white/40 hover:text-white transition-colors"
+                >
+                    <Settings size={20} />
+                </button>
+            </div>
+
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-8 text-center">
+                {/* Main SOS Launcher */}
+                <div className="relative group mb-12">
+                    {/* Multi-layered animations for the button */}
+                    <div className="absolute inset-0 bg-red-600 rounded-full blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity animate-pulse" />
+                    <div className="absolute inset-0 bg-red-600 rounded-full blur-[80px] opacity-10 animate-pulse delay-700" />
+                    
+                    <button
+                        onClick={handleStartSOS}
+                        disabled={isActivating}
+                        className={clsx(
+                            "relative size-64 rounded-full flex flex-col items-center justify-center transition-all duration-500",
+                            "bg-gradient-to-br from-red-500 via-red-600 to-red-800",
+                            "border-8 border-white/10 shadow-[0_20px_50px_rgba(220,38,38,0.5)]",
+                            "active:scale-90 active:shadow-inner disabled:opacity-50",
+                            isActivating && "animate-pulse"
+                        )}
+                    >
+                        {isActivating ? (
+                            <Zap size={64} className="text-white animate-bounce" />
+                        ) : (
+                            <>
+                                <h2 className="text-7xl font-black text-white italic tracking-tighter mb-1 drop-shadow-2xl">SOS</h2>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Pulsar para lanzar</p>
+                            </>
+                        )}
+                        
+                        {/* Internal decorative ring */}
+                        <div className="absolute inset-4 rounded-full border border-white/20 pointer-events-none" />
+                        <div className="absolute inset-8 rounded-full border border-white/10 pointer-events-none" />
+                    </button>
+                </div>
+
+                {/* Status & Messages */}
+                <div className="max-w-[280px] space-y-6">
+                    {error ? (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 animate-shake">
+                            <p className="text-red-500 text-xs font-bold uppercase tracking-tight">{error}</p>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-black tracking-tighter uppercase italic leading-none">Seguridad Directa</h1>
-                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em] mt-1">Lanzador Frontal Preparado</p>
+                    ) : (
+                        <div className="space-y-2">
+                            <p className="text-sm font-bold text-white/90">Protocolo de Emergencia</p>
+                            <p className="text-[10px] text-white/40 font-medium leading-relaxed uppercase tracking-widest">
+                                En un solo clic se avisará al 112 y a tu círculo de seguridad compartiendo tu ubicación real.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Feature Indicators */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex items-center gap-3">
+                            <div className="p-1.5 bg-blue-500/20 rounded-lg text-blue-400">
+                                <Activity size={14} />
+                            </div>
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/40">GPS Vivo</span>
+                        </div>
+                        <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex items-center gap-3">
+                            <div className="p-1.5 bg-orange-500/20 rounded-lg text-orange-400">
+                                <Shield size={14} />
+                            </div>
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/40">112 Enlace</span>
                         </div>
                     </div>
                 </div>
-                {isActivating && !showSuccessOverlay && (
-                    <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 flex items-center gap-3 animate-bounce">
-                        <Loader2 className="animate-spin text-red-500" size={16} />
-                        <span className="text-xs font-black uppercase tracking-widest">{statusMessage}</span>
+            </div>
+
+            {/* Footer Legal/Info */}
+            <div className="relative z-10 p-8 pb-32">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-4 flex gap-4 items-center">
+                    <div className="size-10 bg-white/5 rounded-2xl flex items-center justify-center text-white/20 shrink-0">
+                        <Info size={20} />
                     </div>
-                )}
-                <div className="mt-auto space-y-8 flex flex-col items-center pb-8 border-t border-white/5 pt-8 backdrop-blur-sm bg-black/20 rounded-t-[3rem]">
-                    <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic mb-4">Pulsa para Alertar</span>
-                        <button
-                            onClick={handleStartSOS}
-                            disabled={isActivating}
-                            className="group relative size-24 active:scale-90 transition-all outline-none"
-                        >
-                            <div className="absolute inset-0 rounded-full border-[4px] border-white/20 group-active:scale-110 transition-all" />
-                            <div className={clsx(
-                                "absolute inset-2 rounded-full flex items-center justify-center transition-all",
-                                isActivating ? "bg-red-700" : "bg-white"
-                            )}>
-                                {isActivating ? (
-                                    <Loader2 className="animate-spin text-white" size={32} />
-                                ) : (
-                                    <div className="size-12 rounded-full border-[8px] border-black/5 flex items-center justify-center">
-                                        <div className="size-4 rounded-[2px] bg-red-600" />
-                                    </div>
-                                )}
-                            </div>
-                            {!isActivating && (
-                                <div className="absolute inset-0 rounded-full border border-red-500/50 animate-[ping_3s_infinite]" />
-                            )}
-                        </button>
-                    </div>
-                    <div className="w-full max-w-xs grid grid-cols-2 gap-2 mt-4">
-                         <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-3 flex items-center gap-2">
-                            <MapPin size={12} className="text-red-500" />
-                            <span className="text-[10px] font-black tracking-tighter text-white/60">GPS OK</span>
-                         </div>
-                         <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-3 flex items-center gap-2">
-                            <Users size={12} className="text-red-500" />
-                            <span className="text-[10px] font-black tracking-tighter text-white/60">CIRCULO OK</span>
-                         </div>
-                    </div>
+                    <p className="text-[9px] text-white/30 font-medium leading-relaxed uppercase tracking-wider">
+                        Urban Guide no es un servicio de emergencias oficial. Facilita la comunicación con tus contactos y autoridades.
+                    </p>
                 </div>
             </div>
         </div>

@@ -58,7 +58,7 @@ export class RevenueCatService {
         if (!Capacitor.isNativePlatform()) {
             console.warn('⚠️ Web Mock: Simulando paquetes de RevenueCat para el navegador');
             return [
-                { identifier: 'redcarpet.premium.onemonth', product: { identifier: 'redcarpet.premium.onemonth', priceString: '9,99 €', title: 'Mensual' } } as any,
+                { identifier: 'redcarpet.premium.onemonths', product: { identifier: 'redcarpet.premium.onemonths', priceString: '9,99 €', title: 'Mensual' } } as any,
                 { identifier: 'redcarpet.premium.oneyear', product: { identifier: 'redcarpet.premium.oneyear', priceString: '49,99 €', title: 'Anual' } } as any,
                 { identifier: 'redcarpet.premium.student', product: { identifier: 'redcarpet.premium.student', priceString: '4,99 €', title: 'Estudiante' } } as any,
                 { identifier: 'safe_pass_72h', product: { identifier: 'safe_pass_72h', priceString: '1,99 €', title: 'Pase 72h' } } as any,
@@ -96,6 +96,16 @@ export class RevenueCatService {
         }
         return [];
     }
+    static async getProductsByIds(identifiers: string[]): Promise<any[]> {
+        if (!Capacitor.isNativePlatform() || !this.isConfigured) return [];
+        try {
+            const { products } = await Purchases.getProducts({ productIdentifiers: identifiers });
+            return products || [];
+        } catch (error) {
+            console.error('❌ Error in getProductsByIds:', error);
+            return [];
+        }
+    }
 
     static async purchasePackage(rcPackage: PurchasesPackage): Promise<{ customerInfo: CustomerInfo; productIdentifier: string; } | null> {
         if (!Capacitor.isNativePlatform()) {
@@ -124,10 +134,49 @@ export class RevenueCatService {
         } catch (error: any) {
             if (error.userCancelled) {
                 console.log('ℹ️ User cancelled the purchase');
+                return null;
             } else {
                 console.error('❌ Error purchasing package:', error.message || error);
+                throw error;
             }
+        }
+    }
+
+    static async purchaseProductById(productIdentifier: string): Promise<{ customerInfo: CustomerInfo; productIdentifier: string; } | null> {
+        if (!Capacitor.isNativePlatform()) {
+            console.log('🌐 Web Mock: Simulando compra exitosa del producto', productIdentifier);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return {
+                customerInfo: { entitlements: { active: { [this.ENTITLEMENT_ID]: {} } } } as any,
+                productIdentifier
+            };
+        }
+
+        if (!this.isConfigured) {
+            console.error('❌ Cannot purchase: Native/Config check failed', { isConfigured: this.isConfigured });
             return null;
+        }
+
+        try {
+            console.log('🚀 Initiating direct product purchase for:', productIdentifier);
+            const { products } = await Purchases.getProducts({ productIdentifiers: [productIdentifier] });
+            if (!products || products.length === 0) {
+                 throw new Error(`Producto ${productIdentifier} no encontrado en la tienda`);
+            }
+            const { customerInfo } = await Purchases.purchaseStoreProduct({ product: products[0] });
+            console.log('💰 Direct purchase successful:', customerInfo);
+            return {
+                customerInfo,
+                productIdentifier
+            };
+        } catch (error: any) {
+            if (error.userCancelled) {
+                console.log('ℹ️ User cancelled the direct purchase');
+                return null;
+            } else {
+                console.error('❌ Error with direct product purchase:', error.message || error);
+                throw error;
+            }
         }
     }
 

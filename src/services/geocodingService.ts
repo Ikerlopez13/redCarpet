@@ -31,6 +31,8 @@ export async function searchPlaces(
         autocomplete: 'true',
         fuzzyMatch: 'true',
         limit: '25',
+        language: 'es',
+        country: 'es',
         types: 'poi,address,neighborhood,locality,place'
     });
 

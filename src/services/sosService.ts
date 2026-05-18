@@ -49,9 +49,21 @@ export async function requestSOSPermissions(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) return true;
     try {
         const { Camera } = await import('@capacitor/camera');
+        const { Geolocation } = await import('@capacitor/geolocation');
+        
         const cameraStatus = await Camera.requestPermissions({ permissions: ['camera'] });
         const voiceStatus = await VoiceRecorder.requestAudioRecordingPermission();
-        return cameraStatus.camera === 'granted' && voiceStatus.value === true;
+        
+        // Request Location permissions (targeting 'Always' if available)
+        const locationStatus = await Geolocation.requestPermissions();
+        
+        console.log('[SOS-Service] Permission statuses:', {
+            camera: cameraStatus.camera,
+            voice: voiceStatus.value,
+            location: locationStatus.location
+        });
+
+        return cameraStatus.camera === 'granted' && voiceStatus.value === true && locationStatus.location === 'granted';
     } catch (err) {
         console.error('[SOS-Service] Permission fail:', err);
         return false;
@@ -148,21 +160,31 @@ export async function activateSOS(
     config: SOSConfig
 ): Promise<{ alert: SOSAlert | null; error: string | null }> {
     if (!userId || userId.trim() === '' || !groupId || groupId.trim() === '') {
-        throw new Error("Sesión no válida");
+        console.error('[SOS-Service] Missing IDs:', { userId, groupId });
+        return { alert: null, error: "Sesión o grupo no válido" };
     }
 
     try {
+        // 1. Get position with fallback
         const position = await (async () => {
-            const geoPromise = new Promise<GeolocationPosition | null>((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    (p) => resolve(p),
-                    () => resolve(null),
-                    { enableHighAccuracy: true, timeout: 2000, maximumAge: 5000 }
-                );
-            });
-            const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
-            return Promise.race([geoPromise, timeoutPromise]);
+            try {
+                const geoPromise = new Promise<GeolocationPosition | null>((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                        (p) => resolve(p),
+                        (err) => {
+                            console.warn('[SOS-Service] Geolocation error:', err);
+                            resolve(null);
+                        },
+                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+                    );
+                });
+                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
+                return Promise.race([geoPromise, timeoutPromise]);
+            } catch (e) {
+                return null;
+            }
         })();
+
         const battery = await getBatteryLevel();
         
         let msg = config.message;
@@ -172,7 +194,6 @@ export async function activateSOS(
             msg += `\n\n📍 UBICACIÓN EN TIEMPO REAL:\nhttps://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}`;
         }
 
-        // Add Video Placeholder Link (will be updated when recording finishes)
         msg += `\n\n🎥 VER VÍDEO DEL TRAYECTO:\nEsperando secuencia...`;
         msg += `\n\n🔋 Batería: ${battery}`;
 
@@ -186,16 +207,33 @@ export async function activateSOS(
             mode: config.mode || 'visible',
             media_url: config.mediaUrl || null,
         };
+
+        console.log('[SOS-Service] Inserting alert into DB...');
         const alertPromise = (supabase.from('sos_alerts') as any).insert(alertData).select().single();
-        const dbTimeout = new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera de base de datos agotado')), 8000));
-        const { data: alert, error } = await Promise.race([alertPromise, dbTimeout]) as any;
-        if (error) return { alert: null, error: error.message };
+        const dbTimeout = new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera de base de datos agotado')), 10000));
+        
+        const result = await Promise.race([alertPromise, dbTimeout]) as any;
+        
+        if (result instanceof Error) throw result;
+        const { data: alert, error } = result;
+
+        if (error) {
+            console.error('[SOS-Service] DB Insert error:', error);
+            return { alert: null, error: `Error DB: ${error.message}` };
+        }
+        
         if (!alert) return { alert: null, error: 'No se pudo crear el aviso' };
+
+        console.log('[SOS-Service] Alert created successfully:', alert.id);
+
+        // Invoke notifications in background
         supabase.functions.invoke('send-sos-notifications', { body: { alertId: alert.id, userId, groupId, config } })
             .catch((err: any) => console.error('[SOS-Service] Notification fail:', err));
+
         return { alert, error: null };
     } catch (err: any) {
-        return { alert: null, error: err.message || 'Logic error' };
+        console.error('[SOS-Service] Critical activation error:', err);
+        return { alert: null, error: err.message || 'Error crítico de activación' };
     }
 }
 

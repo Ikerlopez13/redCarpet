@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
     appId: 'com.vibecode.redcarpet',
-    appName: 'Urban Guide',
+    appName: 'RedCarpet',
     webDir: 'dist',
     server: {
         androidScheme: 'https',
@@ -12,8 +12,8 @@ const config: CapacitorConfig = {
             presentationOptions: ['badge', 'sound', 'alert'],
         },
         SplashScreen: {
-            launchAutoHide: true,
-            launchShowDuration: 2000,
+            launchAutoHide: false,    // We control hide() from JS after React loads
+            launchShowDuration: 0,    // Irrelevant when autoHide is false
             backgroundColor: '#0f0808',
             androidScaleType: 'CENTER_CROP',
             showSpinner: false,

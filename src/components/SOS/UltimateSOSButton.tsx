@@ -89,7 +89,7 @@ export const UltimateSOSButton: React.FC = () => {
                 }}
                 disabled={isActivating}
                 className={clsx(
-                    "flex items-center gap-3 px-8 py-3.5 bg-red-600 text-white rounded-full text-base font-black uppercase tracking-tighter shrink-0 relative overflow-hidden active:scale-95 transition-all shadow-xl",
+                    "flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-red-500 to-red-700 text-white rounded-full text-base font-black uppercase tracking-tighter shrink-0 relative overflow-hidden active:scale-90 transition-all shadow-[0_10px_30px_rgba(220,38,38,0.4)] border border-white/20",
                     isActivating && "opacity-50"
                 )}
             >

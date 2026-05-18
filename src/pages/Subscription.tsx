@@ -27,6 +27,12 @@ export const Subscription: React.FC = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const monthlyPkg = packages.find(p => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly' || p.identifier === 'redcarpet.premium.onemonths' || p.product.identifier === 'redcarpet.premium.onemonths');
+    const annualPkg = packages.find(p => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual' || p.identifier === 'redcarpet.premium.oneyear' || p.product.identifier === 'redcarpet.premium.oneyear');
+    
+    const displayMonthlyPrice = '12,99€';
+    const displayAnnualPrice = '79,99€';
+
     const SHARED_FEATURES = [
         t('premium.features_list.ai_shield'),
         t('premium.features_list.safe_route'),
@@ -50,7 +56,19 @@ export const Subscription: React.FC = () => {
                 const pkgs = await RevenueCatService.getOfferings();
                 console.log(`[RevenueCat] 📦 Offerings cargados correctamente. Total de paquetes: ${pkgs.length}`);
                 if (pkgs.length === 0) {
-                     console.warn(`[RevenueCat] ⚠️ Advertencia: No se han encontrado paquetes (pkgs.length === 0)`);
+                     console.warn(`[RevenueCat] ⚠️ Advertencia: No se han encontrado paquetes. Intentando fallback directo a Apple...`);
+                     const directProducts = await RevenueCatService.getProductsByIds(['redcarpet.premium.onemonths', 'redcarpet.premium.oneyear']);
+                     if (directProducts.length > 0) {
+                         console.log(`[RevenueCat] ✅ Fallback directo exitoso. Productos encontrados:`, directProducts.length);
+                         const fallbackPkgs = directProducts.map((prod: any) => ({
+                             identifier: prod.identifier,
+                             packageType: prod.identifier.includes('oneyear') ? 'ANNUAL' : 'MONTHLY',
+                             product: prod,
+                             offeringIdentifier: 'default'
+                         })) as PurchasesPackage[];
+                         setPackages(fallbackPkgs);
+                         return;
+                     }
                 }
                 setPackages(pkgs);
             } catch (err) {
@@ -74,25 +92,24 @@ export const Subscription: React.FC = () => {
                 await RevenueCatService.initialize();
             }
 
-            // Find real pkg
-            const pkg = packages.find(p => p.identifier === packageId);
+            // Find real pkg by its package identifier or underlying product identifier
+            const pkg = packages.find(p => p.identifier === packageId || p.product.identifier === packageId);
 
-            if (!pkg) {
-                console.error(`[RevenueCat] ❌ Error: Package no encontrado en offerings: ${packageId}`);
-                console.log(`[RevenueCat] Paquetes disponibles actualmente:`, packages.map(p => p.identifier));
-                setError(t('common.error') + ': plan_not_available');
-                return;
+            let result;
+            if (pkg && pkg.offeringIdentifier !== 'default') {
+                console.log(`[RevenueCat] 🚀 Llamando a RevenueCatService.purchasePackage para: ${pkg.identifier}`);
+                result = await RevenueCatService.purchasePackage(pkg);
+            } else {
+                console.log(`[RevenueCat] 🚀 Fallback directo: Llamando a purchaseProductById para: ${packageId}`);
+                result = await RevenueCatService.purchaseProductById(packageId);
             }
-
-            console.log(`[RevenueCat] 🚀 Llamando a RevenueCatService.purchasePackage para: ${pkg.identifier}`);
-            const result = await RevenueCatService.purchasePackage(pkg);
 
             if (result) {
                 console.log(`[RevenueCat] ✅ Compra completada exitosamente! CustomerInfo actualizado.`);
                 setIsPremium(true);
                 setShowSuccess(true);
             } else {
-                console.log(`[RevenueCat] ⚠️ Compra devuelta como null (posible cancelación del usuario).`);
+                console.log(`[RevenueCat] ⚠️ Compra devuelta como null (posible cancelación del usuario o error).`);
             }
         } catch (err: any) {
             console.error('[RevenueCat] ❌ Purchase error detail:', err);
@@ -115,7 +132,7 @@ export const Subscription: React.FC = () => {
                     <CheckCircle2 size={72} className="text-primary" />
                 </div>
 
-                <h1 className="text-4xl font-black uppercase tracking-tighter italic mb-4">{t('premium.success.title')}</h1>
+                <h1 className="text-4xl font-extrabold tracking-tight mb-4 text-white drop-shadow-sm">{t('premium.success.title')}</h1>
                 <p className="text-xl text-white/80 font-bold mb-12">{t('premium.success.now_you_are')}</p>
 
                 <div className="space-y-4 mb-16 text-left w-full max-w-xs px-6">
@@ -139,7 +156,7 @@ export const Subscription: React.FC = () => {
 
                 <button
                     onClick={() => navigate('/')}
-                    className="w-full max-w-xs h-16 bg-white text-black rounded-2xl font-black text-xl uppercase tracking-tighter italic shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+                    className="w-full max-w-xs h-16 bg-white text-black rounded-2xl font-bold text-lg shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
                 >
                     {t('premium.success.start')}
                 </button>
@@ -161,7 +178,7 @@ export const Subscription: React.FC = () => {
                 >
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className="text-5xl font-black uppercase tracking-tighter italic mb-2 animate-slide-up text-white-shadow">{t('nav.premium')}</h1>
+                <h1 className="text-5xl font-extrabold tracking-tight mb-2 animate-slide-up text-white drop-shadow-md">{t('nav.premium')}</h1>
                 <p className="text-sm font-bold text-primary max-w-[200px] leading-tight uppercase tracking-tight animate-fade-in" style={{ animationDelay: '200ms' }}>
                     {t('premium.main_subtitle')}
                 </p>
@@ -175,7 +192,7 @@ export const Subscription: React.FC = () => {
                         <Crown size={24} />
                     </div>
 
-                    <h2 className="text-3xl font-black uppercase tracking-tighter italic mb-2">{t('premium.individual.title')}</h2>
+                    <h2 className="text-3xl font-bold tracking-tight mb-2 text-white drop-shadow-sm">{t('premium.individual.title')}</h2>
                     <p className="text-primary text-[11px] font-black uppercase tracking-widest mb-8">{t('premium.individual.subtitle')}</p>
 
                     <div className="space-y-4 mb-10">
@@ -196,7 +213,7 @@ export const Subscription: React.FC = () => {
                                 individualCycle === 'monthly' ? "bg-white text-black shadow-lg" : "text-white/40"
                             )}
                         >
-                            {t('premium.price_individual_monthly')} ({t('common.month')})
+                            {displayMonthlyPrice} ({t('common.month')})
                         </button>
                         <button
                             onClick={() => setIndividualCycle('annual')}
@@ -205,20 +222,20 @@ export const Subscription: React.FC = () => {
                                 individualCycle === 'annual' ? "bg-white text-black shadow-lg" : "text-white/40"
                             )}
                         >
-                            {t('premium.price_individual_annual')} ({t('common.year')})
+                            {displayAnnualPrice} ({t('common.year')})
                         </button>
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-4xl font-black italic">{individualCycle === 'monthly' ? t('premium.price_individual_monthly') : t('premium.price_individual_annual')}</span>
+                        <span className="text-4xl font-black italic">{individualCycle === 'monthly' ? displayMonthlyPrice : displayAnnualPrice}</span>
                         <span className="text-white/30 text-[9px] font-bold uppercase">/ {individualCycle === 'monthly' ? t('common.month') : t('common.year')}</span>
                     </div>
                     <p className="text-[10px] font-bold text-white/40 uppercase mb-8 italic">{t('premium.cancel_anytime')}</p>
 
                     <button
-                        onClick={() => handlePurchase(individualCycle === 'monthly' ? 'redcarpet.premium.onemonth' : 'redcarpet.premium.oneyear')}
+                        onClick={() => handlePurchase(individualCycle === 'monthly' ? (monthlyPkg?.identifier || 'redcarpet.premium.onemonths') : (annualPkg?.identifier || 'redcarpet.premium.oneyear'))}
                         disabled={processing}
-                        className="w-full h-16 bg-white text-black rounded-2xl font-black text-xl uppercase tracking-tighter italic hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 disabled:active:scale-100"
+                        className="w-full h-16 bg-white text-black rounded-2xl font-bold text-lg hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 disabled:active:scale-100"
                     >
                         {processing ? <Loader2 className="animate-spin" /> : t('premium.hire')}
                     </button>
@@ -233,126 +250,7 @@ export const Subscription: React.FC = () => {
                     )}
                 </div>
 
-                {/* 4. Plan Estudiantes */}
-                <div className="bg-zinc-900/40 border border-white/5 rounded-[3rem] p-8 animate-slide-up" style={{ animationDelay: '400ms' }}>
-                    <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-2">{t('premium.student.title')}</h2>
-                    <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-6">{t('premium.student.subtitle')}</p>
 
-                    <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl mb-6 flex flex-col gap-1">
-                        <p className="text-[9px] font-black text-primary uppercase tracking-tight text-center">
-                            {t('premium.includes_all_individual')}
-                        </p>
-                        <p className="text-[9px] font-black text-primary uppercase tracking-tight text-center">
-                            {t('premium.student_discount')}
-                        </p>
-                    </div>
-
-                    <div className="space-y-3 mb-8 opacity-60">
-                        {SHARED_FEATURES.map((f, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <Check size={12} className="text-primary" />
-                                <span className="text-[9px] font-black uppercase tracking-tight">{f}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-4xl font-black italic">{t('premium.price_student')}</span>
-                        <span className="text-white/30 text-[9px] font-bold uppercase">/ {t('common.month')}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-white/40 uppercase mb-6 italic">{t('premium.cancel_anytime')}</p>
-
-                    <button
-                        onClick={() => handlePurchase('redcarpet.premium.student')}
-                        disabled={processing}
-                        className="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-zinc-700 transition-all flex items-center justify-center"
-                    >
-                        {processing ? <Loader2 className="animate-spin" /> : t('premium.verify')}
-                    </button>
-                </div>
-
-                {/* 5. Pase 72 Horas */}
-                <div className="bg-zinc-900/40 border border-white/5 rounded-[3rem] p-8 animate-slide-up" style={{ animationDelay: '500ms' }}>
-                    <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-1">{t('premium.72h.title')}</h2>
-                    <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-2">{t('premium.72h.subtitle')}</p>
-                    <p className="text-white/50 text-[10px] font-bold uppercase leading-none mb-6 italic">{t('premium.72h.promo')}</p>
-
-                    <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl mb-6">
-                        <p className="text-[9px] font-black text-primary uppercase tracking-tight text-center">
-                            {t('premium.includes_all_individual')}
-                        </p>
-                    </div>
-
-                    <div className="space-y-3 mb-8 opacity-60">
-                        {SHARED_FEATURES.map((f, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <Check size={12} className="text-primary" />
-                                <span className="text-[9px] font-black uppercase tracking-tight">{f}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-4xl font-black italic">{t('premium.price_72h')}</span>
-                        <span className="text-white/30 text-[10px] font-bold uppercase">/ {t('common.now')}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-white/40 uppercase mb-6 italic">{t('premium.cancel_anytime')}</p>
-
-                    <button
-                        onClick={() => handlePurchase('safe_pass_72h')}
-                        disabled={processing}
-                        className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center"
-                    >
-                        {processing ? <Loader2 className="animate-spin" /> : t('premium.activate')}
-                    </button>
-                </div>
-
-                {/* 6. Plan Familiar */}
-                <div className="bg-gradient-to-br from-zinc-900 to-primary/10 border border-white/10 rounded-[3rem] p-8 overflow-hidden relative animate-slide-up" style={{ animationDelay: '600ms' }}>
-                    <div className="absolute top-0 right-0 p-6 flex flex-col items-end">
-                        <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{t('premium.pro')}</span>
-                    </div>
-
-                    <div className="flex items-baseline gap-3 mb-1">
-                        <h2 className="text-3xl font-black uppercase tracking-tighter italic">{t('premium.family.title')}</h2>
-                        <span className="text-[9px] font-medium text-white/40 max-w-[100px] leading-tight">{t('premium.family.subtitle')}</span>
-                    </div>
-
-                    <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-8">
-                        {t('premium.family.subtitle')}
-                    </p>
-
-                    <div className="grid grid-cols-1 gap-3 mb-8">
-                        <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <Users size={20} className="text-primary" />
-                            <div className="flex-1">
-                                <p className="text-[10px] font-black uppercase">{t('premium.family.members')}</p>
-                                <p className="text-[8px] text-white/30 font-bold uppercase">{t('premium.family.members_desc')}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <Map size={20} className="text-primary" />
-                            <div className="flex-1">
-                                <p className="text-[10px] font-black uppercase">{t('premium.family.geofences')}</p>
-                                <p className="text-[8px] text-white/30 font-bold uppercase">{t('premium.family.geofences_desc')}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-5xl font-black italic">{t('premium.price_family')}</span>
-                        <span className="text-white/30 text-[10px] font-bold uppercase">/ {t('common.month')}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-white/40 uppercase mb-8 italic">{t('premium.cancel_anytime')}</p>
-
-                    <button
-                        onClick={() => handlePurchase('redcarpet.premium.family')}
-                        disabled={processing}
-                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-xl uppercase tracking-tighter italic shadow-xl shadow-primary/30 flex items-center justify-center"
-                    >
-                        {processing ? <Loader2 className="animate-spin" /> : t('premium.protect_family')}
-                    </button>
-                </div>
 
                 {/* Grid Benefits Elite */}
                 <div className="pt-10 space-y-4">
@@ -376,17 +274,22 @@ export const Subscription: React.FC = () => {
                     ))}
                 </div>
 
+                {/* Subscription Terms */}
+                <p className="text-[10px] text-white/50 text-center max-w-xs mx-auto mb-4">
+                    {t('premium.legal.iap_disclaimer')}
+                </p>
+
                 {/* Footer Legal */}
-                <div className="mt-12 flex flex-col items-center opacity-30 gap-6 pb-20">
+                <div className="mt-12 flex flex-col items-center text-white/80 gap-6 pb-20">
                     <button
                         onClick={() => RevenueCatService.restorePurchases().then(() => navigate('/'))}
                         className="text-[9px] font-black uppercase tracking-[0.2em] underline underline-offset-8"
                     >
                         {t('premium.restore_purchases')}
                     </button>
-                    <div className="flex gap-10">
-                        <button onClick={() => navigate('/terms')} className="text-[8px] font-black uppercase tracking-widest underline underline-offset-4">{t('settings.items.terms_of_use')}</button>
-                        <button onClick={() => navigate('/privacy')} className="text-[8px] font-black uppercase tracking-widest underline underline-offset-4">{t('settings.items.privacy_policy')}</button>
+                    <div className="flex gap-8">
+                        <button onClick={() => navigate('/terms')} className="text-[10px] font-black uppercase tracking-widest underline underline-offset-4">Terms of Use (EULA)</button>
+                        <button onClick={() => navigate('/privacy')} className="text-[10px] font-black uppercase tracking-widest underline underline-offset-4">Privacy Policy</button>
                     </div>
                 </div>
             </div>

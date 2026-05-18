@@ -10,7 +10,7 @@ import { Capacitor } from '@capacitor/core';
 import { DeepLinkHandler } from '../auth/DeepLinkHandler';
 
 // Simple Error Boundary for Native Debugging
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode, t?: any }, { hasError: boolean, error: any }> {
     constructor(props: any) {
         super(props);
         this.state = { hasError: false, error: null };
@@ -23,9 +23,10 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     }
     render() {
         if (this.state.hasError) {
+            const t = this.props.t || ((key: string) => key);
             return (
                 <div className="p-8 bg-red-900 text-white h-full flex flex-col items-center justify-center text-center">
-                    <h1 className="text-2xl font-bold mb-4">Algo salió mal</h1>
+                    <h1 className="text-2xl font-bold mb-4">{t('shell.error_title')}</h1>
                     <pre className="text-[10px] text-red-200 bg-black/50 p-4 rounded-lg overflow-auto max-w-full">
                         {this.state.error?.toString()}
                     </pre>
@@ -33,7 +34,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
                         onClick={() => window.location.reload()}
                         className="mt-6 px-6 py-2 bg-white text-red-900 rounded-full font-bold"
                     >
-                        Reiniciar App
+                        {t('shell.restart_app')}
                     </button>
                 </div>
             );
@@ -43,6 +44,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 export const MobileShell: React.FC = () => {
+    const { t } = useTranslation();
     const { isLoading: isAuthLoading } = useAuth();
     const [splashAnimationFinished, setSplashAnimationFinished] = useState(false);
     const location = useLocation();
@@ -67,7 +69,7 @@ export const MobileShell: React.FC = () => {
                     isEmergencyLive ? "bg-transparent" : "bg-background-dark",
                     !['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && "pb-[84px] pb-safe-bottom"
                 )}>
-                    <ErrorBoundary>
+                    <ErrorBoundary t={t}>
                         <Outlet />
                     </ErrorBoundary>
                 </div>
@@ -119,7 +121,7 @@ export const MobileShell: React.FC = () => {
                         <div className="absolute top-0 left-0 w-full h-12 px-6 flex justify-between items-center z-40 pointer-events-none text-white mix-blend-difference">
                             <div className="flex items-center gap-1.5 pl-4">
                                 <span className="text-sm font-semibold">9:41</span>
-                                <span className="material-symbols-outlined text-[14px] animate-pulse" title="Ubicación monitoreada para tu seguridad">near_me</span>
+                                <span className="material-symbols-outlined text-[14px] animate-pulse" title={t('shell.location_monitored')}>near_me</span>
                             </div>
                             <div className="flex gap-1.5 items-center pr-4">
                                 <Signal size={16} fill="currentColor" />
@@ -133,7 +135,7 @@ export const MobileShell: React.FC = () => {
                             "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-8 bg-background-dark",
                             !['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && "pb-[84px]"
                         )}>
-                            <ErrorBoundary>
+                            <ErrorBoundary t={t}>
                                 <Outlet />
                             </ErrorBoundary>
                         </div>

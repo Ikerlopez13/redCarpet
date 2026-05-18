@@ -19,12 +19,14 @@ export const Onboarding: React.FC = () => {
     const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
     const handleNextStep = async () => {
+        console.log('[Onboarding] Current Step:', step);
         if (step === 'welcome') {
             setStep('permissions');
         } else if (step === 'permissions') {
             setIsProcessing(true);
             try {
-                // Request All Permissions
+                // Request All Permissions with small delay to ensure UI responsiveness
+                await new Promise(r => setTimeout(r, 300));
                 await requestSOSPermissions();
                 if (Capacitor.isNativePlatform()) {
                     await Geolocation.requestPermissions();
@@ -32,10 +34,10 @@ export const Onboarding: React.FC = () => {
                 await requestNotificationPermission();
                 setStep('privacy');
             } catch (err) {
-                console.error('Permissions error:', err);
-                setStep('privacy');
+                console.error('[Onboarding] Permissions error:', err);
+                setStep('privacy'); // Move forward even on error to avoid blocking user
             } finally {
-                setIsProcessing(false);
+                setTimeout(() => setIsProcessing(false), 500);
             }
         } else if (step === 'privacy') {
             if (!hasAcceptedPrivacy) return;

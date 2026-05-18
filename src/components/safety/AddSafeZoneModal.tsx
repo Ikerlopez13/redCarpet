@@ -204,10 +204,10 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                         </div>
                         <input
                             type="range"
-                            min="50"
+                            min="100"
                             max="1000"
                             step="50"
-                            value={radius}
+                            value={radius < 100 ? 100 : radius}
                             onChange={(e) => setRadius(Number(e.target.value))}
                             className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary mb-2"
                         />

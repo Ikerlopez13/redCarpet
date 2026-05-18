@@ -95,10 +95,6 @@ export async function getRoute(
 
 /**
  * Get multiple alternative routes (for safe/balanced/fast options)
- * Since Mapbox doesn't have "safety" profiles, we simulate by:
- * - Safe: Walking route (slower but avoiding main roads)
- * - Balanced: Cycling route (medium speed)
- * - Fast: Driving route (fastest)
  */
 export async function getAlternativeRoutes(
     origin: Coordinate,
@@ -109,29 +105,56 @@ export async function getAlternativeRoutes(
     balanced: RouteResult | null;
     fast: RouteResult | null;
 }> {
-    // For MVP, we'll get the same route for all profiles
-    // In production, you'd want to adjust waypoints for "safer" routes
-    const [safe, balanced, fast] = await Promise.all([
-        getRoute(origin, destination, baseMode),
-        getRoute(origin, destination, baseMode),
-        getRoute(origin, destination, baseMode)
-    ]);
+    const profile = PROFILE_MAP[baseMode] || 'walking';
 
-    // Simulate different times/distances for demo
-    // In production, these would come from actual routing with safety data
-    return {
-        safe: safe ? {
-            ...safe,
-            duration: Math.round(safe.duration * 1.3), // 30% longer for "safer" route
-            distance: Math.round(safe.distance * 1.2)  // 20% longer distance
-        } : null,
-        balanced: balanced,
-        fast: fast ? {
-            ...fast,
-            duration: Math.round(fast.duration * 0.85), // 15% faster
-            distance: Math.round(fast.distance * 0.9)   // 10% shorter
-        } : null
-    };
+    const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
+        new URLSearchParams({
+            access_token: MAPBOX_TOKEN,
+            geometries: 'geojson',
+            steps: 'true',
+            overview: 'full',
+            alternatives: 'true',
+            language: 'es'
+        });
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.routes && data.routes.length > 0) {
+            // Mapbox sorts by default (fastest/optimal first)
+            // If we get multiple routes, we map them. If only one, we duplicate it but it's real data.
+            const parseRoute = (route: any): RouteResult => ({
+                distance: route.distance,
+                duration: route.duration,
+                geometry: route.geometry,
+                steps: route.legs[0].steps.map((step: any) => ({
+                    instruction: step.maneuver.instruction || 'Continúa',
+                    distance: step.distance,
+                    duration: step.duration,
+                    name: step.name || '',
+                    maneuver: step.maneuver
+                }))
+            });
+
+            const parsedRoutes = data.routes.map(parseRoute);
+            
+            // Sort by duration to classify them properly
+            parsedRoutes.sort((a: RouteResult, b: RouteResult) => a.duration - b.duration);
+
+            return {
+                fast: parsedRoutes[0],
+                // If there's a second route, it's usually a bit longer (balanced). Otherwise use fast.
+                balanced: parsedRoutes[1] || parsedRoutes[0],
+                // If there's a third route, it's the longest (we use it as "safe"). Otherwise use balanced.
+                safe: parsedRoutes[2] || parsedRoutes[1] || parsedRoutes[0]
+            };
+        }
+        return { safe: null, balanced: null, fast: null };
+    } catch (error) {
+        console.error('Error fetching alternative routes:', error);
+        return { safe: null, balanced: null, fast: null };
+    }
 }
 
 /**

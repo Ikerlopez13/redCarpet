@@ -22,7 +22,7 @@ export const SOSHistory: React.FC = () => {
                 // As a fallback for "Individual" users, we query by user_id if groupId is not available
                 const groupId = (user as any).profile?.family_id || (user as any).group_id || user.id;
                 const data = await getSOSHistory(groupId);
-                setAlerts(data);
+                setAlerts(data.filter((alert: SOSAlert) => alert.user_id !== user.id));
             } catch (err) {
                 console.error('Error loading SOS history:', err);
             } finally {

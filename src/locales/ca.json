@@ -10,6 +10,8 @@
     "greeting": "Hola, {{name}}",
     "emergency_active": "RUTA RECOMANADA",
     "report_incident": "Compartir Trajecte",
+    "report_danger": "Reportar Incidència",
+    "report_danger_desc": "Avisa a altres usuaris sobre perills a la teva ubicació actual.",
     "me": "Tu",
     "current_location": "Ubicació actual",
     "no_location": "Sense ubicació"
@@ -19,11 +21,22 @@
     "ago": "Fa",
     "no_data": "Sense dades",
     "month": "Mes",
-    "year": "Any"
+    "year": "Any",
+    "report": "Reportar"
+  },
+  "map": {
+    "light_notice": "Avís d'il·luminació",
+    "dark_desc": "Zona poc il·luminada, tingueu precaució.",
+    "incident": "Incidència",
+    "incident_desc": "Incidència reportada per un usuari proper.",
+    "construction": "Obres",
+    "construction_desc": "Zona en obres o tallada temporalment.",
+    "traffic": "Trànsit",
+    "traffic_desc": "Problemes de trànsit reportats a la via."
   },
   "chat": {
     "welcome": "Hola, soc en Red, la teva guia d'experiències urbanes. En què et puc ajudar avui?",
-    "default_fallback": "Entenc la teva consulta. Com el teu assistent de Urban Guide, soc aquí per guiar-te en rutes agradables i còmodes.",
+    "default_fallback": "Entenc la teva consulta. Com el teu assistent de RedCarpet, soc aquí per guiar-te en rutes agradables i còmodes.",
     "faq_sos": "Si ho necessites, pots avisar els teus contactes ràpidament des de l'aplicació. He avisat als teus contactes prioritaris perquè vegin el teu trajecte.",
     "faq_route": "Puc calcular la ruta més còmoda per a tu. Obre el mapa i selecciona la teva destinació; prioritzaré carrers ben il·luminats i zones agradables.",
     "faq_family": "Pots veure la ubicació del teu grup en temps real des de la pestanya 'Cercle' al mapa principal.",
@@ -86,7 +99,7 @@
     "instructions": "Mantén premut per avisar del teu trajecte",
     "cancel": "Cancel·lar",
     "share_whatsapp": "Compartir via WhatsApp",
-    "disclaimer": "Urban Guide és una aplicació de mobilitat urbana. No és un servei d'emergències ni està afiliat a la policia. Facilita la comunicació amb contactes de confiança. No garanteix resposta d'autoritats."
+    "disclaimer": "RedCarpet és una aplicació de mobilitat urbana. No és un servei d'emergències ni està afiliat a la policia. Facilita la comunicació amb contactes de confiança. No garanteix resposta d'autoritats."
   },
   "sos": {
     "video_premium_only": "Mode Vídeo disponible en Premium"

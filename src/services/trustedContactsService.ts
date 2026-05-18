@@ -55,13 +55,15 @@ export class TrustedContactsService {
         }
         
         // 1. Look for an existing app user with this phone number or email using the secure RPC
-        const { data: matchedId, error: rpcError } = await (supabase.rpc as any)('match_user_for_contact', {
-            p_phone: phone || null,
-            p_email: email || null
-        });
-
-        if (rpcError) {
-            console.error('Error matching user:', rpcError);
+        let matchedId = null;
+        try {
+            const { data, error: rpcError } = await (supabase.rpc as any)('match_user_for_contact', {
+                p_phone: phone || null,
+                p_email: email || null
+            });
+            if (!rpcError) matchedId = data;
+        } catch (e) {
+            console.error('RPC match_user_for_contact failed or not available', e);
         }
 
         const associatedUserId = matchedId || null;

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { App } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { initPushNotifications, getPushPermissionStatus } from '../services/pushService';
+import { SOSConfigSheet, type SOSConfigData } from '../components/SOSConfigSheet';
 import clsx from 'clsx';
 
 export const Settings: React.FC = () => {
@@ -15,6 +16,7 @@ export const Settings: React.FC = () => {
     const { user, isPremium, logout } = useAuth(); // Connect to AuthContext
     const [isUploading, setIsUploading] = useState(false);
     const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+    const [showSOSConfig, setShowSOSConfig] = useState(false);
     const [fileInputRef] = [useRef<HTMLInputElement>(null)];
     const [notificationStatus, setNotificationStatus] = useState<string>('checker');
     const [useMiles, setUseMiles] = useState<boolean>(localStorage.getItem('use_miles') === 'true');
@@ -113,12 +115,8 @@ export const Settings: React.FC = () => {
 
     const languages = [
         { code: 'es', name: 'Español', flag: '🇪🇸' },
-        { code: 'ca', name: 'Català', flag: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Flag_of_Catalonia.svg' },
-        { code: 'en', name: 'English', flag: '🇺🇸' },
-        { code: 'fr', name: 'Français', flag: '🇫🇷' },
-        { code: 'pt', name: 'Português', flag: '🇵🇹' },
-        { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-        { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+        { code: 'ca', name: 'Català', flag: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600"><rect width="900" height="600" fill="%23fcd116"/><rect width="900" height="66.666" y="66.666" fill="%23ce1126"/><rect width="900" height="66.666" y="200" fill="%23ce1126"/><rect width="900" height="66.666" y="333.333" fill="%23ce1126"/><rect width="900" height="66.666" y="466.666" fill="%23ce1126"/></svg>' },
+        { code: 'en', name: 'English', flag: '🇺🇸' }
     ];
 
     const changeLanguage = (lng: string) => {
@@ -131,7 +129,21 @@ export const Settings: React.FC = () => {
             title: t('settings.groups.security_circle'),
             items: [
                 { icon: "group", label: t('settings.items.circle_management'), subLabel: t('settings.items.circle_management_sub'), path: "/contacts" },
-                { icon: "verified_user", label: t('settings.items.protection_level'), subLabel: isPremium ? t('settings.profile_section.premium_member') : t('settings.profile_section.free_member'), path: "/subscription" },
+                { 
+                    icon: isPremium ? "workspace_premium" : "verified_user", 
+                    label: t('settings.items.protection_level'), 
+                    subLabel: isPremium ? t('settings.profile_section.premium_member') : t('settings.profile_section.free_member'), 
+                    path: "/subscription",
+                    iconColor: isPremium ? "text-yellow-400" : "text-primary",
+                    isPremiumCTA: !isPremium
+                },
+                { 
+                    icon: "settings_suggest", 
+                    label: "Configuración SOS", 
+                    subLabel: "Ajustar protocolo y contactos", 
+                    action: "reconfigure-sos",
+                    iconColor: "text-red-500"
+                },
             ]
         },
         {
@@ -255,13 +267,18 @@ export const Settings: React.FC = () => {
                                                 setUseMiles(newValue);
                                                 Preferences.set({ key: 'use_miles', value: String(newValue) });
                                                 localStorage.setItem('use_miles', String(newValue));
+                                            } else if ((item as any).action === 'reconfigure-sos') {
+                                                setShowSOSConfig(true);
                                             } else if (item.path) {
                                                 navigate(item.path);
                                             }
                                         }}
                                         className={clsx(
-                                            "flex items-center gap-4 px-6 py-4 hover:bg-white/5 transition-colors text-left",
-                                            itemIndex !== group.items.length - 1 && "border-b border-white/5"
+                                            "flex items-center gap-4 transition-colors text-left",
+                                            (item as any).isPremiumCTA 
+                                                ? "bg-primary/10 border border-primary/30 rounded-2xl mx-4 my-3 px-4 py-4 hover:bg-primary/20" 
+                                                : "px-6 py-4 hover:bg-white/5",
+                                            itemIndex !== group.items.length - 1 && !(item as any).isPremiumCTA && "border-b border-white/5"
                                         )}
                                     >
                                         <div className={clsx(
@@ -329,7 +346,7 @@ export const Settings: React.FC = () => {
                                             i18n.language.startsWith(lang.code) ? "bg-primary/10 text-primary" : "text-white"
                                         )}
                                     >
-                                        {lang.flag.startsWith('http') ? (
+                                        {lang.flag.startsWith('http') || lang.flag.startsWith('data:') ? (
                                             <img src={lang.flag} alt={lang.name} className="size-6 rounded-sm object-cover" />
                                         ) : (
                                             <span className="text-2xl">{lang.flag}</span>
@@ -366,6 +383,17 @@ export const Settings: React.FC = () => {
                 <p>{t('settings.version')} 1.0.0 ({t('settings.build')} 5)</p>
                 <p className="mt-1">© 2026 {t('onboarding.welcome.title')} App.</p>
             </div>
+
+            {/* SOS Config Sheet Overlay */}
+            <SOSConfigSheet
+                isOpen={showSOSConfig}
+                onClose={() => setShowSOSConfig(false)}
+                onSave={async (config) => {
+                    await Preferences.set({ key: 'sos_config', value: JSON.stringify(config) });
+                    setShowSOSConfig(false);
+                }}
+                currentConfig={JSON.parse(localStorage.getItem('sos_config') || '{}')}
+            />
         </div>
     );
 };

@@ -13,7 +13,8 @@
     "save": "Guardar",
     "success": "Éxito",
     "user": "Usuario",
-    "go": "IR"
+    "go": "IR",
+    "report": "Reportar"
   },
   "auth": {
     "login_tab": "Ingresar",
@@ -35,9 +36,9 @@
     "login_btn": "Iniciar Sesión",
     "register_btn": "Registrarme",
     "reset_btn": "Recuperar Cuenta",
-    "continue_with": "O continúa con",
+    "continue_with": "O continúa con", "continue_with_apple": "Continuar con Apple",
     "google": "Google",
-    "apple": "Apple ID",
+    "apple": "Apple",
     "app_subtitle": "Tu experiencia urbana, guiada y segura",
     "terms_prefix": "Al continuar, aceptas nuestros",
     "terms_link": "Términos",
@@ -56,6 +57,11 @@
     "portuguese": "Portugués",
     "german": "Alemán",
     "italian": "Italiano"
+  },
+  "shell": {
+    "error_title": "Algo salió mal",
+    "restart_app": "Reiniciar App",
+    "location_monitored": "Ubicación monitoreada para tu seguridad"
   },
   "nav": {
     "map": "Mapa",
@@ -88,7 +94,9 @@
     "poi_open": "Abierto",
     "poi_rating": "Valoración",
     "poi_price": "Precio",
-    "no_family_members": "Invita a familiares para verlos en el mapa"
+    "no_family_members": "Invita a familiares para verlos en el mapa",
+    "report_danger": "Reportar Incidencia",
+    "report_danger_desc": "Avisa a otros usuarios sobre peligros en tu ubicación actual."
   },
   "map": {
     "light_notice": "Aviso de iluminación",
@@ -96,14 +104,18 @@
     "attention_zone": "Zona de atención",
     "incident_road": "Vía con incidencias",
     "incident": "Incidencia",
+    "incident_desc": "Incidencia reportada por un usuario cercano.",
     "construction": "Obras",
+    "construction_desc": "Zona en obras o cortada temporalmente.",
     "traffic": "Tráfico",
+    "traffic_desc": "Problemas de tráfico reportados en la vía.",
     "poi": "Zona de interés",
-    "active_zone_detected": "Zona activa detectada"
+    "active_zone_detected": "Zona activa detectada",
+    "dark_desc": "Zona poco iluminada, mantenga precaución."
   },
   "chat": {
     "welcome": "Hola, soy Red, tu guía de experiencias urbanas. ¿En qué puedo ayudarte hoy?",
-    "default_fallback": "Entiendo tu consulta. Como tu asistente Urban Guide, estoy aquí para guiarte en las rutas más agradables y cómodas.",
+    "default_fallback": "Entiendo tu consulta. Como tu asistente RedCarpet, estoy aquí para guiarte en las rutas más agradables y cómodas.",
     "faq_sos": "Si lo necesitas, puedes avisar a tus contactos rápidamente desde el panel de control. He avisado a tus contactos prioritarios para que vean tu trayecto.",
     "faq_route": "Puedo calcular la ruta más cómoda para ti. Abre el mapa y selecciona tu destino; priorizaré calles bien iluminadas y zonas agradables.",
     "faq_family": "Puedes ver la ubicación de tu grupo en tiempo real desde la pestaña 'Círculo' en el mapa principal.",
@@ -111,10 +123,10 @@
     "faq_greeting": "¡Hola! Soy Red. Te acompaño en tu trayecto. ¿Hay algo específico en lo que pueda ayudarte ahora?",
     "online": "En línea",
     "not_found_prompt": "¿No has encontrado lo que buscabas?",
-    "contact_support_desc": "Contacta directamente con nuestro equipo de soporte técnico 24/7 de Urban Guide.",
+    "contact_support_desc": "Contacta directamente con nuestro equipo de soporte técnico 24/7 de RedCarpet.",
     "contact_support_btn": "Contactar Soporte",
     "placeholder": "Pregunta a Red...",
-    "powered_by": "Tecnología de IA de Urban Guide",
+    "powered_by": "Tecnología de IA de RedCarpet",
     "name": "RED IA"
   },
   "transit": {
@@ -210,28 +222,28 @@
     "legal_notice": "Aviso Legal & EULA"
   },
   "emergency": {
-    "sos_title": "NOTAS DEL TRAYECTO",
-    "instructions": "Mantén pulsado para avisar de tu trayecto",
-    "cancel": "Cancelar",
-    "disclaimer": "Urban Guide es una aplicación de movilidad urbana. No es un servicio de emergencias ni está afiliado a cuerpos policiales. Facilita la comunicación con contactos de confianza. No garantiza respuesta de autoridades."
+    "sos_title": "PROTOCOLO SOS",
+    "instructions": "Pulsa el botón para activar el protocolo",
+    "cancel": "Cancelar Alerta",
+    "disclaimer": "RedCarpet facilita la comunicación con tus contactos de confianza. No es un sustituto de los servicios oficiales de emergencia, aunque permite el enlace directo con el 112."
   },
   "premium": {
     "pro": "PRO",
     "individual": {
       "title": "Premium Individual",
-      "subtitle": "Disfruta de la ciudad con total comodidad."
+      "subtitle": "Desbloquea IA urbana, asistencia en vivo 24/7 y tranquilidad absoluta."
     },
     "student": {
       "title": "Plan Estudiantes",
-      "subtitle": "Haz que tus trayectos sean más agradables."
+      "subtitle": "Trayectos a casa siempre acompañados. La seguridad que mereces."
     },
     "72h": {
       "title": "Pase 72h",
-      "subtitle": "Actívalo cuando más lo necesites."
+      "subtitle": "Ideal para escapadas, viajes de negocios y grandes festivales."
     },
     "family": {
       "title": "Plan Familiar",
-      "subtitle": "Para los que viajan siempre acompañados.",
+      "subtitle": "Protege a tu círculo. Notificaciones automáticas y visibilidad compartida.",
       "members": "Hasta 6 Miembros",
       "members_desc": "Ubicación y Avisos Compartidos",
       "geofences": "Zonas Ilimitadas",
@@ -281,18 +293,18 @@
       "step3": "• Más acompañado.",
       "step4": "• Más preparado.",
       "step5": "• Más tranquilo.",
-      "step6": "• Más Urban Guide.",
+      "step6": "• Más RedCarpet.",
       "start": "COMENZAR EXPERIENCIA"
     },
-    "price_individual_monthly": "9,99€",
-    "price_individual_annual": "89,99€",
+    "price_individual_monthly": "12,99€",
+    "price_individual_annual": "79,99€",
     "price_student": "4,99€",
     "price_72h": "2,99€",
     "price_family": "14,99€"
   },
   "onboarding": {
     "welcome": {
-      "title": "Bienvenida a Urban Guide",
+      "title": "Bienvenida a RedCarpet",
       "subtitle": "Tu guía de movilidad y experiencia urbana compartida."
     },
     "permissions": {
@@ -325,8 +337,8 @@
     "edit": "Editar",
     "device": "Dispositivo",
     "email": "Email",
-    "companion_v1": "Urban Guide Companion v1",
-    "secure_protocol": "Protocolo Seguro Urban Guide v3.5",
+    "companion_v1": "RedCarpet Companion v1",
+    "secure_protocol": "Protocolo Seguro RedCarpet v3.5",
     "logout": "Cerrar Sesión",
     "update_success": "Nombre actualizado correctamente",
     "update_error": "Error al actualizar nombre",
@@ -372,7 +384,7 @@
     "subtitle": "Acuerdo de Licencia y Descargo de Responsabilidad",
     "disclaimer_title": "IMPORTANTE: DESCARGO DE RESPONSABILIDAD",
     "disclaimer_quote": "\"Esta aplicación no sustituye a servicios de emergencia ni está afiliada a autoridades públicas.\"",
-    "description_1": "Urban Guide es una aplicación de experiencia y movilidad urbana que permite visualizar rutas iluminadas y compartir la ubicación con contactos de confianza.",
+    "description_1": "RedCarpet es una aplicación de experiencia y movilidad urbana que permite visualizar rutas iluminadas y compartir la ubicación con contactos de confianza.",
     "description_2": "En caso de emergencia, el usuario debe contactar directamente con los servicios oficiales (por ejemplo, 112 en España).",
     "description_3": "La funcionalidad de aviso facilita la comunicación con contactos, pero no garantiza respuesta, seguimiento ni intervención por parte de autoridades.",
     "location_title": "Uso de Ubicación y GPS",
@@ -459,7 +471,7 @@
     "add_prompt_name_default": "Mamá",
     "add_prompt_phone": "Introduce su número de teléfono (con código de país ej: +34)",
     "add_prompt_email": "Introduce su correo electrónico (opcional, para sincronizar)",
-    "sync_alert": "¡{{name}} usa Urban Guide! Le hemos enviado una solicitud de sincronización. Mientras tanto, tu alerta funcionará de manera tradicional (SMS).",
+    "sync_alert": "¡{{name}} usa RedCarpet! Le hemos enviado una solicitud de sincronización. Mientras tanto, tu alerta funcionará de manera tradicional (SMS).",
     "add_error": "Error añadiendo contacto",
     "delete_confirm": "¿Estás seguro de que quieres eliminar a {{name}} de tus contactos de confianza?",
     "delete_error": "Error eliminando contacto",
@@ -473,33 +485,33 @@
     "placeholder": "Escribe aquí tus sugerencias...",
     "send": "Enviar Comentario",
     "thanks": "¡Gracias!",
-    "thanks_desc": "Tu opinión nos ayuda a hacer Urban Guide cada vez mejor.",
+    "thanks_desc": "Tu opinión nos ayuda a hacer RedCarpet cada vez mejor.",
     "store_review_confirm": "¡Muchas gracias por tu valoración! ¿Te gustaría dedicarnos 1 minuto y dejarnos una reseña positiva en la tienda? Nos ayudaría muchísimo."
   },
   "notifications": {
-    "title": "Centro de Avisos",
+    "title": "Centro de Seguridad",
     "just_now": "Hace un momento",
     "mins_ago": "Hace {{count}} min",
     "hours_ago": "Hace {{count}} h",
     "days_ago": "Hace {{count}} d",
     "unknown_contact": "Un contacto",
-    "journey_alert_title": "Aviso de Trayecto: {{name}}",
-    "journey_finished_title": "Trayecto Finalizado: {{name}}",
-    "update_processed": "Actualización de movilidad procesada.",
+    "journey_alert_title": "Alerta SOS: {{name}}",
+    "journey_finished_title": "Seguridad: {{name}} ha llegado",
+    "update_processed": "Actualización de seguridad procesada.",
     "open_map": "Abrir mapa",
     "view_history": "Ver historial",
-    "welcome_title": "Centro de Avisos Activo",
-    "welcome_message": "Aquí aparecerán los avisos de trayecto e incidencias urbanas de tu círculo familiar.",
+    "welcome_title": "Escudo Activo",
+    "welcome_message": "Aquí aparecerán las alertas de seguridad e incidencias críticas de tu círculo familiar.",
     "all_clear": "Todo en orden",
     "no_notifications": "No tienes notificaciones nuevas",
     "privacy_footer": "Tus datos de trayecto están protegidos con encriptación de extremo a extremo."
   },
   "privacy": {
     "back": "Volver",
-    "title": "POLÍTICA DE PRIVACIDAD – URBAN GUIDE",
+    "title": "POLÍTICA DE PRIVACIDAD – REDCARPET",
     "subtitle": "GUÍA DE EXPERIENCIA URBANA E ILUMINACIÓN",
     "last_updated": "Última actualización",
-    "intro_p1": "En URBAN GUIDE consideramos la privacidad de nuestros usuarios como un derecho absoluto. Cada dato que compartes con nosotros es tratado con el máximo nivel de protección legal y técnica, asegurando que tu información personal siempre esté bajo tu control mientras disfrutas de una mejor experiencia al moverte por la ciudad.",
+    "intro_p1": "En REDCARPET consideramos la privacidad de nuestros usuarios como un derecho absoluto. Cada dato que compartes con nosotros es tratado con el máximo nivel de protección legal y técnica, asegurando que tu información personal siempre esté bajo tu control mientras disfrutas de una mejor experiencia al moverte por la ciudad.",
     "intro_p2": "Nuestra aplicación cumple estrictamente y de manera verificable con todas las leyes y regulaciones relevantes, incluyendo:",
     "regulations_list": [
       "Reglamento General de Protección de Datos (RGPD / GDPR) – Reglamento (UE) 2016/679.",
@@ -511,7 +523,7 @@
       "Protocolos de Evaluación de Impacto en Protección de Datos (EIPD).",
       "Legislación sobre comercio electrónico y protección del consumidor."
     ],
-    "commitment_title": "En URBAN GUIDE estamos comprometidos con tu tranquilidad y control absoluto sobre tus datos:",
+    "commitment_title": "En REDCARPET estamos comprometidos con tu tranquilidad y control absoluto sobre tus datos:",
     "commitments_list": [
       "Transparencia total: siempre sabrás qué datos recopilamos y cómo los usamos.",
       "Seguridad máxima: cifrado en tránsito y reposo, autenticación reforzada.",
@@ -521,11 +533,11 @@
     ],
     "intro_footer": "Nuestro objetivo es que cada usuario se sienta protegido, informado y seguro desde el primer momento.",
     "section1_title": "1. Identidad del Responsable del Tratamiento",
-    "section1_content": "El responsable del tratamiento de los datos personales es URBAN GUIDE, titular de la aplicación móvil destinada a la mejora de la experiencia urbana mediante tecnología de geolocalización y recomendación de rutas iluminadas.",
+    "section1_content": "El responsable del tratamiento de los datos personales es REDCARPET, titular de la aplicación móvil destinada a la mejora de la experiencia urbana mediante tecnología de geolocalización y recomendación de rutas iluminadas.",
     "section2_title": "2. Marco Normativo Aplicable",
     "section2_content": "El tratamiento de datos personales se realiza conforme al RGPD, LOPDGDD y normativa española aplicable.",
     "section3_title": "3. Principios Rectores del Tratamiento",
-    "section3_content": "URBAN GUIDE trata los datos personales respetando los principios de licitud, limitación de la finalidad, minimización, exactitud, integridad y responsabilidad proactiva.",
+    "section3_content": "REDCARPET trata los datos personales respetando los principios de licitud, limitación de la finalidad, minimización, exactitud, integridad y responsabilidad proactiva.",
     "section4_title": "4. Categorías de Datos Tratados",
     "section4_1_title": "4.1 Datos Identificativos",
     "section4_1_list": ["Nombre y apellidos.", "Dirección postal.", "Correo electrónico.", "Número de teléfono."],
@@ -535,7 +547,7 @@
     "section4_3_list": ["Ubicación GPS en tiempo real.", "Historial de ubicaciones.", "Frecuencia de visitas.", "Tiempo de permanencia.", "Horarios habituales.", "Patrones de desplazamiento."],
     "section4_4_title": "4.4 Datos Económicos",
     "section4_4_list": ["Datos de facturación.", "Historial de pagos.", "Información contable."],
-    "section4_footer": "URBAN GUIDE declara expresamente que no trata categorías especiales de datos personales (Art. 9 RGPD).",
+    "section4_footer": "REDCARPET declara expresamente que no trata categorías especiales de datos personales (Art. 9 RGPD).",
     "section5_title": "5. Finalidades del Tratamiento",
     "section5_list": [
       "Prestación del servicio de guía urbana y visualización de rutas.",
@@ -568,29 +580,29 @@
     ],
     "section7_footer": "Finalizados los plazos, los datos serán eliminados o anonimizados de forma irreversible.",
     "section8_title": "8. Comunicación y Notificaciones",
-    "section8_content": "URBAN GUIDE podrá enviarte notificaciones push relacionadas con la seguridad del servicio y actualizaciones de la política. Puedes gestionarlas en ajustes.",
+    "section8_content": "REDCARPET podrá enviarte notificaciones push relacionadas con la seguridad del servicio y actualizaciones de la política. Puedes gestionarlas en ajustes.",
     "section9_title": "9. Derechos del Usuario",
     "section9_content": "Puedes ejercer tus derechos de acceso, rectificación, supresión y portabilidad enviando un correo a soporte@urbanguide.app.",
     "section10_title": "10. Cambios en la Política",
-    "section10_content": "URBAN GUIDE se reserva el derecho de modificar esta política. Te notificaremos cualquier cambio sustancial."
+    "section10_content": "REDCARPET se reserva el derecho de modificar esta política. Te notificaremos cualquier cambio sustancial."
   },
   "terms": {
     "title": "Términos del Servicio",
     "last_updated": "Última actualización",
     "section1_title": "1. Aceptación de los Términos",
-    "section1_content": "Al acceder y utilizar Urban Guide, usted acepta estar sujeto a estos Términos del Servicio y a todas las leyes y regulaciones aplicables. Si no está de acuerdo con alguno de estos términos, tiene prohibido usar o acceder a este sitio.",
+    "section1_content": "Al acceder y utilizar RedCarpet, usted acepta estar sujeto a estos Términos del Servicio y a todas las leyes y regulaciones aplicables. Si no está de acuerdo con alguno de estos términos, tiene prohibido usar o acceder a este sitio.",
     "section2_title": "2. Licencia de Uso",
-    "section2_content": "Se concede permiso para descargar temporalmente una copia de los materiales (información o software) en la aplicación de Urban Guide solo para visualización transitoria personal y no comercial. Esta es la concesión de una licencia, no una transferencia de título.",
+    "section2_content": "Se concede permiso para descargar temporalmente una copia de los materiales (información o software) en la aplicación de RedCarpet solo para visualización transitoria personal y no comercial. Esta es la concesión de una licencia, no una transferencia de título.",
     "section3_title": "3. Renuncia",
-    "section3_content": "Los materiales en la aplicación de Urban Guide se proporcionan 'tal cual'. Urban Guide no ofrece garantías, expresas o implícitas, y por la presente renuncia y niega todas las demás garantías, incluidas, entre otras, las garantías implícitas o las condiciones de comerciabilidad, idoneidad para un propósito particular o no infracción de la propiedad intelectual u otra violación de derechos.",
+    "section3_content": "Los materiales en la aplicación de RedCarpet se proporcionan 'tal cual'. RedCarpet no ofrece garantías, expresas o implícitas, y por la presente renuncia y niega todas las demás garantías, incluidas, entre otras, las garantías implícitas o las condiciones de comerciabilidad, idoneidad para un propósito particular o no infracción de la propiedad intelectual u otra violación de derechos.",
     "section4_title": "4. Limitaciones",
-    "section4_content": "En ningún caso Urban Guide o sus proveedores serán responsables de ningún daño (incluidos, entre otros, daños por pérdida de datos o ganancias, o debido a la interrupción del negocio) que surjan del uso o la imposibilidad de usar los materiales en Urban Guide.",
+    "section4_content": "En ningún caso RedCarpet o sus proveedores serán responsables de ningún daño (incluidos, entre otros, daños por pérdida de datos o ganancias, o debido a la interrupción del negocio) que surjan del uso o la imposibilidad de usar los materiales en RedCarpet.",
     "section5_title": "5. Servicios de Ubicación y Trayecto",
     "section5_content": "Nuestros servicios incluyen funciones de movilidad y ubicación. Usted reconoce que estos servicios dependen de la conectividad de la red y del GPS, y no deben considerarse como un sustituto de los servicios de emergencia profesionales.",
     "section6_title": "6. Ley Gobernante",
     "section6_content": "Estos términos y condiciones se rigen e interpretan de acuerdo con las leyes de España y usted se somete irrevocablemente a la jurisdicción exclusiva de los tribunales de dicho estado o ubicación.",
     "section7_title": "7. Suscripciones y Pagos (Apple App Store)",
-    "section7_p1": "Urban Guide ofrece suscripciones premium auto-renovables ('Urban Guide Pro'). Al comprar una suscripción, el pago se cargará a su cuenta de ID de Apple en la confirmación de la compra.",
+    "section7_p1": "RedCarpet ofrece suscripciones premium auto-renovables ('RedCarpet Pro'). Al comprar una suscripción, el pago se cargará a su cuenta de ID de Apple en la confirmación de la compra.",
     "section7_list": [
       "La suscripción se renueva automáticamente a menos que se cancele al menos 24 horas antes del final del período actual.",
       "Se le cobrará a su cuenta la renovación dentro de las 24 horas previas al final del período actual, indicando el coste de la renovación.",

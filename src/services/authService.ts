@@ -110,6 +110,16 @@ export function onAuthStateChange(callback: (event: string, session: any) => voi
  * Sign in with email and password (alias for signInWithPassword)
  */
 export async function signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
+    // Apple Reviewer Bypass
+    if (email.toLowerCase() === 'rosell.roger@icloud.com') {
+        console.log('[AuthService] Apple Reviewer Bypass triggered for:', email);
+        const demoResult = await signInAsDemo();
+        return {
+            user: { ...demoResult.user, email } as AuthUser,
+            error: null,
+        };
+    }
+
     const result = await signInWithPassword({ email, password });
     return {
         user: result.user as AuthUser | null,

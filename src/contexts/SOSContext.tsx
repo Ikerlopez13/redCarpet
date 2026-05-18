@@ -13,9 +13,16 @@ export function SOSProvider({ children }: { children: ReactNode }) {
     const [initialMode, setInitialMode] = useState<'discrete' | 'visible' | undefined>(undefined);
     const [showConsent, setShowConsent] = useState(false);
     const [familyGroup, setFamilyGroup] = useState<FamilyGroup | null>(null);
+    const [isConfigured, setIsConfigured] = useState<boolean>(true); // Default to true to prevent flash
     const { user } = useAuth();
 
     useEffect(() => {
+        const checkConfig = async () => {
+            const { value } = await (await import('@capacitor/preferences')).Preferences.get({ key: 'sos_config' });
+            setIsConfigured(!!value);
+        };
+        checkConfig();
+
         if (user) {
             getFamilyData(user.id).then(({ group }) => {
                 if (group) setFamilyGroup(group);
@@ -62,7 +69,9 @@ export function SOSProvider({ children }: { children: ReactNode }) {
         // Internal state used by App.tsx
         showConsent,
         handleConsentGiven,
-        setShowConsent
+        setShowConsent,
+        isConfigured,
+        setIsConfigured
     };
 
     return (

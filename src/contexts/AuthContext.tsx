@@ -88,7 +88,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const initAuth = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                // Race with a 2s timeout so slow native Supabase never blocks the UI forever
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise<{ data: { session: null }, error: null }>(
+                    resolve => setTimeout(() => resolve({ data: { session: null }, error: null }), 2000)
+                );
+                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+                
                 if (session) {
                     if (mounted) {
                         const loggedUser = session.user as AuthUser;
@@ -96,14 +102,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setIsLoading(false);
                         fetchAndSetProfile(loggedUser);
 
-                        // Initialize RevenueCat for native platform
-                        RevenueCatService.initialize(loggedUser.id).then(() => {
-                            updatePremiumStatus(loggedUser).then(hasPremium => {
+                        // Initialize RevenueCat for native platform (non-blocking)
+                        RevenueCatService.initialize(loggedUser.id)
+                            .then(() => updatePremiumStatus(loggedUser))
+                            .then(hasPremium => {
                                 if (hasPremium) {
                                     BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
                                 }
-                            });
-                        });
+                            })
+                            .catch(err => console.warn('[AuthContext] RevenueCat init error (non-fatal):', err));
                     }
                 } else {
                     if (mounted) setIsLoading(false);
@@ -131,11 +138,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         });
 
+        // Ultimate safety net: if after 5s isLoading is still true, force it off
         const timeoutId = setTimeout(() => {
-            if (mounted && isLoading) {
+            if (mounted) {
                 setIsLoading(false);
             }
-        }, 3000);
+        }, 5000);
 
         return () => {
             mounted = false;

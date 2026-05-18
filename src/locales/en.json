@@ -35,9 +35,9 @@
     "login_btn": "Login",
     "register_btn": "Register",
     "reset_btn": "Recover Account",
-    "continue_with": "Or continue with",
+    "continue_with": "Or continue with", "continue_with_apple": "Continue with Apple",
     "google": "Google",
-    "apple": "Apple ID",
+    "apple": "Apple",
     "app_subtitle": "Your urban experience, guided and safe",
     "terms_prefix": "By continuing, you accept our",
     "terms_link": "Terms",
@@ -56,6 +56,11 @@
     "portuguese": "Portuguese",
     "german": "German",
     "italian": "Italian"
+  },
+  "shell": {
+    "error_title": "Something went wrong",
+    "restart_app": "Restart App",
+    "location_monitored": "Location monitored for your safety"
   },
   "nav": {
     "map": "Map",
@@ -187,25 +192,25 @@
     "sos_title": "JOURNEY NOTES",
     "instructions": "Hold to share journey status",
     "cancel": "Cancel",
-    "disclaimer": "Urban Guide is an urban mobility app. It is not an emergency service nor affiliated with police. The alert facilitates communication with contacts and 112 access. No official response guaranteed."
+    "disclaimer": "RedCarpet is an urban mobility app. It is not an emergency service nor affiliated with police. The alert facilitates communication with contacts and 112 access. No official response guaranteed."
   },
   "premium": {
     "pro": "PRO",
     "individual": {
       "title": "Premium Individual",
-      "subtitle": "Experience the city with total comfort."
+      "subtitle": "Unlock urban AI, 24/7 live assistance, and absolute peace of mind."
     },
     "student": {
-      "title": "Students Plan",
-      "subtitle": "Make your journeys more pleasant."
+      "title": "Student Plan",
+      "subtitle": "Journeys home always accompanied. The safety you deserve."
     },
     "72h": {
       "title": "72h Pass",
-      "subtitle": "Activate it when you need it most."
+      "subtitle": "Ideal for getaways, business trips, and large festivals."
     },
     "family": {
       "title": "Family Plan",
-      "subtitle": "For those who always travel together.",
+      "subtitle": "Protect your circle. Automatic notifications and shared visibility.",
       "members": "Up to 6 Members",
       "members_desc": "Shared Location & Alerts",
       "geofences": "Unlimited Geofences",
@@ -255,7 +260,7 @@
       "step3": "• Better accompanied.",
       "step4": "• Better prepared.",
       "step5": "• More peaceful.",
-      "step6": "• More Urban Guide.",
+      "step6": "• More RedCarpet.",
       "start": "START EXPERIENCE"
     },
     "price_individual_monthly": "9.99€",
@@ -266,7 +271,7 @@
   },
   "chat": {
     "welcome": "Hello, I'm Red, your urban experience guide. How can I help you today?",
-    "default_fallback": "I understand your request. As your Urban Guide assistant, I'm here to guide you through the most pleasant and comfortable routes.",
+    "default_fallback": "I understand your request. As your RedCarpet assistant, I'm here to guide you through the most pleasant and comfortable routes.",
     "faq_sos": "If needed, you can notify your contacts quickly from the dashboard. I've alerted your priority contacts to watch your journey.",
     "faq_route": "I can calculate the most comfortable route for you. Open the map and select your destination; I'll prioritize well-lit streets and pleasant areas.",
     "faq_family": "You can see your group's real-time location from the 'Circle' tab on the main map.",
@@ -274,10 +279,10 @@
     "faq_greeting": "Hi! I'm Red. I'm with you on your journey. Is there anything specific I can help you with now?",
     "online": "Online",
     "not_found_prompt": "Didn't find what you were looking for?",
-    "contact_support_desc": "Contact our Urban Guide 24/7 technical support team directly.",
+    "contact_support_desc": "Contact our RedCarpet 24/7 technical support team directly.",
     "contact_support_btn": "Contact Support",
     "placeholder": "Ask Red...",
-    "powered_by": "Powered by Urban Guide AI Engine",
+    "powered_by": "Powered by RedCarpet AI Engine",
     "name": "RED AI"
   },
   "transit": {
@@ -292,7 +297,7 @@
   },
   "onboarding": {
     "welcome": {
-      "title": "Welcome to Urban Guide",
+      "title": "Welcome to RedCarpet",
       "subtitle": "Your shared urban mobility and experience guide."
     },
     "permissions": {
@@ -325,8 +330,8 @@
     "edit": "Edit",
     "device": "Device",
     "email": "Email",
-    "companion_v1": "Urban Guide Companion v1",
-    "secure_protocol": "Urban Guide Secure Protocol v3.5",
+    "companion_v1": "RedCarpet Companion v1",
+    "secure_protocol": "RedCarpet Secure Protocol v3.5",
     "logout": "Logout",
     "update_success": "Name updated successfully",
     "update_error": "Error updating name",
@@ -372,7 +377,7 @@
     "subtitle": "License Agreement and Disclaimer",
     "disclaimer_title": "IMPORTANT: DISCLAIMER",
     "disclaimer_quote": "This application does not replace emergency services nor is it affiliated with public authorities.",
-    "description_1": "Urban Guide is an urban experience and mobility application that allows you to visualize illuminated routes and share your location with trusted contacts.",
+    "description_1": "RedCarpet is an urban experience and mobility application that allows you to visualize illuminated routes and share your location with trusted contacts.",
     "description_2": "In case of emergency, the user must directly contact official services (e.g., 112 in Spain).",
     "description_3": "The notification functionality facilitates communication with contacts, but does not guarantee response, follow-up, or intervention by authorities.",
     "location_title": "Location and GPS Usage",
@@ -459,7 +464,7 @@
     "add_prompt_name_default": "Mom",
     "add_prompt_phone": "Enter their phone number (with country code e.g., +34)",
     "add_prompt_email": "Enter their email (optional, for synchronization)",
-    "sync_alert": "{{name}} uses Urban Guide! We have sent them a sync request. Meanwhile, your alert will work traditionally (SMS).",
+    "sync_alert": "{{name}} uses RedCarpet! We have sent them a sync request. Meanwhile, your alert will work traditionally (SMS).",
     "add_error": "Error adding contact",
     "delete_confirm": "Are you sure you want to remove {{name}} from your trusted contacts?",
     "delete_error": "Error deleting contact",
@@ -473,7 +478,7 @@
     "placeholder": "Write your suggestions here...",
     "send": "Send Feedback",
     "thanks": "Thanks!",
-    "thanks_desc": "Your opinion helps us make Urban Guide better every day.",
+    "thanks_desc": "Your opinion helps us make RedCarpet better every day.",
     "store_review_confirm": "Thank you very much for your rating! Would you like to spend 1 minute and leave us a positive review in the store? It would help us a lot."
   },
   "notifications": {
@@ -496,10 +501,10 @@
   },
   "privacy": {
     "back": "Back",
-    "title": "PRIVACY POLICY – URBAN GUIDE",
+    "title": "PRIVACY POLICY – REDCARPET",
     "subtitle": "URBAN EXPERIENCE AND LIGHTING GUIDE",
     "last_updated": "Last updated",
-    "intro_p1": "At URBAN GUIDE, we consider the privacy of our users as an absolute right. Every piece of data you share with us is treated with the highest level of legal and technical protection, ensuring that your personal information is always under your control while you enjoy a better experience moving through the city.",
+    "intro_p1": "At REDCARPET, we consider the privacy of our users as an absolute right. Every piece of data you share with us is treated with the highest level of legal and technical protection, ensuring that your personal information is always under your control while you enjoy a better experience moving through the city.",
     "intro_p2": "Our application strictly and verifiably complies with all relevant laws and regulations, including:",
     "regulations_list": [
       "General Data Protection Regulation (GDPR) – Regulation (EU) 2016/679.",
@@ -511,7 +516,7 @@
       "Data Protection Impact Assessment (DPIA) protocols.",
       "E-commerce, payment, and consumer protection legislation."
     ],
-    "commitment_title": "At URBAN GUIDE, we are committed to your peace of mind and absolute control over your data:",
+    "commitment_title": "At REDCARPET, we are committed to your peace of mind and absolute control over your data:",
     "commitments_list": [
       "Total transparency: you will always know what data we collect and how we use it.",
       "Maximum security: encryption in transit and at rest, reinforced authentication.",
@@ -521,11 +526,11 @@
     ],
     "intro_footer": "Our goal is for every user to feel protected, informed, and secure from the first moment.",
     "section1_title": "1. Identity of the Data Controller",
-    "section1_content": "The data controller is URBAN GUIDE, owner of the mobile application aimed at improving urban experience through geolocation technology and illuminated route recommendation.",
+    "section1_content": "The data controller is REDCARPET, owner of the mobile application aimed at improving urban experience through geolocation technology and illuminated route recommendation.",
     "section2_title": "2. Applicable Regulatory Framework",
     "section2_content": "Processing of personal data is carried out in accordance with GDPR, LOPDGDD, and applicable Spanish regulations.",
     "section3_title": "3. Governing Principles of Processing",
-    "section3_content": "URBAN GUIDE processes personal data respecting principles of lawfulness, purpose limitation, data minimization, accuracy, storage limitation, integrity, and proactive responsibility.",
+    "section3_content": "REDCARPET processes personal data respecting principles of lawfulness, purpose limitation, data minimization, accuracy, storage limitation, integrity, and proactive responsibility.",
     "section4_title": "4. Categories of Data Processed",
     "section4_1_title": "4.1 Identifying Data",
     "section4_1_list": ["Full name.", "Postal address.", "Email address.", "Phone number."],
@@ -535,10 +540,10 @@
     "section4_3_list": ["Real-time GPS location.", "Location history.", "Visit frequency.", "Stay time.", "Habitual mobility hours.", "Movement patterns."],
     "section4_4_title": "4.4 Economic Data",
     "section4_4_list": ["Billing data.", "Payment history.", "Accounting information."],
-    "section4_footer": "URBAN GUIDE expressly declares that it does not process special categories of personal data (Article 9 GDPR).",
+    "section4_footer": "REDCARPET expressly declares that it does not process special categories of personal data (Article 9 GDPR).",
     "section5_title": "5. Purposes of Processing",
     "section5_list": [
-      "Provision of urban guide service and recommended route visualization.",
+      "Provision of redcarpet service and recommended route visualization.",
       "Notification to trusted contacts with real-time location transmission.",
       "Calculation and recommendation of well-lit and busy routes.",
       "Identification of interest and visibility zones.",
@@ -568,29 +573,29 @@
     ],
     "section7_footer": "Once periods end, data will be deleted or irreversibly anonymized.",
     "section8_title": "8. Communication and Notifications",
-    "section8_content": "URBAN GUIDE may send push notifications related to service security and policy updates. You can manage these in settings.",
+    "section8_content": "REDCARPET may send push notifications related to service security and policy updates. You can manage these in settings.",
     "section9_title": "9. User Rights",
     "section9_content": "You can exercise your rights of access, rectification, deletion, and portability by emailing soporte@urbanguide.app.",
     "section10_title": "10. Changes to the Policy",
-    "section10_content": "URBAN GUIDE reserves the right to modify this policy. We will notify you of any substantial changes."
+    "section10_content": "REDCARPET reserves the right to modify this policy. We will notify you of any substantial changes."
   },
   "terms": {
     "title": "Terms of Service",
     "last_updated": "Last updated",
     "section1_title": "1. Acceptance of Terms",
-    "section1_content": "By accessing and using Urban Guide, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.",
+    "section1_content": "By accessing and using RedCarpet, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.",
     "section2_title": "2. Use License",
-    "section2_content": "Permission is granted to temporarily download one copy of the materials (information or software) on the Urban Guide application for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title.",
+    "section2_content": "Permission is granted to temporarily download one copy of the materials (information or software) on the RedCarpet application for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title.",
     "section3_title": "3. Disclaimer",
-    "section3_content": "The materials on the Urban Guide application are provided 'as is'. Urban Guide makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
+    "section3_content": "The materials on the RedCarpet application are provided 'as is'. RedCarpet makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
     "section4_title": "4. Limitations",
-    "section4_content": "In no event shall Urban Guide or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on Urban Guide.",
+    "section4_content": "In no event shall RedCarpet or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on RedCarpet.",
     "section5_title": "5. Location and Mobility Services",
     "section5_content": "Our services include safety and location features. You acknowledge that these services rely on network connectivity and GPS, and should not be considered as a substitute for professional emergency services.",
     "section6_title": "6. Governing Law",
     "section6_content": "These terms and conditions are governed by and construed in accordance with the laws of Spain and you irrevocably submit to the exclusive jurisdiction of the courts in that State or location.",
     "section7_title": "7. Subscriptions and Payments (Apple App Store)",
-    "section7_p1": "Urban Guide offers auto-renewable premium subscriptions ('Urban Guide Pro'). By purchasing a subscription, payment will be charged to your Apple ID account at the confirmation of purchase.",
+    "section7_p1": "RedCarpet offers auto-renewable premium subscriptions ('RedCarpet Pro'). By purchasing a subscription, payment will be charged to your Apple ID account at the confirmation of purchase.",
     "section7_list": [
       "The subscription automatically renews unless cancelled at least 24 hours before the end of the current period.",
       "Your account will be charged for renewal within 24 hours prior to the end of the current period, indicating the renewal cost.",

@@ -92,7 +92,7 @@ export const Login: React.FC = () => {
                 <h1 
                     className="text-2xl font-black uppercase italic tracking-tighter animate-fade-in"
                 >
-                    Urban Guide
+                    RedCarpet
                 </h1>
                 <p 
                     className="text-white/50 text-[10px] font-bold uppercase tracking-[0.2em] animate-fade-in"
@@ -269,10 +269,12 @@ export const Login: React.FC = () => {
                                 if (error) setError(error);
                                 else navigate('/');
                             }}
-                            className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+                            className="h-14 bg-white text-black rounded-2xl flex items-center justify-center gap-2 hover:bg-zinc-100 transition-all active:scale-95 px-4 overflow-hidden"
                         >
-                            <span className="material-symbols-outlined text-white/50 text-xl">apple</span>
-                            <span className="text-sm font-bold">{t('auth.apple')}</span>
+                            <svg className="h-5 w-auto shrink-0 fill-current" viewBox="0 0 256 315">
+                                <path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615-.35 1.116-6.599 22.563-21.757 44.716-13.103 19.15-26.676 38.273-48.134 38.668-21.059.391-27.815-12.445-51.864-12.445-24.047 0-31.502 12.061-51.456 12.831-20.737.77-36.213-20.698-49.442-39.832-27.057-39.117-47.666-110.5-19.802-158.74 13.83-24.04 38.543-39.23 65.34-39.613 20.3-.391 39.467 13.684 51.918 13.684 12.424 0 35.632-17.13 60.165-14.654 10.27.43 39.1 4.14 57.575 31.242-1.488.922-34.335 20.024-34.004 59.528M176.54 54.2c11.042-13.393 18.467-32.021 16.425-50.55-15.918.64-35.19 10.606-46.602 23.992-10.231 11.942-19.186 30.991-16.79 49.121 17.754 1.375 35.924-9.17 46.967-22.563" />
+                            </svg>
+                            <span className="text-sm font-bold tracking-tight">{t('auth.continue_with_apple')}</span>
                         </button>
                     </div>
 

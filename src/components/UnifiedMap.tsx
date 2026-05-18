@@ -70,6 +70,7 @@ interface UnifiedMapProps {
     showMarkers?: boolean;
     familyMembers?: MapMember[];
     showIncidenceZones?: boolean;
+    externalIncidenceZones?: any[];
     showRoutes?: boolean;
     showTransit?: boolean;
     showPOIs?: boolean;
@@ -88,6 +89,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     showMarkers = true,
     familyMembers = [],
     showIncidenceZones = true,
+    externalIncidenceZones = [],
     showRoutes = false,
     showTransit = false,
     showPOIs = false,
@@ -353,7 +355,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 title: t(p.titleKey),
                                 description: t(p.descriptionKey)
                             })),
-                            ...incidenceZones
+                            ...incidenceZones,
+                            ...externalIncidenceZones
                         ]} 
                     />
                 )}

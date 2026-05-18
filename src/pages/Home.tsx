@@ -10,7 +10,7 @@ import { DraggableSheet } from '../components/layout/DraggableSheet';
 import { type POI, formatPOIDistance } from '../services/poiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useSOS } from '../contexts/SOSContext.base';
-import { getFamilyData } from '../services/familyService';
+import { TrustedContactsService } from '../services/trustedContactsService';
 import { getSafeZones, type SafeZone } from '../services/locationService';
 import { 
     getActiveAlerts, 
@@ -19,11 +19,13 @@ import {
     requestNotificationPermission,
     executeSOSProtocol
 } from '../services/sosService';
-import type { FamilyGroup, SOSAlert } from '../services/database.types';
+import type { SOSAlert } from '../services/database.types';
 import { AddSafeZoneModal } from '../components/safety/AddSafeZoneModal';
 import { NightModeWarning } from '../components/safety/NightModeWarning';
+import { ReportDangerModal } from '../components/safety/ReportDangerModal';
 import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
-import { ShieldAlert, Send, Users, Battery } from 'lucide-react';
+import { ShieldAlert, Send, Users, Battery, Shield, Zap } from 'lucide-react';
+import { UltimateSOSButton } from '../components/SOS/UltimateSOSButton';
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
 
 // Tipos para el estado de la UI
@@ -52,13 +54,14 @@ export const Home: React.FC = () => {
 
     // Estados
     const [familyMembers, setFamilyMembers] = useState<UIMember[]>([]);
-    const [familyGroup, setFamilyGroup] = useState<FamilyGroup | null>(null);
+    const [familyGroup, setFamilyGroup] = useState<any | null>(null);
 
     const [activeTab, setActiveTab] = useState<'places' | 'alerts' | 'family'>('places');
     const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
     const [showSOSConfig, setShowSOSConfig] = useState(false);
 
     const [showAddZoneModal, setShowAddZoneModal] = useState(false);
+    const [showReportDangerModal, setShowReportDangerModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState<UIMember | null>(null);
     const [sosConfig, setSOSConfig] = useState<SOSConfigData | null>(null);
     const [, setSheetHeight] = useState(45);
@@ -66,6 +69,7 @@ export const Home: React.FC = () => {
 
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
     const [activeAlerts, setActiveAlerts] = useState<SOSAlert[]>([]);
+    const [incidenceZones, setIncidenceZones] = useState<any[]>([]);
     const [pendingZoneCheck, setPendingZoneCheck] = useState<{ zoneId: string; type: string; description: string } | null>(null);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -81,50 +85,84 @@ export const Home: React.FC = () => {
             setFamilyMembers([]);
             setFamilyGroup(null);
             setSafeZones([]);
-
             return;
         }
 
-        // Delay slightly to prioritize map render
         setTimeout(async () => {
             try {
-                const { group, members } = await getFamilyData(user.id);
-                setFamilyGroup(group);
-
-                if (group) {
-                    const [zones, alerts] = await Promise.all([
-                        getSafeZones(group.id),
-                        getActiveAlerts(group.id)
-                    ]);
-                    setSafeZones(zones);
-                    setActiveAlerts(alerts);
+                const contacts = await TrustedContactsService.getContacts(user.id);
+                const acceptedContacts = contacts.filter(c => c.status === 'accepted' && c.associated_user_id);
+                
+                // Get my own active alert, plus alerts from accepted contacts
+                const relevantUserIds = [user.id, ...acceptedContacts.map(c => c.associated_user_id as string)];
+                
+                const { data: alertsData } = await supabase
+                    .from('sos_alerts')
+                    .select('*')
+                    .in('user_id', relevantUserIds)
+                    .eq('status', 'active');
                     
-                    if (isPremium || alerts.length > 0) {
-                        setActiveTab('family');
-                    }
+                const alerts = (alertsData || []) as SOSAlert[];
+                
+                const { data: dangerData } = await supabase
+                    .from('danger_zones')
+                    .select('*')
+                    .or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`);
+                    
+                const dangers = (dangerData || []) as any[];
+                
+                const [zones] = await Promise.all([
+                    getSafeZones(user.id)
+                ]);
+                
+                setSafeZones(zones);
+                setActiveAlerts(alerts);
+                setIncidenceZones(dangers.map(zone => ({
+                    id: zone.id,
+                    lat: zone.lat,
+                    lng: zone.lng,
+                    radius: zone.radius,
+                    title: (zone.type === 'dark' ? t('map.light_notice') : 
+                            zone.type === 'incident' ? t('map.incident') : 
+                            zone.type === 'construction' ? t('map.construction') : 
+                            zone.type === 'traffic' ? t('map.traffic') : t('map.poi')),
+                    description: zone.description || t('map.active_zone_detected')
+                })));
+                
+                if (alerts.length > 0) {
+                    setActiveTab('family');
                 }
 
-                if (group && members.length > 0) {
-                    // Mapear datos de DB a UI (Optimized mapping)
-                    const uiMembers: UIMember[] = members.map((m: any) => {
-                        const loc = m.location;
-                        const hasActiveAlert = activeAlerts.some((a: any) => a.user_id === m.profile.id);
-                        // Format last update time
+                if (acceptedContacts.length > 0) {
+                    // Fetch latest locations for contacts
+                    const contactIds = acceptedContacts.map(c => c.associated_user_id as string);
+                    const { data: locData } = await supabase
+                        .from('locations')
+                        .select('*')
+                        .in('user_id', contactIds)
+                        .order('created_at', { ascending: false });
+                        
+                    const locations = locData || [];
+
+                    const uiMembers: UIMember[] = acceptedContacts.map((c) => {
+                        const loc = locations.find((l: any) => l.user_id === c.associated_user_id);
+                        const hasActiveAlert = alerts.some((a) => a.user_id === c.associated_user_id);
+                        
                         let timeString = t('common.no_data') || 'Sin datos';
                         if (loc?.created_at) {
                             const date = new Date(loc.created_at);
                             const now = new Date();
-                            const diff = (now.getTime() - date.getTime()) / 1000 / 60; // minutes
+                            const diff = (now.getTime() - date.getTime()) / 1000 / 60;
                             if (diff < 1) timeString = t('common.now');
                             else if (diff < 60) timeString = `${t('common.ago')} ${Math.floor(diff)} min`;
                             else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         }
 
                         return {
-                            id: m.profile.id,
-                            name: m.profile.full_name?.split(' ')[0] || (m.profile.id === user.id ? t('home.me') : t('home.user_placeholder')),
-                            avatar: m.role === 'child' ? '👧' : m.role === 'admin' ? '👨' : '👤',
-                            avatarUrl: m.profile.avatar_url,
+                            id: c.associated_user_id as string,
+                            name: c.name,
+                            avatar: '👤',
+                            avatarUrl: null, // we could fetch profile avatar if needed
                             avatarBg: hasActiveAlert ? 'bg-red-600' : 'bg-slate-600',
                             location: hasActiveAlert ? `⚠️ ${t('home.emergency_active')}` : (loc ? t('home.current_location') : t('home.no_location')),
                             lat: loc ? loc.lat : 0,
@@ -138,14 +176,13 @@ export const Home: React.FC = () => {
                         };
                     });
                     
-                    // Extra safety: If I am in an active SOS but not in members list (unlikely), add me
-                    const myAlert = activeAlerts.find(a => a.user_id === user.id);
+                    const myAlert = alerts.find(a => a.user_id === user.id);
                     if (myAlert && !uiMembers.find(m => m.id === user.id)) {
                         uiMembers.push({
                             id: user.id,
                             name: t('home.me'),
                             avatar: '👤',
-                            avatarUrl: user.profile?.avatar_url,
+                            avatarUrl: user.profile?.avatar_url || null,
                             avatarBg: 'bg-red-600',
                             location: `⚠️ ${t('home.emergency_active')}`,
                             lat: myAlert.lat || 0,
@@ -173,26 +210,37 @@ export const Home: React.FC = () => {
 
     // Suscribir a alertas en tiempo real
     useEffect(() => {
-        if (!user || !familyGroup) return;
+        if (!user) return;
 
-        const { unsubscribe } = subscribeToSOSAlerts(familyGroup.id, (newAlert) => {
-            console.log('New SOS alert received:', newAlert);
-            setActiveAlerts(prev => [newAlert, ...prev.filter(a => a.id !== newAlert.id)]);
-            setActiveTab('family');
-            loadData(); // Reload to update member icons
-        });
+        const subscription = supabase
+            .channel(`sos-alerts-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'sos_alerts'
+                    // We can't filter by group_id anymore easily since it's user.id or contact's user.id, so we just listen to all and reload data
+                },
+                (payload: any) => {
+                    console.log('New SOS alert received:', payload.new);
+                    // Just reload the data to get the latest state
+                    loadData();
+                }
+            )
+            .subscribe();
 
         // Listen for danger zone re-confirmation requests
         const handleZoneCheck = (e: any) => {
             setPendingZoneCheck(e.detail);
         };
-        window.addEventListener('danger-zone-check', handleZoneCheck);
+        window.addEventListener('incidence-zone-check', handleZoneCheck);
 
         return () => {
-            unsubscribe();
-            window.removeEventListener('danger-zone-check', handleZoneCheck);
+            supabase.removeChannel(subscription);
+            window.removeEventListener('incidence-zone-check', handleZoneCheck);
         };
-    }, [user, familyGroup]);
+    }, [user]);
 
     // Onboarding check
     useEffect(() => {
@@ -251,11 +299,10 @@ export const Home: React.FC = () => {
         
         // Trigger permissions request
         requestInitialPermissions();
-    }, [user, familyGroup?.id]);
+    }, [user]);
 
-    // Suscribir a ubicaciones en tiempo real
     useEffect(() => {
-        if (!user || !familyGroup) return;
+        if (!user) return;
 
         const subscription = supabase
             .channel('location-updates')
@@ -285,7 +332,7 @@ export const Home: React.FC = () => {
         return () => {
             subscription.unsubscribe();
         };
-    }, [user, familyGroup]);
+    }, [user]);
 
     // Lógica de búsqueda autocompletada
     useEffect(() => {
@@ -326,12 +373,40 @@ export const Home: React.FC = () => {
         });
     };
 
+    const clickCountRef = useRef(0);
+    const lastClickTimeRef = useRef(0);
+
+    const handleMapShortcut = () => {
+        const now = Date.now();
+        if (now - lastClickTimeRef.current < 500) {
+            clickCountRef.current += 1;
+        } else {
+            clickCountRef.current = 1;
+        }
+        lastClickTimeRef.current = now;
+
+        if (clickCountRef.current === 3) {
+            console.log('[Home] Map Triple-Click SOS Shortcut Triggered');
+            openSOSModal('visible', true);
+            clickCountRef.current = 0;
+        }
+    };
+
     return (
-        <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative">
+        <div 
+            className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative"
+            onClick={handleMapShortcut}
+        >
 
             {/* Header con buscador - Cleaned version (Floating) */}
-            <div className="absolute top-0 left-0 right-0 z-40 flex flex-col gap-3 px-4 pt-14 pb-3 pointer-events-none">
-                <div className="flex items-center gap-3 pointer-events-auto">
+            
+            {/* Quick SOS Floating Button */}
+            <div className="absolute top-[270px] right-4 z-40 animate-fade-in">
+                <UltimateSOSButton />
+            </div>
+
+            <div className="absolute top-12 left-0 right-0 z-40 px-6 flex justify-between items-center pointer-events-none">
+                <div className="flex items-center gap-3 pointer-events-auto w-full">
                     <div className={clsx(
                         "flex-1 flex items-center gap-3 px-4 py-3 bg-zinc-900/90 backdrop-blur-md rounded-2xl border transition-all relative shadow-lg shadow-black/20",
                         showSuggestions ? "border-primary" : "border-white/10"
@@ -441,6 +516,7 @@ export const Home: React.FC = () => {
                     showMarkers={true}
                     familyMembers={familyMembers.filter(m => m.lat !== 0 && m.lng !== 0)}
                     showIncidenceZones={true}
+                    externalIncidenceZones={incidenceZones}
                     showPOIs={true}
                     onPOIClick={(poi) => {
                         setShowSuggestions(false);
@@ -451,11 +527,15 @@ export const Home: React.FC = () => {
                         setSelectedMember(id);
                     }}
                 >
-
-
-
-
-
+                    <div className="absolute top-[210px] right-4 z-40 pointer-events-auto">
+                        <button
+                            onClick={() => setShowReportDangerModal(true)}
+                            className="size-12 bg-amber-500 rounded-[1rem] border border-amber-400/50 flex items-center justify-center shadow-lg shadow-amber-500/30 text-black hover:bg-amber-400 active:scale-90 transition-all pointer-events-auto"
+                            title={t('home.report_danger') || 'Reportar peligro'}
+                        >
+                            <span className="material-symbols-outlined text-2xl font-black">warning</span>
+                        </button>
+                    </div>
                 </UnifiedMap>
             </div>
 
@@ -505,7 +585,7 @@ export const Home: React.FC = () => {
                         )}
                     >
                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
-                        {t('nav.family') || 'Family'}
+                        Tu Círculo
                     </button>
                 </div>
 
@@ -543,6 +623,21 @@ export const Home: React.FC = () => {
                                     </button>
                                 ))
                             )}
+
+                            {!isPremium && (
+                                <div 
+                                    onClick={() => navigate('/subscription')}
+                                    className="mt-2 p-4 rounded-2xl bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-between cursor-pointer hover:from-primary/30 hover:to-primary/10 transition-colors shadow-lg shadow-primary/5"
+                                >
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-white mb-0.5">{t('nav.premium')}</span>
+                                        <span className="text-xs text-white/60">{t('route.gate_unlimited')}</span>
+                                    </div>
+                                    <div className="bg-primary/20 p-2 rounded-full shadow-inner flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-primary text-sm">workspace_premium</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -550,12 +645,37 @@ export const Home: React.FC = () => {
 
                     {activeTab === 'family' && (
                         <div className="flex flex-col gap-3">
+                            {/* Detailed Security Circle Access */}
+                            <button
+                                onClick={() => navigate('/security')}
+                                className="flex items-center justify-between p-4 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 active:scale-[0.98] transition-all mb-2"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="size-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                        <Shield size={20} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-black uppercase italic tracking-tight">Círculo de Seguridad</span>
+                                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Detalle Interno</span>
+                                    </div>
+                                </div>
+                                <span className="material-symbols-outlined text-white/60">chevron_right</span>
+                            </button>
+
                             {familyMembers.length === 0 ? (
-                                <div className="p-4 text-center text-white/40 text-sm">
-                                    {t('home.no_family_members')}
+                                <div className="p-4 text-center text-white/40 text-sm flex flex-col items-center gap-3">
+                                    <span className="material-symbols-outlined text-4xl text-white/20">group_add</span>
+                                    Aún no tienes a nadie en Tu Círculo.
+                                    <button 
+                                        onClick={() => navigate('/trusted-contacts')}
+                                        className="mt-2 bg-primary text-white font-bold py-2 px-4 rounded-xl text-xs active:scale-95 transition-all"
+                                    >
+                                        Añadir Contactos
+                                    </button>
                                 </div>
                             ) : (
-                                familyMembers.map((member) => (
+                                <>
+                                {familyMembers.map((member) => (
                                     <button
                                         key={member.id}
                                         onClick={() => setSelectedMember(member.id)}
@@ -581,7 +701,19 @@ export const Home: React.FC = () => {
                                             <p className="text-[10px] text-white/20">{member.lastUpdate}</p>
                                         </div>
                                     </button>
-                                ))
+                                ))}
+                                <button 
+                                    onClick={() => navigate('/trusted-contacts')}
+                                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 border-dashed text-left hover:bg-white/10 transition-colors mt-2"
+                                >
+                                    <div className="size-10 rounded-full bg-white/5 flex items-center justify-center text-xl text-white/40">
+                                        <span className="material-symbols-outlined">add</span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-white/60">Añadir más contactos</p>
+                                    </div>
+                                </button>
+                                </>
                             )}
                         </div>
                     )}
@@ -596,15 +728,65 @@ export const Home: React.FC = () => {
                 currentConfig={sosConfig || undefined}
             />
 
-            {/* Add Safe Zone Modal */}
+            {/* Zone Verification Modal */}
+            {pendingZoneCheck && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="w-full max-w-sm bg-zinc-900 border border-white/10 rounded-[2.5rem] p-8 text-center shadow-2xl animate-scale-in">
+                        <div className="size-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-3xl">warning</span>
+                        </div>
+                        <h3 className="text-xl font-black italic uppercase tracking-tighter mb-2">Verificar Alerta</h3>
+                        <p className="text-sm text-white/60 font-medium mb-8 leading-relaxed">
+                            Acabas de pasar por una incidencia ({pendingZoneCheck.type}) reportada hace tiempo. ¿Sigue estando activa?
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={async () => {
+                                    setPendingZoneCheck(null);
+                                    const { data } = await supabase.from('danger_zones').select('votes_down').eq('id', pendingZoneCheck.zoneId).single();
+                                    if (data) {
+                                        await supabase.from('danger_zones').update({ votes_down: (data.votes_down || 0) + 1 }).eq('id', pendingZoneCheck.zoneId);
+                                    }
+                                }}
+                                className="flex-1 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-white/10 active:scale-95 transition-all"
+                            >
+                                Ya no está
+                            </button>
+                            <button 
+                                onClick={async () => {
+                                    setPendingZoneCheck(null);
+                                    const { data } = await supabase.from('danger_zones').select('votes_up').eq('id', pendingZoneCheck.zoneId).single();
+                                    if (data) {
+                                        await supabase.from('danger_zones').update({ votes_up: (data.votes_up || 0) + 1 }).eq('id', pendingZoneCheck.zoneId);
+                                    }
+                                }}
+                                className="flex-1 py-4 bg-amber-500 text-black rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                            >
+                                Sigue aquí
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Safe Zone Modal (Now using user.id instead of familyGroup) */}
             <AddSafeZoneModal
                 isOpen={showAddZoneModal}
                 onClose={() => setShowAddZoneModal(false)}
-                familyId={familyGroup?.id || ''}
+                familyId={user?.id || ''}
                 onSuccess={loadData}
             />
 
-
+            {/* Report Danger Modal */}
+            {user && (
+                <ReportDangerModal
+                    isOpen={showReportDangerModal}
+                    onClose={() => setShowReportDangerModal(false)}
+                    userLat={familyMembers.find(m => m.id === user.id)?.lat || 0}
+                    userLng={familyMembers.find(m => m.id === user.id)?.lng || 0}
+                    onSuccess={loadData}
+                />
+            )}
 
             {/* POI Detail Modal */}
             {selectedPOI && (

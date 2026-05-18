@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { UnifiedMap, LOCATIONS, type RouteGeometry } from '../components/UnifiedMap';
 import {
-    getRoute,
+    getAlternativeRoutes,
     formatDuration,
     formatDistance,
 } from '../services/directionsService';
@@ -172,32 +172,36 @@ export const RouteSelection: React.FC = () => {
         const mapboxMode = transportMode;
 
         try {
-            const baseRoute = await getRoute(origin, destCoords, mapboxMode);
+            const routesResult = await getAlternativeRoutes(origin, destCoords, mapboxMode);
 
-            if (baseRoute) {
+            if (routesResult && routesResult.fast) {
                 const aiAnalysis = analyzeRouteSecurity();
                 const isNightMode = isPremium && aiAnalysis.isNightModeActive;
 
+                const safeBase = routesResult.safe || routesResult.fast;
+                const balancedBase = routesResult.balanced || routesResult.fast;
+                const fastBase = routesResult.fast;
+
                 const safeRoute: RouteData = {
-                    time: formatDuration(Math.round(baseRoute.duration * 1.3)),
-                    distance: formatDistance(Math.round(baseRoute.distance * 1.2)),
+                    time: formatDuration(safeBase.duration),
+                    distance: formatDistance(safeBase.distance),
                     description: isNightMode ? aiAnalysis.description : t('route.safe_desc'),
                     extra: isNightMode ? t('route.ai_prioritizing') : t('route.police_presence'),
-                    geometry: baseRoute.geometry.coordinates as [number, number][]
+                    geometry: safeBase.geometry.coordinates as [number, number][]
                 };
 
                 const balancedRoute: RouteData = {
-                    time: formatDuration(baseRoute.duration),
-                    distance: formatDistance(baseRoute.distance),
+                    time: formatDuration(balancedBase.duration),
+                    distance: formatDistance(balancedBase.distance),
                     description: t('route.balanced_desc'),
-                    geometry: baseRoute.geometry.coordinates as [number, number][]
+                    geometry: balancedBase.geometry.coordinates as [number, number][]
                 };
 
                 const fastRoute: RouteData = {
-                    time: formatDuration(Math.round(baseRoute.duration * 0.85)),
-                    distance: formatDistance(Math.round(baseRoute.distance * 0.9)),
+                    time: formatDuration(fastBase.duration),
+                    distance: formatDistance(fastBase.distance),
                     description: t('route.fast_desc'),
-                    geometry: baseRoute.geometry.coordinates as [number, number][]
+                    geometry: fastBase.geometry.coordinates as [number, number][]
                 };
 
                 setRoutes({ safe: safeRoute, balanced: balancedRoute, fast: fastRoute });
@@ -477,99 +481,114 @@ export const RouteSelection: React.FC = () => {
                         /* Route Options */
                         <>
                             <div className="flex flex-col gap-2.5 mt-1">
-
-                                {/* Safe Route Card */}
-                                <div
-                                    onClick={() => {
-                                        if (!isPremium) {
-                                            openPaywall(t('route.gate_safe_nav'));
-                                        } else {
-                                            setSelectedRoute('safe');
-                                        }
-                                    }}
-                                    className={clsx(
-                                        "flex items-center gap-3 bg-green-500/5 border-2 rounded-xl px-3 py-3 justify-between cursor-pointer transition-colors relative overflow-hidden",
-                                        selectedRoute === 'safe' ? "border-green-500 shadow-lg shadow-green-500/20" : "border-white/10 opacity-80"
-                                    )}
-                                >
-                                    {!isPremium && (
-                                        <div className="absolute top-0 right-0 p-2 text-yellow-500/80">
-                                            <span className="material-symbols-outlined text-[12px] bg-black/50 rounded-full p-1" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center gap-3">
-                                        <div className={clsx("flex items-center justify-center rounded-xl shrink-0 size-10", isPremium && isNightTime() ? "text-indigo-400 bg-indigo-500/20" : "text-green-500 bg-green-500/20")}>
-                                            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>{isPremium && isNightTime() ? 'auto_awesome' : 'verified_user'}</span>
-                                        </div>
-                                        <div className="flex flex-col justify-center">
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-white text-sm font-bold leading-tight">{t('route.safe_route')}</p>
-                                                {isPremium && isNightTime() && <span className="bg-indigo-500/20 text-indigo-400 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">auto_awesome</span> AI Night</span>}
-                                                {isPremium && !isNightTime() && <span className="bg-green-500/20 text-green-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{t('route.enhanced')}</span>}
+                                {transportMode === 'transit' ? (
+                                    <div className="flex items-center gap-3 bg-blue-500/10 border-2 border-blue-500/50 rounded-xl px-4 py-6 justify-center text-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="size-12 bg-blue-500 rounded-full flex items-center justify-center text-white mb-1 shadow-lg shadow-blue-500/30">
+                                                <span className="material-symbols-outlined text-2xl">directions_transit</span>
                                             </div>
-                                            <p className={clsx("text-xs font-medium line-clamp-1", isPremium && isNightTime() ? "text-indigo-300" : "text-gray-400")}>
-                                                {routes.safe ? routes.safe.description : t('route.calculating_dots')}
+                                            <h3 className="text-white font-bold text-lg">{t('route.transit')}</h3>
+                                            <p className="text-blue-200/70 text-sm max-w-[250px]">
+                                                {t('transit.open_native_maps') || 'Abre Apple Maps o Google Maps para ver horarios y rutas exactas de transporte público.'}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end shrink-0">
-                                        <p className="text-white text-base font-bold">{routes.safe ? routes.safe.time : '--'}</p>
-                                        <p className="text-gray-400 text-[10px]">{routes.safe ? routes.safe.distance : '--'}</p>
-                                    </div>
-                                </div>
-
-                                {/* Balanced Route Card */}
-                                <div
-                                    onClick={() => setSelectedRoute('balanced')}
-                                    className={clsx(
-                                        "flex items-center gap-3 bg-zinc-900 border rounded-xl px-3 py-3 justify-between cursor-pointer opacity-80 transition-colors",
-                                        selectedRoute === 'balanced' ? "border-safety-orange" : "border-white/5"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="text-safety-orange flex items-center justify-center rounded-xl bg-safety-orange/20 shrink-0 size-10">
-                                            <span className="material-symbols-outlined text-xl">balance</span>
-                                        </div>
-                                        <div className="flex flex-col justify-center">
-                                            <p className="text-white text-sm font-bold leading-tight">{t('route.balanced_route')}</p>
-                                            <p className="text-gray-400 text-xs font-medium line-clamp-1">
-                                                {routes.balanced ? routes.balanced.description : t('route.calculating_dots')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-end shrink-0">
-                                        <p className="text-white text-base font-bold">{routes.balanced ? routes.balanced.time : '--'}</p>
-                                        <p className="text-gray-400 text-[10px]">{routes.balanced ? routes.balanced.distance : '--'}</p>
-                                    </div>
-                                </div>
-
-                                {/* Fast Route Card */}
-                                <div
-                                    onClick={() => setSelectedRoute('fast')}
-                                    className={clsx(
-                                        "flex items-center gap-3 bg-zinc-900 border rounded-xl px-3 py-3 justify-between cursor-pointer opacity-80 transition-colors",
-                                        selectedRoute === 'fast' ? "border-safety-red" : "border-white/5"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="text-safety-red flex items-center justify-center rounded-xl bg-safety-red/20 shrink-0 size-10">
-                                            <span className="material-symbols-outlined text-xl">warning</span>
-                                        </div>
-                                        <div className="flex flex-col justify-center">
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-white text-sm font-bold leading-tight">{t('route.fast_route')}</p>
-                                                <span className="bg-safety-red/20 text-safety-red text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{t('route.caution')}</span>
+                                ) : (
+                                    <>
+                                        {/* Safe Route Card */}
+                                        <div
+                                            onClick={() => {
+                                                if (!isPremium) {
+                                                    openPaywall(t('route.gate_safe_nav'));
+                                                } else {
+                                                    setSelectedRoute('safe');
+                                                }
+                                            }}
+                                            className={clsx(
+                                                "flex items-center gap-3 bg-green-500/5 border-2 rounded-xl px-3 py-3 justify-between cursor-pointer transition-colors relative overflow-hidden",
+                                                selectedRoute === 'safe' ? "border-green-500 shadow-lg shadow-green-500/20" : "border-white/10 opacity-80"
+                                            )}
+                                        >
+                                            {!isPremium && (
+                                                <div className="absolute top-0 right-0 p-2 text-yellow-500/80">
+                                                    <span className="material-symbols-outlined text-[12px] bg-black/50 rounded-full p-1" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-3">
+                                                <div className={clsx("flex items-center justify-center rounded-xl shrink-0 size-10", isPremium && isNightTime() ? "text-indigo-400 bg-indigo-500/20" : "text-green-500 bg-green-500/20")}>
+                                                    <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>{isPremium && isNightTime() ? 'auto_awesome' : 'verified_user'}</span>
+                                                </div>
+                                                <div className="flex flex-col justify-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-white text-sm font-bold leading-tight">{t('route.safe_route')}</p>
+                                                        {isPremium && isNightTime() && <span className="bg-indigo-500/20 text-indigo-400 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">auto_awesome</span> AI Night</span>}
+                                                        {isPremium && !isNightTime() && <span className="bg-green-500/20 text-green-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{t('route.enhanced')}</span>}
+                                                    </div>
+                                                    <p className={clsx("text-xs font-medium line-clamp-1", isPremium && isNightTime() ? "text-indigo-300" : "text-gray-400")}>
+                                                        {routes.safe ? routes.safe.description : t('route.calculating_dots')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <p className="text-safety-red/80 text-xs font-medium line-clamp-1">
-                                                {routes.fast ? routes.fast.description : t('route.calculating_dots')}
-                                            </p>
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <p className="text-white text-base font-bold">{routes.safe ? routes.safe.time : '--'}</p>
+                                                <p className="text-gray-400 text-[10px]">{routes.safe ? routes.safe.distance : '--'}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col items-end shrink-0">
-                                        <p className="text-white text-base font-bold">{routes.fast ? routes.fast.time : '--'}</p>
-                                        <p className="text-gray-400 text-[10px]">{routes.fast ? routes.fast.distance : '--'}</p>
-                                    </div>
-                                </div>
+
+                                        {/* Balanced Route Card */}
+                                        <div
+                                            onClick={() => setSelectedRoute('balanced')}
+                                            className={clsx(
+                                                "flex items-center gap-3 bg-zinc-900 border rounded-xl px-3 py-3 justify-between cursor-pointer opacity-80 transition-colors",
+                                                selectedRoute === 'balanced' ? "border-safety-orange" : "border-white/5"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-safety-orange flex items-center justify-center rounded-xl bg-safety-orange/20 shrink-0 size-10">
+                                                    <span className="material-symbols-outlined text-xl">balance</span>
+                                                </div>
+                                                <div className="flex flex-col justify-center">
+                                                    <p className="text-white text-sm font-bold leading-tight">{t('route.balanced_route')}</p>
+                                                    <p className="text-gray-400 text-xs font-medium line-clamp-1">
+                                                        {routes.balanced ? routes.balanced.description : t('route.calculating_dots')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <p className="text-white text-base font-bold">{routes.balanced ? routes.balanced.time : '--'}</p>
+                                                <p className="text-gray-400 text-[10px]">{routes.balanced ? routes.balanced.distance : '--'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Fast Route Card */}
+                                        <div
+                                            onClick={() => setSelectedRoute('fast')}
+                                            className={clsx(
+                                                "flex items-center gap-3 bg-zinc-900 border rounded-xl px-3 py-3 justify-between cursor-pointer opacity-80 transition-colors",
+                                                selectedRoute === 'fast' ? "border-safety-red" : "border-white/5"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-safety-red flex items-center justify-center rounded-xl bg-safety-red/20 shrink-0 size-10">
+                                                    <span className="material-symbols-outlined text-xl">warning</span>
+                                                </div>
+                                                <div className="flex flex-col justify-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-white text-sm font-bold leading-tight">{t('route.fast_route')}</p>
+                                                        <span className="bg-safety-red/20 text-safety-red text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{t('route.caution')}</span>
+                                                    </div>
+                                                    <p className="text-safety-red/80 text-xs font-medium line-clamp-1">
+                                                        {routes.fast ? routes.fast.description : t('route.calculating_dots')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <p className="text-white text-base font-bold">{routes.fast ? routes.fast.time : '--'}</p>
+                                                <p className="text-gray-400 text-[10px]">{routes.fast ? routes.fast.distance : '--'}</p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             <div className="mt-4">
@@ -586,14 +605,20 @@ export const RouteSelection: React.FC = () => {
 
                                         recordRouteStart(isPremium);
 
-                                        if (transportMode === 'transit') {
-                                            navigate('/transit-navigate', {
-                                                state: {
-                                                    origin: userLocation || LOCATIONS.HOME,
-                                                    destination: destinationCoords,
-                                                    destinationName: selectedDestination
-                                                }
-                                            });
+                                        if (transportMode === 'transit' && destinationCoords) {
+                                            const originLat = userLocation?.lat || LOCATIONS.HOME.lat;
+                                            const originLng = userLocation?.lng || LOCATIONS.HOME.lng;
+                                            const destLat = destinationCoords.lat;
+                                            const destLng = destinationCoords.lng;
+                                            
+                                            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                                            let url;
+                                            if (isIOS) {
+                                                url = `http://maps.apple.com/?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}&dirflg=r`;
+                                            } else {
+                                                url = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&travelmode=transit`;
+                                            }
+                                            window.open(url, '_blank');
                                         } else {
                                             navigate('/navigate', {
                                                 state: {

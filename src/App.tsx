@@ -8,6 +8,9 @@ import { useSOS } from './contexts/SOSContext.base';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { DeepLinkHandler } from './components/auth/DeepLinkHandler';
 import { EmergencyConsentModal } from './components/Legal/EmergencyConsentModal';
+import { SOSConfigSheet } from './components/SOSConfigSheet';
+import { Preferences } from '@capacitor/preferences';
+import { useNavigate } from 'react-router-dom';
 
 // Lazy Loaded Pages to unblock build
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
@@ -31,6 +34,7 @@ const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ de
 const EULA = lazy(() => import('./pages/EULA').then(m => ({ default: m.EULA })));
 const Emergency = lazy(() => import('./pages/Emergency').then(m => ({ default: m.Emergency })));
 const SOSActivePage = lazy(() => import('./pages/SOSActivePage').then(m => ({ default: m.SOSActivePage })));
+const Security = lazy(() => import('./pages/Security').then(m => ({ default: m.Security })));
 
 // Generic Loading Screen
 const PageLoader = () => (
@@ -39,14 +43,20 @@ const PageLoader = () => (
     </div>
 );
 
+import { useAuth } from './contexts/AuthContext';
+
 /**
  * Renders the global modals. 
  */
 const GlobalModals = () => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const { 
         showConsent, 
         handleConsentGiven, 
-        setShowConsent 
+        setShowConsent,
+        isConfigured,
+        setIsConfigured
     } = useSOS() as any;
 
     return (
@@ -55,6 +65,19 @@ const GlobalModals = () => {
                 isOpen={showConsent}
                 onConsent={handleConsentGiven}
                 onDecline={() => setShowConsent(false)}
+            />
+
+            <SOSConfigSheet
+                isOpen={!!user && !isConfigured && !showConsent}
+                onClose={() => setIsConfigured(true)}
+                onSave={async (config) => {
+                    await Preferences.set({ key: 'sos_config', value: JSON.stringify(config) });
+                    setIsConfigured(true);
+                    // Show Premium after configuration
+                    setTimeout(() => {
+                        navigate('/subscription');
+                    }, 500);
+                }}
             />
         </>
     );
@@ -98,6 +121,7 @@ function App() {
                                     <Route path="/notifications" element={<Notifications />} />
                                     <Route path="/emergency" element={<Emergency />} />
                                     <Route path="/emergency-live" element={<SOSActivePage />} />
+                                    <Route path="/security" element={<Security />} />
                                 </Route>
                             </Route>
                         </Routes>

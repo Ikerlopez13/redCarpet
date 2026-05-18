@@ -68,9 +68,11 @@ export const SOSConfigSheet: React.FC<SOSConfigSheetProps> = ({
                     <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">
                         {t('settings.sos.title')}
                     </h2>
-                    <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40">
-                        <X size={20} />
-                    </button>
+                    {currentConfig?.isConfigured && (
+                        <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40">
+                            <X size={20} />
+                        </button>
+                    )}
                 </div>
 
                 <div className="px-8 pb-10 space-y-6">

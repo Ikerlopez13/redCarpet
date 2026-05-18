@@ -42,7 +42,8 @@ export const Notifications: React.FC = () => {
             const { group, members } = await getFamilyData(user.id);
             if (group) {
                 const alerts = await getSOSHistory(group.id, 20);
-                const mapped: NotificationItem[] = alerts.map(a => {
+                const filteredAlerts = alerts.filter(a => a.user_id !== user.id);
+                const mapped: NotificationItem[] = filteredAlerts.map(a => {
                     const member = members.find(m => m.profile?.id === a.user_id);
                     const name = member?.profile?.full_name?.split(' ')[0] || t('notifications.unknown_contact');
                     

@@ -16,12 +16,14 @@ export default {
         "safety-red": "#f44336",
       },
       fontFamily: {
-        "sans": ["Inter", "sans-serif"],
-        "display": ["Inter", "sans-serif"]
+        "sans": ["'Space Grotesk'", "sans-serif"],
+        "display": ["'Space Grotesk'", "sans-serif"]
       },
       borderRadius: {
-        "xl": "0.75rem",
-        "2xl": "1.25rem",
+        "lg": "0.5rem",
+        "xl": "0.625rem",
+        "2xl": "0.875rem",
+        "3xl": "1rem",
       },
     },
   },
