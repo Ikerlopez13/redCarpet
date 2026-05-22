@@ -93,9 +93,6 @@ export async function getRoute(
     }
 }
 
-/**
- * Get multiple alternative routes (for safe/balanced/fast options)
- */
 export async function getAlternativeRoutes(
     origin: Coordinate,
     destination: Coordinate,
@@ -106,7 +103,7 @@ export async function getAlternativeRoutes(
     fast: RouteResult | null;
 }> {
     const profile = PROFILE_MAP[baseMode] || 'walking';
-
+    
     const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
         new URLSearchParams({
             access_token: MAPBOX_TOKEN,
@@ -121,36 +118,35 @@ export async function getAlternativeRoutes(
         const response = await fetch(url);
         const data = await response.json();
 
-        if (data.routes && data.routes.length > 0) {
-            // Mapbox sorts by default (fastest/optimal first)
-            // If we get multiple routes, we map them. If only one, we duplicate it but it's real data.
-            const parseRoute = (route: any): RouteResult => ({
-                distance: route.distance,
-                duration: route.duration,
-                geometry: route.geometry,
-                steps: route.legs[0].steps.map((step: any) => ({
-                    instruction: step.maneuver.instruction || 'Continúa',
-                    distance: step.distance,
-                    duration: step.duration,
-                    name: step.name || '',
-                    maneuver: step.maneuver
-                }))
-            });
-
-            const parsedRoutes = data.routes.map(parseRoute);
-            
-            // Sort by duration to classify them properly
-            parsedRoutes.sort((a: RouteResult, b: RouteResult) => a.duration - b.duration);
-
-            return {
-                fast: parsedRoutes[0],
-                // If there's a second route, it's usually a bit longer (balanced). Otherwise use fast.
-                balanced: parsedRoutes[1] || parsedRoutes[0],
-                // If there's a third route, it's the longest (we use it as "safe"). Otherwise use balanced.
-                safe: parsedRoutes[2] || parsedRoutes[1] || parsedRoutes[0]
-            };
+        if (!data.routes || data.routes.length === 0) {
+            return { safe: null, balanced: null, fast: null };
         }
-        return { safe: null, balanced: null, fast: null };
+
+        const parsedRoutes = data.routes.map((route: any) => ({
+            distance: route.distance,
+            duration: route.duration,
+            geometry: route.geometry,
+            steps: route.legs[0].steps.map((step: any) => ({
+                instruction: step.maneuver.instruction || 'Continúa',
+                distance: step.distance,
+                duration: step.duration,
+                name: step.name || '',
+                maneuver: step.maneuver
+            }))
+        })) as RouteResult[];
+
+        // Sort routes by duration ascending (fastest first)
+        parsedRoutes.sort((a, b) => a.duration - b.duration);
+
+        // Mapbox usually returns up to 3 routes
+        const fast = parsedRoutes[0];
+        // If there's only 1 route, use it for all.
+        // If there are 2, use the second as safe.
+        // If there are 3, 2nd is balanced, 3rd is safe.
+        const balanced = parsedRoutes.length > 2 ? parsedRoutes[1] : fast;
+        const safe = parsedRoutes.length > 1 ? parsedRoutes[parsedRoutes.length - 1] : fast;
+
+        return { fast, balanced, safe };
     } catch (error) {
         console.error('Error fetching alternative routes:', error);
         return { safe: null, balanced: null, fast: null };

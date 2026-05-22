@@ -208,6 +208,27 @@ export async function activateSOS(
             media_url: config.mediaUrl || null,
         };
 
+        // Fetch User Context Payload Data
+        try {
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+            const { data: recentLocations } = await supabase.from('locations').select('lat, lng, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5);
+            
+            alertData.context_payload = {
+                timestamp_ms: Date.now(),
+                battery: battery,
+                user_profile: profile ? {
+                    dob: profile.dob,
+                    habitual_city: profile.habitual_city,
+                    walking_alone_frequency: profile.walking_alone_frequency,
+                    risk_exposure_level: profile.risk_exposure_level,
+                    habitual_zones: profile.habitual_zones
+                } : null,
+                recent_locations: recentLocations || []
+            };
+        } catch (e) {
+            console.warn('[SOS-Service] Failed to fetch context payload:', e);
+        }
+
         console.log('[SOS-Service] Inserting alert into DB...');
         const alertPromise = (supabase.from('sos_alerts') as any).insert(alertData).select().single();
         const dbTimeout = new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera de base de datos agotado')), 10000));
@@ -243,7 +264,14 @@ export async function resolveSOS(alertId: string, status: 'resolved' | 'cancelle
 }
 
 export async function updateSOSAlertMedia(alertId: string, mediaUrl: string): Promise<{ error: string | null }> {
-    await (supabase.from('sos_alerts') as any).update({ media_url: mediaUrl } as any).eq('id', alertId);
+    const isVideo = mediaUrl.includes('.webm') || mediaUrl.includes('.mp4');
+    
+    await (supabase.from('sos_alerts') as any).update({ 
+        media_url: mediaUrl,
+        media_audio_url: !isVideo ? mediaUrl : null,
+        media_video_url: isVideo ? mediaUrl : null
+    } as any).eq('id', alertId);
+
     supabase.functions.invoke('send-sos-notifications', {
         body: { alertId, action: 'media_uploaded', mediaUrl, config: { message: `Media: ${mediaUrl}`, notifyContacts: true } }
     }).catch(() => {});

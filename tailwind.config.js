@@ -16,8 +16,8 @@ export default {
         "safety-red": "#f44336",
       },
       fontFamily: {
-        "sans": ["'Space Grotesk'", "sans-serif"],
-        "display": ["'Space Grotesk'", "sans-serif"]
+        "sans": ["Arial", "Helvetica", "sans-serif"],
+        "display": ["Arial", "Helvetica", "sans-serif"]
       },
       borderRadius: {
         "lg": "0.5rem",

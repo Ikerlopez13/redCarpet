@@ -18,11 +18,23 @@ export const DeepLinkHandler = () => {
         }
 
         // 2. Handle SOS Widget Trigger
-        if (url.includes('sos/activate')) {
+        if (url.includes('sos/activate') || url.includes('sos')) {
             console.log('🚨 SOS WIDGET TRIGGERED!');
             window.dispatchEvent(new CustomEvent('sos:activate_trigger', { detail: { type: 'widget' } }));
             navigate('/emergency');
             return;
+        }
+
+        // Handle WhatsApp Invite Deep Link
+        if (url.includes('invite')) {
+            const urlObj = new URL(url);
+            const hostId = urlObj.searchParams.get('host');
+            if (hostId) {
+                console.log('📩 Processing invite for host:', hostId);
+                // Redirect to contacts page with the hostId so it can process the request
+                navigate('/contacts', { state: { incomingInviteHostId: hostId } });
+                return;
+            }
         }
 
         // 3. Parse URL for tokens (Implicit Flow)

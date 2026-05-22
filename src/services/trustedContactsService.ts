@@ -1,5 +1,27 @@
 import { supabase } from './supabaseClient';
 
+// Derives a human-readable short ID from a Supabase UUID
+// e.g. "3925dd37-27cf-..." -> "#3925DD3"
+export function getShortId(userId: string): string {
+    return '#' + userId.replace(/-/g, '').substring(0, 7).toUpperCase();
+}
+
+// Finds a user by their short ID (prefix search on uuid)
+export async function findUserByShortId(shortId: string): Promise<{ id: string; full_name: string | null } | null> {
+    // Remove leading # and lowercase to match UUID prefix
+    const clean = shortId.replace(/^#/, '').toLowerCase();
+    if (clean.length < 7) return null;
+    // UUID starts with the first 7 chars of the short ID (no dashes in first segment)
+    // UUID format: 3925dd37-27cf-... → first 8 chars before first dash = 3925dd37
+    // Our short ID uses first 7 chars of UUID without dashes: 3925dd3
+    const { data, error } = await (supabase
+        .from('profiles')
+        .select('id, full_name')
+        .ilike('id', `${clean}%`) as any);
+    if (error || !data || data.length === 0) return null;
+    return data[0] as { id: string; full_name: string | null };
+}
+
 
 export interface TrustedContact {
     id: string;
@@ -149,9 +171,19 @@ export class TrustedContactsService {
     }
 
     /**
-     * Respond to a friend request
+     * Respond to a friend request and create a reciprocal connection if accepted
      */
-    static async respondToRequest(requestId: string, accept: boolean): Promise<{ error: string | null }> {
+    static async respondToRequest(requestId: string, accept: boolean, currentUserId?: string): Promise<{ error: string | null }> {
+        // Fetch the pending request details first if accepting
+        let requestInfo = null;
+        if (accept && currentUserId) {
+            const { data } = await supabase.from('pending_contact_requests' as any)
+                .select('*')
+                .eq('request_id', requestId)
+                .single();
+            requestInfo = data;
+        }
+
         const { error } = await (supabase.from('trusted_contacts') as any)
             .update({
                 status: accept ? 'accepted' : 'rejected'
@@ -161,6 +193,24 @@ export class TrustedContactsService {
         if (error) {
             console.error('Error responding to request:', error);
             return { error: error.message };
+        }
+
+        // If accepted, add the original requester to the current user's contact list
+        if (accept && requestInfo && currentUserId) {
+            try {
+                await (supabase.from('trusted_contacts') as any).insert({
+                    user_id: currentUserId,
+                    name: requestInfo.requester_name || 'Amigo',
+                    phone: '', // Number hidden for privacy if we don't have it, but they are linked
+                    relation: 'Familiar',
+                    share_location: true,
+                    notify_emergency: true,
+                    associated_user_id: requestInfo.requester_id,
+                    status: 'accepted'
+                });
+            } catch (err) {
+                console.error('Error creating reciprocal contact', err);
+            }
         }
 
         return { error: null };

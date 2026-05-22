@@ -10,7 +10,7 @@ import { DeepLinkHandler } from './components/auth/DeepLinkHandler';
 import { EmergencyConsentModal } from './components/Legal/EmergencyConsentModal';
 import { SOSConfigSheet } from './components/SOSConfigSheet';
 import { Preferences } from '@capacitor/preferences';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Lazy Loaded Pages to unblock build
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
@@ -35,6 +35,7 @@ const EULA = lazy(() => import('./pages/EULA').then(m => ({ default: m.EULA })))
 const Emergency = lazy(() => import('./pages/Emergency').then(m => ({ default: m.Emergency })));
 const SOSActivePage = lazy(() => import('./pages/SOSActivePage').then(m => ({ default: m.SOSActivePage })));
 const Security = lazy(() => import('./pages/Security').then(m => ({ default: m.Security })));
+const WidgetsPage = lazy(() => import('./pages/WidgetsPage').then(m => ({ default: m.WidgetsPage })));
 
 // Generic Loading Screen
 const PageLoader = () => (
@@ -43,6 +44,7 @@ const PageLoader = () => (
     </div>
 );
 
+import { ForceUpdateGate } from './components/ForceUpdateGate';
 import { useAuth } from './contexts/AuthContext';
 
 /**
@@ -50,7 +52,8 @@ import { useAuth } from './contexts/AuthContext';
  */
 const GlobalModals = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const location = useLocation();
+    const { user, refreshProfile } = useAuth();
     const { 
         showConsent, 
         handleConsentGiven, 
@@ -59,23 +62,57 @@ const GlobalModals = () => {
         setIsConfigured
     } = useSOS() as any;
 
+    const isExcludedPage = ['/onboarding', '/login', '/privacy', '/terms', '/eula'].includes(location.pathname);
+    const isOnboardingComplete = localStorage.getItem('onboarding_complete') === 'true';
+    const isConfigCompleted = localStorage.getItem('sos_config_completed') === 'true';
+
     return (
         <>
             <EmergencyConsentModal
-                isOpen={showConsent}
+                isOpen={showConsent && !isExcludedPage}
                 onConsent={handleConsentGiven}
                 onDecline={() => setShowConsent(false)}
             />
 
             <SOSConfigSheet
-                isOpen={!!user && !isConfigured && !showConsent}
-                onClose={() => setIsConfigured(true)}
-                onSave={async (config) => {
-                    await Preferences.set({ key: 'sos_config', value: JSON.stringify(config) });
+                isOpen={!!user && !isConfigured && !isConfigCompleted && !showConsent && !isExcludedPage && isOnboardingComplete}
+                onClose={async () => {
                     setIsConfigured(true);
-                    // Show Premium after configuration
+                    localStorage.setItem('sos_config_completed', 'true');
+                    try {
+                        const { Preferences } = await import('@capacitor/preferences');
+                        await Preferences.set({ key: 'sos_config_completed', value: 'true' });
+                    } catch (err) {
+                        console.error('[GlobalModals] Error saving completed config skip:', err);
+                    }
+                }}
+                onSave={async (config) => {
+                    // 1. Save to Capacitor Preferences
+                    await Preferences.set({ key: 'sos_config', value: JSON.stringify(config) });
+                    await Preferences.set({ key: 'SOS_PIN', value: config.pin });
+                    await Preferences.set({ key: 'sos_config_completed', value: 'true' });
+                    
+                    // 2. Save to localStorage for Web compatibility
+                    localStorage.setItem('sos_config', JSON.stringify(config));
+                    localStorage.setItem('SOS_PIN', config.pin);
+                    localStorage.setItem('sos_config_completed', 'true');
+                    
+                    // 3. Save to remote Supabase
+                    if (user) {
+                        try {
+                            const { supabase } = await import('./services/supabaseClient');
+                            await supabase.from('profiles').update({ sos_pin: config.pin }).eq('id', user.id);
+                            await refreshProfile();
+                        } catch (err) {
+                            console.error('[GlobalModals] Error updating profile pin:', err);
+                        }
+                    }
+                    
+                    setIsConfigured(true);
+                    
+                    // Go to Home after SOS configuration (not subscription)
                     setTimeout(() => {
-                        navigate('/subscription');
+                        navigate('/');
                     }, 500);
                 }}
             />
@@ -90,44 +127,47 @@ function App() {
 
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <SOSProvider>
-                    <DeepLinkHandler />
-                    <GlobalModals />
-                    <Suspense fallback={<PageLoader />}>
-                        <Routes>
-                            <Route element={<MobileShell />}>
-                                {/* Auth routes - accessible without login */}
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/onboarding" element={<Onboarding />} />
-                                <Route path="/privacy" element={<PrivacyPolicy />} />
-                                <Route path="/terms" element={<TermsOfService />} />
-                                <Route path="/eula" element={<EULA />} />
+            <ForceUpdateGate>
+                <BrowserRouter>
+                    <SOSProvider>
+                        <DeepLinkHandler />
+                        <GlobalModals />
+                        <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                                <Route element={<MobileShell />}>
+                                    {/* Auth routes - accessible without login */}
+                                    <Route path="/login" element={<Login />} />
+                                    <Route path="/onboarding" element={<Onboarding />} />
+                                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                                    <Route path="/terms" element={<TermsOfService />} />
+                                    <Route path="/eula" element={<EULA />} />
 
-                                {/* Protected routes - enforce login */}
-                                <Route element={<ProtectedRoute />}>
-                                    <Route path="/" element={<Home />} />
-                                    <Route path="/route" element={<RouteSelection />} />
-                                    <Route path="/navigate" element={<Navigation />} />
-                                    <Route path="/transit-navigate" element={<TransitNavigationPage />} />
-                                    <Route path="/greencarpet" element={<GreenCarpet />} />
-                                    <Route path="/settings" element={<Settings />} />
-                                    <Route path="/contacts" element={<TrustedContacts />} />
-                                    <Route path="/subscription" element={<Subscription />} />
-                                    <Route path="/chat" element={<AIChat />} />
-                                    <Route path="/feedback" element={<Feedback />} />
-                                    <Route path="/faq" element={<FAQ />} />
-                                    <Route path="/account" element={<Account />} />
-                                    <Route path="/notifications" element={<Notifications />} />
-                                    <Route path="/emergency" element={<Emergency />} />
-                                    <Route path="/emergency-live" element={<SOSActivePage />} />
-                                    <Route path="/security" element={<Security />} />
+                                    {/* Protected routes - enforce login */}
+                                    <Route element={<ProtectedRoute />}>
+                                        <Route path="/" element={<Home />} />
+                                        <Route path="/route" element={<RouteSelection />} />
+                                        <Route path="/navigate" element={<Navigation />} />
+                                        <Route path="/transit-navigate" element={<TransitNavigationPage />} />
+                                        <Route path="/greencarpet" element={<GreenCarpet />} />
+                                        <Route path="/settings" element={<Settings />} />
+                                        <Route path="/contacts" element={<TrustedContacts />} />
+                                        <Route path="/subscription" element={<Subscription />} />
+                                        <Route path="/chat" element={<AIChat />} />
+                                        <Route path="/feedback" element={<Feedback />} />
+                                        <Route path="/faq" element={<FAQ />} />
+                                        <Route path="/account" element={<Account />} />
+                                        <Route path="/notifications" element={<Notifications />} />
+                                        <Route path="/emergency" element={<Emergency />} />
+                                        <Route path="/emergency-live" element={<SOSActivePage />} />
+                                        <Route path="/security" element={<Security />} />
+                                        <Route path="/widgets" element={<WidgetsPage />} />
+                                    </Route>
                                 </Route>
-                            </Route>
-                        </Routes>
-                    </Suspense>
-                </SOSProvider>
-            </BrowserRouter>
+                            </Routes>
+                        </Suspense>
+                    </SOSProvider>
+                </BrowserRouter>
+            </ForceUpdateGate>
         </AuthProvider>
     );
 }

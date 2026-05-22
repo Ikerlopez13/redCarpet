@@ -30,13 +30,13 @@ struct SOSWidgetEntryView : View {
             Color.black
             
             VStack {
-                Link(destination: URL(string: "com.vibecode.redcarpet://travel/activate")!) {
+                Link(destination: URL(string: "com.vibecode.redcarpet://sos")!) {
                     ZStack {
                         Circle()
-                            .fill(Color(red: 1.0, green: 0.19, blue: 0.19)) // Urban Guide Primary Red
+                            .fill(Color(red: 1.0, green: 0.19, blue: 0.19)) // RedCarpet Primary Red
                             .shadow(color: Color(red: 1.0, green: 0.19, blue: 0.19).opacity(0.3), radius: 10)
                         
-                        Text("GO")
+                        Text("SOS")
                             .font(.system(size: 20, weight: .black, design: .rounded))
                             .italic()
                             .foregroundColor(.white)
@@ -56,8 +56,8 @@ struct SOSWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             SOSWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Urban Guide")
-        .description("Activate your journey companion instantly.")
-        .supportedFamilies([.systemSmall])
+        .configurationDisplayName("RedCarpet SOS")
+        .description("Activa el sistema de emergencias S.O.S al instante.")
+        .supportedFamilies([.systemSmall, .accessoryCircular])
     }
 }

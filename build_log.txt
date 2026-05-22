@@ -1,0 +1,35 @@
+
+> redcarpet@2.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+node:internal/process/promises:289
+            triggerUncaughtException(err, true /* fromPromise */);
+            ^
+
+[Failed to load PostCSS config: Failed to load PostCSS config (searchPath: /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh): [Error] Loading PostCSS Plugin failed: Cannot find module '../../data/browsers'
+Require stack:
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/caniuse-lite/dist/unpacker/browsers.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/caniuse-lite/dist/unpacker/agents.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/browserslist/index.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/autoprefixer/lib/autoprefixer.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/postcss.config.js
+
+(@/Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/postcss.config.js)
+Error: Loading PostCSS Plugin failed: Cannot find module '../../data/browsers'
+Require stack:
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/caniuse-lite/dist/unpacker/browsers.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/caniuse-lite/dist/unpacker/agents.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/browserslist/index.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/autoprefixer/lib/autoprefixer.js
+- /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/postcss.config.js
+
+(@/Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/postcss.config.js)
+    at load (file:///Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:33632:11)
+    at file:///Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:33657:16
+    at Array.map (<anonymous>)
+    at plugins (file:///Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:33656:8)
+    at processResult (file:///Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:33726:14)
+    at file:///Users/ikerlopezalegre/Desktop/RedCarpet_Fresh/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:33856:14]
+
+Node.js v20.2.0

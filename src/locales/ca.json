@@ -4,7 +4,8 @@
     "contacts": "Contactes",
     "sos": "Rutes",
     "premium": "Premium",
-    "settings": "Ajustos"
+    "settings": "Ajustos",
+    "family": "Familia"
   },
   "home": {
     "greeting": "Hola, {{name}}",
@@ -14,7 +15,24 @@
     "report_danger_desc": "Avisa a altres usuaris sobre perills a la teva ubicació actual.",
     "me": "Tu",
     "current_location": "Ubicació actual",
-    "no_location": "Sense ubicació"
+    "no_location": "Sense ubicació",
+    "add_place": "Agregar un nuevo lugar",
+    "no_saved_places": "No hay lugares guardados.",
+    "radius": "Radio",
+    "how_to_get_there": "Cómo llegar",
+    "history": "Historial",
+    "member_location": "Ubicación de {{name}}",
+    "search_placeholder": "Buscar destino...",
+    "searching": "Buscando destinos...",
+    "no_results": "No se encontraron resultados",
+    "gate_safe_zones": "Zonas Seguras Ilimitadas",
+    "gate_history": "Historial de Ubicación de 30 días",
+    "user_placeholder": "Usuario",
+    "ready_for_journey": "Todo listo para tu próximo trayecto",
+    "poi_open": "Abierto",
+    "poi_rating": "Valoración",
+    "poi_price": "Precio",
+    "no_family_members": "Invita a familiares para verlos en el mapa"
   },
   "common": {
     "now": "Ara",
@@ -22,7 +40,16 @@
     "no_data": "Sense dades",
     "month": "Mes",
     "year": "Any",
-    "report": "Reportar"
+    "report": "Reportar",
+    "loading": "Cargando...",
+    "error": "Ha ocurrido un error",
+    "updated": "Actualizado",
+    "update": "Actualizar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "success": "Éxito",
+    "user": "Usuario",
+    "go": "IR"
   },
   "map": {
     "light_notice": "Avís d'il·luminació",
@@ -32,7 +59,12 @@
     "construction": "Obres",
     "construction_desc": "Zona en obres o tallada temporalment.",
     "traffic": "Trànsit",
-    "traffic_desc": "Problemes de trànsit reportats a la via."
+    "traffic_desc": "Problemes de trànsit reportats a la via.",
+    "improve_light": "Mejora de luz",
+    "attention_zone": "Zona de atención",
+    "incident_road": "Vía con incidencias",
+    "poi": "Zona de interés",
+    "active_zone_detected": "Zona activa detectada"
   },
   "chat": {
     "welcome": "Hola, soc en Red, la teva guia d'experiències urbanes. En què et puc ajudar avui?",
@@ -41,12 +73,24 @@
     "faq_route": "Puc calcular la ruta més còmoda per a tu. Obre el mapa i selecciona la teva destinació; prioritzaré carrers ben il·luminats i zones agradables.",
     "faq_family": "Pots veure la ubicació del teu grup en temps real des de la pestanya 'Cercle' al mapa principal.",
     "faq_premium": "La subscripció Premium desbloqueja l'acompanyament en temps real il·limitat i la visualització de rutes millorades.",
-    "faq_greeting": "Hola! Soc en Red. T'acompanyo en el teu trajecte. Hi ha alguna cosa específica en què et pugui ajudar ara?"
+    "faq_greeting": "Hola! Soc en Red. T'acompanyo en el teu trajecte. Hi ha alguna cosa específica en què et pugui ajudar ara?",
+    "online": "En línea",
+    "not_found_prompt": "¿No has encontrado lo que buscabas?",
+    "contact_support_desc": "Contacta directamente con nuestro equipo de soporte técnico 24/7 de RedCarpet.",
+    "contact_support_btn": "Contactar Soporte",
+    "placeholder": "Pregunta a Red...",
+    "powered_by": "Tecnología de IA de RedCarpet",
+    "name": "RED IA"
   },
   "transit": {
     "loading": "Buscant opcions de transport...",
     "stops": "parades",
-    "next": "Després"
+    "next": "Després",
+    "next_step": "Siguiente paso",
+    "finish": "Finalizar",
+    "options": "Opciones de transporte público",
+    "destination": "Destino",
+    "start_nav": "Iniciar Navegación"
   },
   "settings": {
     "title": "Ajustos",
@@ -71,7 +115,7 @@
       "ai_chat": "Xat de l'Assistent",
       "greencarpet": "GreenCarpet",
       "contact": "Contacte",
-      "feedback": "Feedback",
+      "feedback": "Valora la nostra aplicació",
       "faq": "Preguntes freqüents",
       "privacy_policy": "Polítiques de privacitat",
       "terms_of_use": "Condicions d'ús",
@@ -84,7 +128,10 @@
       "download_data": "Descarregar dades",
       "withdraw_consent": "Retirar consentiment",
       "view_onboarding": "Veure guia d'inici",
-      "reset_onboarding": "Reiniciar guia"
+      "reset_onboarding": "Reiniciar guia",
+      "circle_management_sub": "Tus grupos de confianza",
+      "my_account_sub": "Datos y cuenta",
+      "greencarpet_sub": "Impacto CO2"
     },
     "status": {
       "granted": "Activa",
@@ -92,17 +139,46 @@
     },
     "logout": "Tancar sessió",
     "delete_account": "Eliminar el meu compte",
-    "report_disclaimer": "Aquesta aplicació és una eina d'experiència urbana. No permet la denúncia oficial de delictes i no està connectada amb forces de seguretat. Per a emergències contacta amb el 112."
+    "report_disclaimer": "Aquesta aplicació és una eina d'experiència urbana. No permet la denúncia oficial de delictes i no està connectada amb forces de seguretat. Per a emergències contacta amb el 112.",
+    "version": "Versión",
+    "build": "Compilación",
+    "sos": {
+      "title": "Ajustes de Trayecto",
+      "pin_error": "El PIN debe tener al menos 4 dígitos",
+      "protocol": "Protocolo de Seguridad",
+      "protocol_desc": "Configura cómo actuará la App cuando actives un aviso comunitario. Tu seguridad es nuestra prioridad.",
+      "start": "COMENZAR CONFIGURACIÓN",
+      "pin_title": "Código de Desactivación",
+      "pin_desc": "Este PIN se usará para detener el protocolo de aviso.",
+      "continue": "CONTINUAR",
+      "call_112": "Llamada al 112",
+      "call_112_desc": "Abre el marcador con el 112 al activar el aviso",
+      "share_location": "Compartir Ubicación",
+      "share_location_desc": "Envía tu posición en tiempo real a tus contactos",
+      "record_media": "Grabar Audio/Vídeo",
+      "record_media_desc": "Registra evidencias para tu seguridad",
+      "save": "GUARDAR CONFIGURACIÓN",
+      "change_pin": "Cambiar PIN"
+    },
+    "notifications": {
+      "open_settings": "Por favor, abre los Ajustes del sistema para activar las notificaciones.",
+      "requested": "Se ha solicitado el permiso de notificaciones."
+    },
+    "delete_account_confirm": "¿Estás seguro de que quieres eliminar tu cuenta? Esta acción es irreversible y borrará todos tus datos personales.",
+    "delete_account_second_confirm": "SEGUNDA CONFIRMACIÓN: ¿Estás ABSOLUTAMENTE seguro? Perderás el acceso a tus rutas, cuenta y contactos para siempre.",
+    "delete_account_success": "Tu cuenta ha sido eliminada correctamente. Te echaremos de menos.",
+    "delete_account_error": "Error al eliminar la cuenta",
+    "avatar_upload_error": "Error al subir la imagen",
+    "language_selector_desc": "Selecciona tu idioma preferido",
+    "cancel": "Cancelar",
+    "account_actions": "Acciones de Cuenta",
+    "legal_notice": "Aviso Legal & EULA"
   },
   "emergency": {
     "sos_title": "NOTES DEL TRAJECTE",
     "instructions": "Mantén premut per avisar del teu trajecte",
     "cancel": "Cancel·lar",
-    "share_whatsapp": "Compartir via WhatsApp",
     "disclaimer": "RedCarpet és una aplicació de mobilitat urbana. No és un servei d'emergències ni està afiliat a la policia. Facilita la comunicació amb contactes de confiança. No garanteix resposta d'autoritats."
-  },
-  "sos": {
-    "video_premium_only": "Mode Vídeo disponible en Premium"
   },
   "premium": {
     "individual": {
@@ -119,7 +195,11 @@
     },
     "family": {
       "title": "Pla Familiar",
-      "subtitle": "Pels que viatgen sempre acompanyats."
+      "subtitle": "Pels que viatgen sempre acompanyats.",
+      "members": "Hasta 6 Miembros",
+      "members_desc": "Ubicación y Avisos Compartidos",
+      "geofences": "Zonas Ilimitadas",
+      "geofences_desc": "Entérate cuando lleguen a su destino"
     },
     "duo": {
       "title": "Premium Duo",
@@ -152,6 +232,444 @@
     "feature_predictive_ai_title": "IA de Confort",
     "feature_predictive_ai_desc": "Suggeriments proactius basats en il·luminació i rutes.",
     "72h.promo": "Passi temporal, tranquil·litat total.",
-    "restore_purchases": "Restaurar Compres"
+    "restore_purchases": "Restaurar Compres",
+    "pro": "PRO",
+    "legal": {
+      "title": "Información Legal",
+      "iap_disclaimer": "El pago se cargará a la cuenta de iTunes al confirmar la compra. La suscripción se renueva automáticamente a menos que la renovación automática se desactive al menos 24 horas antes del final del período actual. La cuenta será cargada para la renovación dentro de las 24 horas anteriores al final del período actual e identificará el costo de la renovación. El usuario puede gestionar las suscripciones y desactivar la renovación automática accediendo a los Ajustes de la Cuenta del usuario tras la compra."
+    },
+    "success": {
+      "title": "Felicidades.",
+      "now_you_are": "Ahora eres:",
+      "step1": "• Más cómodo.",
+      "step2": "• Más inteligente.",
+      "step3": "• Más acompañado.",
+      "step4": "• Más preparado.",
+      "step5": "• Más tranquilo.",
+      "step6": "• Más RedCarpet.",
+      "start": "COMENZAR EXPERIENCIA"
+    },
+    "price_individual_monthly": "12,99€",
+    "price_individual_annual": "79,99€",
+    "price_student": "4,99€",
+    "price_72h": "2,99€",
+    "price_family": "14,99€"
+  },
+  "auth": {
+    "login_tab": "Ingresar",
+    "register_tab": "Registro",
+    "back_to_login": "Volver al Login",
+    "welcome_title": "Bienvenida",
+    "register_title": "Crea tu Cuenta",
+    "forgot_title": "Recuperar Cuenta",
+    "welcome_subtitle": "Accede a tu red de experiencias y seguridad urbana.",
+    "register_subtitle": "Únete para una ciudad más cómoda y segura.",
+    "forgot_subtitle": "Te enviaremos un código para restablecer tu acceso.",
+    "email_label": "Email de Acceso",
+    "email_placeholder": "tu@email.com",
+    "password_label": "Contraseña",
+    "password_placeholder": "••••••••",
+    "name_label": "Nombre Completo",
+    "name_placeholder": "Ej: Maria Garcia",
+    "forgot_password_link": "¿Olvidaste tu contraseña?",
+    "login_btn": "Iniciar Sesión",
+    "register_btn": "Registrarme",
+    "reset_btn": "Recuperar Cuenta",
+    "continue_with": "O continúa con",
+    "continue_with_apple": "Continuar con Apple",
+    "google": "Google",
+    "apple": "Apple",
+    "app_subtitle": "Tu experiencia urbana, guiada y segura",
+    "terms_prefix": "Al continuar, aceptas nuestros",
+    "terms_link": "Términos",
+    "privacy_link": "Privacidad",
+    "and": "y",
+    "mail_sent_title": "Correo Enviado",
+    "mail_sent_desc": "Revisa tu bandeja de entrada. Te hemos enviado un enlace para restablecer tu contraseña.",
+    "back_to_home": "Volver al inicio",
+    "error_name_required": "Por favor ingresa tu nombre"
+  },
+  "languages": {
+    "spanish": "Español",
+    "english": "Inglés",
+    "french": "Francés",
+    "catalan": "Catalán",
+    "portuguese": "Portugués",
+    "german": "Alemán",
+    "italian": "Italiano"
+  },
+  "shell": {
+    "error_title": "Algo salió mal",
+    "restart_app": "Reiniciar App",
+    "location_monitored": "Ubicación monitoreada para tu seguridad"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Bienvenida a RedCarpet",
+      "subtitle": "Tu guía de movilidad y experiencia urbana compartida."
+    },
+    "permissions": {
+      "title": "Optimizar Viaje",
+      "subtitle": "Necesitamos acceso a tu ubicación para recomendarte las mejores rutas y mantenerte en contacto con tu grupo.",
+      "location_title": "Ubicación Precisa",
+      "location_subtitle": "Incluso en segundo plano",
+      "notifications_title": "Notificaciones",
+      "notifications_subtitle": "Avisos de trayecto y llegada"
+    },
+    "privacy": {
+      "title": "Tu Privacidad",
+      "accept": "Acepto la ",
+      "policy": "política de privacidad"
+    },
+    "buttons": {
+      "start": "Comenzar",
+      "continue": "Continuar y Permitir",
+      "finish": "Finalizar Configuración"
+    }
+  },
+  "account": {
+    "title": "Cuenta",
+    "active_member": "Miembro Activo",
+    "full_name": "Nombre Completo",
+    "not_configured": "No configurado",
+    "change": "Cambiar",
+    "verified": "Verificado",
+    "security_pin": "PIN de Seguridad",
+    "edit": "Editar",
+    "device": "Dispositivo",
+    "email": "Email",
+    "companion_v1": "RedCarpet Companion v1",
+    "secure_protocol": "Protocolo Seguro RedCarpet v3.5",
+    "logout": "Cerrar Sesión",
+    "update_success": "Nombre actualizado correctamente",
+    "update_error": "Error al actualizar nombre",
+    "pin_min_length": "El PIN debe tener al menos 4 dígitos",
+    "pin_success": "PIN actualizado correctamente",
+    "pin_error": "Error al actualizar PIN",
+    "name_placeholder": "Tu nombre...",
+    "pin_placeholder": "Nuevo PIN..."
+  },
+  "route": {
+    "title": "Selección de Ruta",
+    "where_to": "¿A dónde vas?",
+    "search_placeholder": "Buscar destino...",
+    "calculating": "Calculando rutas...",
+    "walking": "A pie",
+    "cycling": "Bici",
+    "transit": "Transporte",
+    "driving": "Coche",
+    "family_journeys": "Trayectos de Familiares",
+    "saved_destinations": "Destinos Guardados",
+    "safe_route": "Ruta más segura",
+    "balanced_route": "Equilibrada",
+    "fast_route": "Más rápida",
+    "caution": "Precaución",
+    "start_nav": "Iniciar Navegación",
+    "remaining": "restantes",
+    "limit_reached": "Límite diario de rutas alcanzado (3/3).",
+    "recommended": "(Recomendada)",
+    "more_direct": "(Más directa)",
+    "transit_desc": "Paradas con alta afluencia e iluminación",
+    "safe_desc": "Calles bien iluminadas y transitadas",
+    "police_presence": "Presencia policial frecuente",
+    "balanced_desc": "Equilibrio entre seguridad y tiempo",
+    "fast_desc": "Ruta más directa, menos iluminada",
+    "ai_prioritizing": "IA Priorizando cámaras y comercios",
+    "calculating_dots": "Calculando...",
+    "enhanced": "Mejorada",
+    "gate_safe_nav": "Navegación con Rutas Seguras",
+    "gate_unlimited": "Rutas Ilimitadas"
+  },
+  "eula": {
+    "title": "Aviso Legal",
+    "subtitle": "Acuerdo de Licencia y Descargo de Responsabilidad",
+    "disclaimer_title": "IMPORTANTE: DESCARGO DE RESPONSABILIDAD",
+    "disclaimer_quote": "\"Esta aplicación no sustituye a servicios de emergencia ni está afiliada a autoridades públicas.\"",
+    "description_1": "RedCarpet es una aplicación de experiencia y movilidad urbana que permite visualizar rutas iluminadas y compartir la ubicación con contactos de confianza.",
+    "description_2": "En caso de emergencia, el usuario debe contactar directamente con los servicios oficiales (por ejemplo, 112 en España).",
+    "description_3": "La funcionalidad de aviso facilita la comunicación con contactos, pero no garantiza respuesta, seguimiento ni intervención por parte de autoridades.",
+    "location_title": "Uso de Ubicación y GPS",
+    "location_desc_1": "La información de ubicación compartida es de carácter privado entre usuarios y tiene como fin mejorar la experiencia de viaje compartido.",
+    "location_desc_2": "El desarrollador no se hace responsable de situaciones de riesgo ni de fallos en la transmisión de ubicación causados por conectividad o limitaciones técnicas.",
+    "privacy_title": "Privacidad",
+    "privacy_desc": "Cumplimos estrictamente con el RGPD. Tus datos de ubicación son tuyos y solo se comparten con quienes tú decidas dentro de la aplicación. Puedes retirar tu consentimiento en cualquier momento desde los ajustes.",
+    "last_update": "Última actualización",
+    "accept": "ACEPTAR Y VOLVER",
+    "back": "Volver"
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "search_placeholder": "Buscar ayuda...",
+    "still_have_questions": "¿Aún tienes dudas?",
+    "support_desc": "Nuestro equipo de soporte está disponible las 24h para usuarios Premium.",
+    "contact_support": "Contactar Soporte",
+    "questions": [
+      {
+        "q": "¿Cómo activo un aviso de trayecto?",
+        "a": "Mantén pulsado el botón central del mapa. Tus contactos de confianza recibirán una notificación para poder ver tu trayecto en tiempo real mientras llegas a tu destino."
+      },
+      {
+        "q": "¿Mi grupo puede ver dónde estoy siempre?",
+        "a": "Solo si compartes tu ubicación con ellos. Puedes activar o desactivar la visibilidad en tiempo real desde los ajustes de privacidad de tu perfil."
+      },
+      {
+        "q": "¿Qué es la Red Premium?",
+        "a": "La Red Premium incluye IA de detección de iluminación, visualización de rutas mejoradas, gestión de múltiples grupos de confianza y acceso prioritario a nuevas rutas urbanas."
+      },
+      {
+        "q": "¿Cómo añado contactos de confianza?",
+        "a": "Ve a la sección 'Gestión de Grupos' en el menú principal y pulsa el botón '+'. Recibirán una invitación para formar parte de tu grupo de experiencia urbana."
+      }
+    ]
+  },
+  "greencarpet": {
+    "live": "GreenCarpet Live",
+    "social_impact": "Impacte Social",
+    "transforming_steps": "Transformant passos en confort",
+    "community": "Comunitat",
+    "personal": "El meu Aport",
+    "co2_avoided": "kg de CO₂ evitat",
+    "kilometers": "Quilòmetres",
+    "journeys": "Trajectes",
+    "trees_title": "568 Arbres",
+    "trees_desc": "Capacitat d'absorció de CO₂",
+    "liters_title": "5.413 Litres",
+    "liters_desc": "Combustible fòssil estalviat",
+    "emissions_title": "125.000 Km",
+    "emissions_desc": "Emissions de vol estalviades",
+    "your_co2": "Els teus Quilograms de CO₂",
+    "eco_elite": "Eco-Elite",
+    "eco_elite_desc": "Contribueixes activament al desenvolupament de ciutats còmodes.",
+    "share_impact": "Compartir Impacte",
+    "investor_title": "Mètriques per a Inversors",
+    "growth_rate_title": "Creixement de Viatges",
+    "growth_rate_desc": "Taxa mensual acumulada",
+    "sdg_alignment_title": "Alineació ODS",
+    "sdg_alignment_desc": "Indicadors ODS 11 i 13",
+    "carbon_credits_title": "Crèdits de Carboni",
+    "carbon_credits_desc": "Est. tCO₂e registrables",
+    "trend_title": "Evolució de l'Impacte",
+    "trend_desc": "Historial de CO₂ estalviat (kg)",
+    "clean_energy_title": "14.8 MWh",
+    "clean_energy_desc": "Energia neta equivalent"
+  },
+  "navigation": {
+    "loading": "Preparando tu ruta segura...",
+    "arrival": "Llegada a las {{time}}",
+    "finish": "Finalizar",
+    "continue_straight": "Sigue recto",
+    "destination": "Destino",
+    "searching_poi": "lugares de interés",
+    "incidence_alert": "Aviso de trayecto",
+    "attention_zone": "Zona de atención"
+  },
+  "contacts": {
+    "title": "Contactos de Confianza",
+    "search_placeholder": "Buscar contacto...",
+    "add_new": "Añadir nuevo contacto",
+    "sync_requests": "Solicitudes de Sincronización",
+    "wants_to_add": "Quiere añadirte como contacto de confianza.",
+    "reject": "Rechazar",
+    "accept": "Aceptar",
+    "my_contacts": "Mis contactos",
+    "edit": "Editar",
+    "no_contacts": "No tienes contactos",
+    "no_contacts_desc": "Añade familiares o amigos de confianza para compartir tu ubicación en los trayectos.",
+    "relation": "Relación",
+    "share_location": "Compartir ubicación",
+    "notify_emergencies": "Notificar avisos de trayecto",
+    "footer_disclaimer": "Estos contactos serán notificados automáticamente si activas un aviso de trayecto. Tus datos están protegidos y solo se comparten con tu consentimiento.",
+    "add_prompt_name": "¿Cómo se llama tu contacto de confianza?",
+    "add_prompt_name_default": "Mamá",
+    "add_prompt_phone": "Introduce su número de teléfono (con código de país ej: +34)",
+    "add_prompt_email": "Introduce su correo electrónico (opcional, para sincronizar)",
+    "sync_alert": "¡{{name}} usa RedCarpet! Le hemos enviado una solicitud de sincronización. Mientras tanto, tu alerta funcionará de manera tradicional (SMS).",
+    "add_error": "Error añadiendo contacto",
+    "delete_confirm": "¿Estás seguro de que quieres eliminar a {{name}} de tus contactos de confianza?",
+    "delete_error": "Error eliminando contacto",
+    "respond_error": "Error respondiendo a la solicitud",
+    "sync_error": "Error sincronizando cambio.",
+    "add_manual": "Añadir manual",
+    "import_agenda": "Importar desde Agenda",
+    "search_agenda": "Buscar en tu agenda...",
+    "select_phone": "Seleccionar teléfono",
+    "multiple_phones": "Este contacto tiene múltiples números. Selecciona uno:",
+    "permission_denied": "Permiso denegado",
+    "permission_denied_desc": "No se pudo acceder a tus contactos porque el permiso fue denegado. Actívalo en los Ajustes de tu móvil.",
+    "import_error": "Error al importar contacto",
+    "contact_no_phone": "El contacto seleccionado no tiene ningún número de teléfono registrado."
+  },
+  "feedback": {
+    "title": "Valora la nostra aplicació",
+    "rate_experience": "Califica tu experiencia",
+    "how_to_improve": "¿Cómo podemos mejorar?",
+    "placeholder": "Escribe aquí tus sugerencias...",
+    "send": "Enviar Comentario",
+    "thanks": "¡Gracias!",
+    "thanks_desc": "Tu opinión nos ayuda a hacer RedCarpet cada vez mejor.",
+    "store_review_confirm": "¡Muchas gracias por tu valoración! ¿Te gustaría dedicarnos 1 minuto y dejarnos una reseña positiva en la tienda? Nos ayudaría muchísimo."
+  },
+  "notifications": {
+    "title": "Centro de Seguridad",
+    "just_now": "Hace un momento",
+    "mins_ago": "Hace {{count}} min",
+    "hours_ago": "Hace {{count}} h",
+    "days_ago": "Hace {{count}} d",
+    "unknown_contact": "Un contacto",
+    "journey_alert_title": "Alerta SOS: {{name}}",
+    "journey_finished_title": "Seguridad: {{name}} ha llegado",
+    "update_processed": "Actualización de seguridad procesada.",
+    "open_map": "Abrir mapa",
+    "view_history": "Ver historial",
+    "welcome_title": "Escudo Activo",
+    "welcome_message": "Aquí aparecerán las alertas de seguridad e incidencias críticas de tu círculo familiar.",
+    "all_clear": "Tot en ordre",
+    "no_notifications": "No tens notificacions noves",
+    "privacy_footer": "Les teves dades de trajecte estan protegides amb encriptació d'extrem a extrem.",
+    "own_sos_title": "SOS enviat",
+    "own_danger_title": "Avís de perill enviat",
+    "danger_alert_title": "Perill reportat per {{name}}",
+    "me": "Jo",
+    "own_alert_message": "S'ha alertat correctament i s'ha avisat els teus contactes."
+  },
+  "privacy": {
+    "back": "Volver",
+    "title": "POLÍTICA DE PRIVACIDAD – REDCARPET",
+    "subtitle": "GUÍA DE EXPERIENCIA URBANA E ILUMINACIÓN",
+    "last_updated": "Última actualización",
+    "intro_p1": "En REDCARPET consideramos la privacidad de nuestros usuarios como un derecho absoluto. Cada dato que compartes con nosotros es tratado con el máximo nivel de protección legal y técnica, asegurando que tu información personal siempre esté bajo tu control mientras disfrutas de una mejor experiencia al moverte por la ciudad.",
+    "intro_p2": "Nuestra aplicación cumple estrictamente y de manera verificable con todas las leyes y regulaciones relevantes, incluyendo:",
+    "regulations_list": [
+      "Reglamento General de Protección de Datos (RGPD / GDPR) – Reglamento (UE) 2016/679.",
+      "Ley Orgánica 3/2018 de Protección de Datos Personales (LOPDGDD).",
+      "Normativa fiscal, mercantil y sectorial española aplicable.",
+      "Directrices del Comité Europeo de Protección de Datos (EDPB).",
+      "Principios de la OCDE sobre privacidad y mejores prácticas internacionales.",
+      "Estándares ISO y EN de seguridad de la información y cifrado.",
+      "Protocolos de Evaluación de Impacto en Protección de Datos (EIPD).",
+      "Legislación sobre comercio electrónico y protección del consumidor."
+    ],
+    "commitment_title": "En REDCARPET estamos comprometidos con tu tranquilidad y control absoluto sobre tus datos:",
+    "commitments_list": [
+      "Transparencia total: siempre sabrás qué datos recopilamos y cómo los usamos.",
+      "Seguridad máxima: cifrado en tránsito y reposo, autenticación reforzada.",
+      "Anonimización y minimización: los datos compartidos con terceros son siempre anonimizados.",
+      "Derechos del usuario garantizados: acceso, rectificación, supresión en cualquier momento.",
+      "Compromiso ético y profesional: ningún dato se utilizará para fines no autorizados."
+    ],
+    "intro_footer": "Nuestro objetivo es que cada usuario se sienta protegido, informado y seguro desde el primer momento.",
+    "section1_title": "1. Identidad del Responsable del Tratamiento",
+    "section1_content": "El responsable del tratamiento de los datos personales es REDCARPET, titular de la aplicación móvil destinada a la mejora de la experiencia urbana mediante tecnología de geolocalización y recomendación de rutas iluminadas.",
+    "section2_title": "2. Marco Normativo Aplicable",
+    "section2_content": "El tratamiento de datos personales se realiza conforme al RGPD, LOPDGDD y normativa española aplicable.",
+    "section3_title": "3. Principios Rectores del Tratamiento",
+    "section3_content": "REDCARPET trata los datos personales respetando los principios de licitud, limitación de la finalidad, minimización, exactitud, integridad y responsabilidad proactiva.",
+    "section4_title": "4. Categorías de Datos Tratados",
+    "section4_1_title": "4.1 Datos Identificativos",
+    "section4_1_list": [
+      "Nombre y apellidos.",
+      "Dirección postal.",
+      "Correo electrónico.",
+      "Número de teléfono."
+    ],
+    "section4_2_title": "4.2 Datos Técnicos",
+    "section4_2_list": [
+      "Dirección IP.",
+      "Identificador único de usuario.",
+      "Identificadores de dispositivo.",
+      "Registros de acceso.",
+      "Metadatos técnicos."
+    ],
+    "section4_3_title": "4.3 Datos de Localización y Movilidad",
+    "section4_3_list": [
+      "Ubicación GPS en tiempo real.",
+      "Historial de ubicaciones.",
+      "Frecuencia de visitas.",
+      "Tiempo de permanencia.",
+      "Horarios habituales.",
+      "Patrones de desplazamiento."
+    ],
+    "section4_4_title": "4.4 Datos Económicos",
+    "section4_4_list": [
+      "Datos de facturación.",
+      "Historial de pagos.",
+      "Información contable."
+    ],
+    "section4_footer": "REDCARPET declara expresamente que no trata categorías especiales de datos personales (Art. 9 RGPD).",
+    "section5_title": "5. Finalidades del Tratamiento",
+    "section5_list": [
+      "Prestación del servicio de guía urbana y visualización de rutas.",
+      "Aviso a contactos de confianza con transmisión de ubicación.",
+      "Cálculo y recomendación de rutas bien iluminadas y transitadas.",
+      "Identificación de zonas de interés y visibilidad.",
+      "Gestión de la cuenta de usuario.",
+      "Gestión contractual y facturación.",
+      "Cumplimiento de obligaciones legales.",
+      "Mejora del sistema mediante análisis anonimizados.",
+      "Prevención del fraude y protección tecnológica.",
+      "Compartición segura de datos anonimizados con terceros.",
+      "Uso comercial opcional con consentimiento explícito."
+    ],
+    "section6_title": "6. Base Jurídica del Tratamiento",
+    "section6_list": [
+      "Ejecución del contrato de servicios (Art. 6.1.b RGPD).",
+      "Consentimiento explícito para geolocalización y datos sensibles (Art. 6.1.a RGPD).",
+      "Cumplimiento de obligaciones legales (Art. 6.1.c RGPD).",
+      "Interés legítimo en seguridad y prevención del fraude."
+    ],
+    "section7_title": "7. Plazos de Conservación",
+    "section7_list": [
+      "Ubicación en tiempo real: mientras el servicio esté activo.",
+      "Historial de ubicaciones: máximo 30 días.",
+      "Patrones y rutinas: máximo 90 días.",
+      "Datos identificativos: durante la relación y hasta 3 años después.",
+      "Datos fiscales: 6 años.",
+      "Logs técnicos: máximo 12 meses."
+    ],
+    "section7_footer": "Finalizados los plazos, los datos serán eliminados o anonimizados de forma irreversible.",
+    "section8_title": "8. Comunicación y Notificaciones",
+    "section8_content": "REDCARPET podrá enviarte notificaciones push relacionadas con la seguridad del servicio y actualizaciones de la política. Puedes gestionarlas en ajustes.",
+    "section9_title": "9. Derechos del Usuario",
+    "section9_content": "Puedes ejercer tus derechos de acceso, rectificación, supresión y portabilidad enviando un correo a soporte@urbanguide.app.",
+    "section10_title": "10. Cambios en la Política",
+    "section10_content": "REDCARPET se reserva el derecho de modificar esta política. Te notificaremos cualquier cambio sustancial."
+  },
+  "terms": {
+    "title": "Términos del Servicio",
+    "last_updated": "Última actualización",
+    "section1_title": "1. Aceptación de los Términos",
+    "section1_content": "Al acceder y utilizar RedCarpet, usted acepta estar sujeto a estos Términos del Servicio y a todas las leyes y regulaciones aplicables. Si no está de acuerdo con alguno de estos términos, tiene prohibido usar o acceder a este sitio.",
+    "section2_title": "2. Licencia de Uso",
+    "section2_content": "Se concede permiso para descargar temporalmente una copia de los materiales (información o software) en la aplicación de RedCarpet solo para visualización transitoria personal y no comercial. Esta es la concesión de una licencia, no una transferencia de título.",
+    "section3_title": "3. Renuncia",
+    "section3_content": "Los materiales en la aplicación de RedCarpet se proporcionan 'tal cual'. RedCarpet no ofrece garantías, expresas o implícitas, y por la presente renuncia y niega todas las demás garantías, incluidas, entre otras, las garantías implícitas o las condiciones de comerciabilidad, idoneidad para un propósito particular o no infracción de la propiedad intelectual u otra violación de derechos.",
+    "section4_title": "4. Limitaciones",
+    "section4_content": "En ningún caso RedCarpet o sus proveedores serán responsables de ningún daño (incluidos, entre otros, daños por pérdida de datos o ganancias, o debido a la interrupción del negocio) que surjan del uso o la imposibilidad de usar los materiales en RedCarpet.",
+    "section5_title": "5. Servicios de Ubicación y Trayecto",
+    "section5_content": "Nuestros servicios incluyen funciones de movilidad y ubicación. Usted reconoce que estos servicios dependen de la conectividad de la red y del GPS, y no deben considerarse como un sustituto de los servicios de emergencia profesionales.",
+    "section6_title": "6. Ley Gobernante",
+    "section6_content": "Estos términos y condiciones se rigen e interpretan de acuerdo con las leyes de España y usted se somete irrevocablemente a la jurisdicción exclusiva de los tribunales de dicho estado o ubicación.",
+    "section7_title": "7. Suscripciones y Pagos (Apple App Store)",
+    "section7_p1": "RedCarpet ofrece suscripciones premium auto-renovables ('RedCarpet Pro'). Al comprar una suscripción, el pago se cargará a su cuenta de ID de Apple en la confirmación de la compra.",
+    "section7_list": [
+      "La suscripción se renueva automáticamente a menos que se cancele al menos 24 horas antes del final del período actual.",
+      "Se le cobrará a su cuenta la renovación dentro de las 24 horas previas al final del período actual, indicando el coste de la renovación.",
+      "Puede administrar y cancelar sus suscripciones yendo a la Configuración de su cuenta en la App Store después de la compra.",
+      "Cualquier porción no utilizada de un período de prueba gratuito, si se ofrece, se perderá cuando el usuario compre una suscripción a esa publicación, cuando corresponda."
+    ]
+  },
+  "camera": {
+    "active_companion": "ACOMPAÑAMIENTO ACTIVO",
+    "guardia_digital": "Guardia Digital",
+    "transmitting": "Transmitiendo tu trayecto en tiempo real...",
+    "hold_to_stop": "Mantén para detener",
+    "test_title": "Prueba de Cámara",
+    "verify_stream": "Verificando stream frontal",
+    "retry": "Reintentar",
+    "diagnostic_mode": "Modo Diagnóstico",
+    "pin_security": "Seguridad PIN",
+    "pin_desc": "Introduce el código para desactivar el seguimiento de trayecto de forma segura.",
+    "access_error": "No se pudo acceder a la cámara frontal.",
+    "rec": "REC"
   }
 }

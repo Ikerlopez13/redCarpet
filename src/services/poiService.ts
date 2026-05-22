@@ -132,7 +132,7 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
         const response = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
             `proximity=${lng},${lat}&` +
-            `types=poi,address,place&` +
+            `types=address,place,poi,neighborhood&` +
             `access_token=${MAPBOX_TOKEN}&` +
             `limit=10`
         );
@@ -151,13 +151,17 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
             let poiCategory: POICategory = 'shop';
             if (mbtypes.includes('restaurant')) poiCategory = 'restaurant';
             else if (mbtypes.includes('cafe')) poiCategory = 'cafe';
+            
+            // For addresses, use the formatted place name parts rather than POI names
+            const isAddress = f.place_type?.includes('address') || f.place_type?.includes('place');
+            const primaryName = isAddress ? (f.place_name?.split(',')[0] || f.text) : (f.text_es || f.text);
 
             return {
                 id: f.id,
-                name: f.text_es || f.text,
+                name: primaryName,
                 category: poiCategory,
                 categoryIcon: categoryConfig[poiCategory].icon,
-                address: f.place_name?.split(',')[0] || f.place_name,
+                address: f.place_name?.split(',').slice(1).join(',').trim() || f.place_name,
                 lat: poiLat,
                 lng: poiLng,
                 distance

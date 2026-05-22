@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldAlert, X, Delete, Loader2, Phone, Mic, Video } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { Preferences } from '@capacitor/preferences';
 import clsx from 'clsx';
 
 import { 
@@ -36,11 +37,87 @@ export const SOSActivePage: React.FC = () => {
     // PIN State
     const [pinInput, setPinInput] = useState('');
     const [pinError, setPinError] = useState(false);
+    const [correctPin, setCorrectPin] = useState('0000');
+
+    useEffect(() => {
+        const loadCorrectPin = async () => {
+            const { value: localPin } = await Preferences.get({ key: 'SOS_PIN' });
+            const { value: localConfig } = await Preferences.get({ key: 'sos_config' });
+            let parsedPin = '';
+            if (localConfig) {
+                try {
+                    parsedPin = JSON.parse(localConfig).pin;
+                } catch {}
+            }
+            const pin = user?.profile?.sos_pin || localPin || parsedPin || '0000';
+            console.log('[SOSActivePage] Correct PIN loaded for safety verification:', pin);
+            setCorrectPin(pin);
+        };
+        loadCorrectPin();
+    }, [user]);
+
+    // Discreet SOS Decoy States
+    const [decoyType, setDecoyType] = useState<'calculator' | 'weather' | 'blank'>('calculator');
+    const [calcDisplay, setCalcDisplay] = useState('');
+    const [weatherTapCount, setWeatherTapCount] = useState(0);
+
+    const handleCalcBtnPress = (val: string) => {
+        if (Capacitor.isNativePlatform()) {
+            Haptics.impact({ style: ImpactStyle.Light });
+        }
+        if (val === 'C') {
+            setCalcDisplay('');
+        } else if (val === 'delete') {
+            setCalcDisplay(d => d.slice(0, -1));
+        } else if (val === '=') {
+            if (calcDisplay === '941') {
+                setStep('pin');
+                setCalcDisplay('');
+                return;
+            }
+            try {
+                const sanitized = calcDisplay.replace(/x/g, '*').replace(/÷/g, '/');
+                const result = Function(`"use strict"; return (${sanitized})`)();
+                if (result === 941) {
+                    setStep('pin');
+                    setCalcDisplay('');
+                    return;
+                }
+                setCalcDisplay(String(result));
+            } catch {
+                setCalcDisplay('Error');
+            }
+        } else {
+            if (calcDisplay === 'Error') {
+                setCalcDisplay(val);
+            } else {
+                setCalcDisplay(d => d + val);
+            }
+        }
+    };
+
+    const handleWeatherSecretTap = () => {
+        if (Capacitor.isNativePlatform()) {
+            Haptics.impact({ style: ImpactStyle.Light });
+        }
+        const next = weatherTapCount + 1;
+        setWeatherTapCount(next);
+        if (next >= 3) {
+            setStep('pin');
+            setWeatherTapCount(0);
+        }
+    };
 
     useEffect(() => {
         console.log('[SOS-Active-Page] Mounted. AlertID:', alertId);
         
         const initSOS = async () => {
+            // Load Decoy preferences
+            const { value } = await Preferences.get({ key: 'DECOY_TYPE' });
+            if (value) {
+                setDecoyType(value as any);
+            }
+
             // 1. Initial delay to ensure the route Transition is smooth
             await new Promise(r => setTimeout(r, 500));
 
@@ -56,17 +133,35 @@ export const SOSActivePage: React.FC = () => {
 
             // 3. Start Recording (Resilient with it's own timeouts)
             await startRecording(isPremium);
+
+            // 4. Auto-call 112 if not cancelled within 10 seconds
+            const timer = setTimeout(() => {
+                if (step === 'active') {
+                    console.log('🚨 Auto-calling 112 after 10s timeout');
+                    window.location.href = 'tel:112';
+                }
+            }, 10000);
+
+            // Save timer to window to clean it up if needed
+            (window as any)._sos112Timer = timer;
         };
 
         initSOS();
 
         return () => {
             console.log('[SOS-Active-Page] Unmounting. Cleaning up...');
+            if ((window as any)._sos112Timer) {
+                clearTimeout((window as any)._sos112Timer);
+            }
             cleanAll();
         };
     }, []);
 
     const cleanAll = async () => {
+        if ((window as any)._sos112Timer) {
+            clearTimeout((window as any)._sos112Timer);
+            delete (window as any)._sos112Timer;
+        }
         document.body.classList.remove('sos-mode-active');
         if (Capacitor.isNativePlatform()) {
             await stopSOSPreview();
@@ -81,12 +176,11 @@ export const SOSActivePage: React.FC = () => {
             Haptics.impact({ style: ImpactStyle.Light });
         }
 
-        if (pinInput.length < 4) {
+        if (pinInput.length < correctPin.length) {
             const newPin = pinInput + key;
             setPinInput(newPin);
 
-            if (newPin.length === 4) {
-                const correctPin = user?.profile?.sos_pin || '0000';
+            if (newPin.length === correctPin.length) {
                 if (newPin === correctPin) {
                     if (Capacitor.isNativePlatform()) {
                         Haptics.notification({ type: NotificationType.Success });
@@ -134,98 +228,231 @@ export const SOSActivePage: React.FC = () => {
             <div id="sos-native-preview" className="fixed inset-0 z-0 pointer-events-none" />
 
             {step === 'active' && (
-                <div className="flex flex-col h-full relative z-40 animate-fade-in">
-                    {/* Status Bar Backdrop (Translucent) */}
-                    <div className="h-12 w-full bg-black/20 backdrop-blur-md shrink-0" />
-
-                    {/* Top Header */}
-                    <div className="p-6 text-center space-y-4">
-                        <div
-                            className="inline-flex items-center gap-3 px-6 py-2.5 bg-red-600 rounded-2xl text-white font-black text-xs tracking-widest uppercase shadow-[0_0_30px_rgba(220,38,38,0.5)] border border-white/20 animate-pulse"
-                        >
-                            <div className="size-2.5 rounded-full bg-white" />
-                            REC • EN VIVO
-                        </div>
+                sosMode === 'discrete' ? (
+                    // DECOY INTERACTIVE VIEWS
+                    <div className="flex flex-col h-full w-full bg-[#0a0f1d] text-white overflow-hidden relative z-40 select-none animate-fade-in">
                         
-                        <div className="space-y-4">
-                            <div>
-                                <h1 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-1">PROTOCOLO ACTIVO</h1>
-                                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Sincronizando con autoridades...</p>
-                            </div>
+                        {/* CALCULATOR DECOY SCREEN */}
+                        {decoyType === 'calculator' && (
+                            <div className="flex-1 flex flex-col justify-end p-6 bg-black">
+                                {/* Display */}
+                                <div className="text-right py-8 px-4 text-white text-6xl font-light tracking-tight truncate min-h-[120px] select-all">
+                                    {calcDisplay || '0'}
+                                </div>
 
-                            <div className="flex flex-col gap-3 bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-6 max-w-[320px] mx-auto shadow-2xl">
-                                <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '200ms' }}>
-                                    <div className="size-5 rounded-full bg-red-500 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                                        <span className="text-[10px] text-white font-black">📞</span>
-                                    </div>
-                                    <p className="text-[11px] font-black text-white uppercase tracking-widest">LLAMANDO AL 112...</p>
-                                </div>
-                                <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '400ms' }}>
-                                    <div className="size-5 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.5)]">
-                                        <span className="text-[10px] text-black font-black">✓</span>
-                                    </div>
-                                    <p className="text-[11px] font-black text-white uppercase tracking-widest">Contactos Alertados</p>
-                                </div>
-                                <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '600ms' }}>
-                                    <div className="size-5 rounded-full bg-blue-500 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)]">
-                                        <div className="size-2 rounded-full bg-white animate-pulse" />
-                                    </div>
-                                    <p className="text-[11px] font-black text-blue-400 uppercase tracking-widest">Compartiendo Vídeo + GPS</p>
+                                {/* Calculator keypad */}
+                                <div className="grid grid-cols-4 gap-3">
+                                    {[
+                                        { val: 'C', bg: 'bg-zinc-400 text-black font-semibold' },
+                                        { val: 'delete', bg: 'bg-zinc-400 text-black', icon: 'backspace' },
+                                        { val: '÷', bg: 'bg-zinc-400 text-black font-semibold' },
+                                        { val: '÷', bg: 'bg-amber-500 text-white font-semibold' },
+
+                                        { val: '7', bg: 'bg-zinc-800 text-white' },
+                                        { val: '8', bg: 'bg-zinc-800 text-white' },
+                                        { val: '9', bg: 'bg-zinc-800 text-white' },
+                                        { val: 'x', bg: 'bg-amber-500 text-white font-semibold' },
+
+                                        { val: '4', bg: 'bg-zinc-800 text-white' },
+                                        { val: '5', bg: 'bg-zinc-800 text-white' },
+                                        { val: '6', bg: 'bg-zinc-800 text-white' },
+                                        { val: '-', bg: 'bg-amber-500 text-white font-semibold' },
+
+                                        { val: '1', bg: 'bg-zinc-800 text-white' },
+                                        { val: '2', bg: 'bg-zinc-800 text-white' },
+                                        { val: '3', bg: 'bg-zinc-800 text-white' },
+                                        { val: '+', bg: 'bg-amber-500 text-white font-semibold' },
+
+                                        { val: '0', bg: 'bg-zinc-800 text-white col-span-2 rounded-[2.5rem] flex pl-8 items-center text-left' },
+                                        { val: '.', bg: 'bg-zinc-800 text-white' },
+                                        { val: '=', bg: 'bg-amber-500 text-white font-semibold' },
+                                    ].map((btn, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => handleCalcBtnPress(btn.val)}
+                                            className={clsx(
+                                                "h-20 rounded-full flex items-center justify-center text-2xl transition-all active:brightness-150",
+                                                btn.bg
+                                            )}
+                                        >
+                                            {btn.icon ? (
+                                                <span className="material-symbols-outlined text-xl">{btn.icon}</span>
+                                            ) : (
+                                                btn.val
+                                            )}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* WEATHER DECOY SCREEN */}
+                        {decoyType === 'weather' && (
+                            <div className="flex-1 flex flex-col p-6 bg-gradient-to-b from-[#1b2d4f] via-[#101b30] to-[#0a0f1d] overflow-y-auto no-scrollbar relative">
+                                {/* Invisible Secret escape zone at top-left corner */}
+                                <div 
+                                    className="absolute top-0 left-0 size-20 z-50 cursor-pointer" 
+                                    onClick={handleWeatherSecretTap}
+                                />
+
+                                {/* City Temp header */}
+                                <div className="text-center pt-16 pb-8 space-y-2">
+                                    <h2 className="text-3xl font-light">Barcelona</h2>
+                                    <p className="text-7xl font-thin tracking-tighter pl-3">19°</p>
+                                    <p className="text-sm font-semibold text-white/60">Lluvia Débil</p>
+                                    <p className="text-xs font-semibold text-white/40">Máx: 21°  Mín: 14°</p>
+                                </div>
+
+                                {/* Weather Details */}
+                                <div className="space-y-4">
+                                    {/* 24h Forecast */}
+                                    <div className="bg-white/5 border border-white/5 rounded-3xl p-4 space-y-3">
+                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Pronóstico de Hoy</p>
+                                        <div className="flex justify-between text-center">
+                                            {[
+                                                { time: 'Ahora', temp: '19°', icon: '⛈️' },
+                                                { time: '14:00', temp: '20°', icon: '🌧️' },
+                                                { time: '15:00', temp: '20°', icon: '🌥️' },
+                                                { time: '16:00', temp: '19°', icon: '🌤️' },
+                                                { time: '17:00', temp: '18°', icon: '☀️' }
+                                            ].map((f, i) => (
+                                                <div key={i} className="space-y-2">
+                                                    <p className="text-[10px] text-white/60 font-medium">{f.time}</p>
+                                                    <p className="text-lg">{f.icon}</p>
+                                                    <p className="text-xs font-bold">{f.temp}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 5-Day Forecast */}
+                                    <div className="bg-white/5 border border-white/5 rounded-3xl p-4 space-y-3">
+                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Siguientes 5 Días</p>
+                                        <div className="space-y-3">
+                                            {[
+                                                { day: 'Hoy', desc: 'Lluvia', range: '14° - 21°', icon: '🌧️' },
+                                                { day: 'Mañana', desc: 'Nublado', range: '15° - 20°', icon: '☁️' },
+                                                { day: 'Miércoles', desc: 'Despejado', range: '16° - 22°', icon: '☀️' },
+                                                { day: 'Jueves', desc: 'Tormentas', range: '13° - 18°', icon: '⛈️' },
+                                                { day: 'Viernes', desc: 'Soleado', range: '15° - 23°', icon: '☀️' }
+                                            ].map((d, i) => (
+                                                <div key={i} className="flex justify-between items-center text-xs">
+                                                    <p className="font-bold w-16">{d.day}</p>
+                                                    <span className="text-lg">{d.icon}</span>
+                                                    <p className="text-white/60 w-24 text-left">{d.desc}</p>
+                                                    <p className="font-mono font-bold text-white/80">{d.range}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* BLANK / BLACK SCREEN DECOY */}
+                        {decoyType === 'blank' && (
+                            <div 
+                                className="flex-1 w-full h-full bg-black cursor-pointer"
+                                onClick={handleWeatherSecretTap} // Triple tap exits to PIN
+                            />
+                        )}
+
                     </div>
+                ) : (
+                    // NORMAL ACTIVE EMERGENCY VIEW
+                    <div className="flex flex-col h-full relative z-40 animate-fade-in">
+                        {/* Status Bar Backdrop (Translucent) */}
+                        <div className="h-12 w-full bg-black/20 backdrop-blur-md shrink-0" />
 
-                    {/* Center Visual/Status */}
-                    {!isCameraStarted && Capacitor.isNativePlatform() && (
-                        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4">
-                            <Loader2 className="animate-spin text-white/40" size={40} />
-                            <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">Enlazando cámara de seguridad...</p>
-                        </div>
-                    )}
-
-                    <div className="flex-1" />
-
-                    {/* Bottom Indicators & Stop Button */}
-                    <div className="p-10 space-y-12">
-                        {/* HUD Indicators */}
-                        <div className="flex justify-center gap-6">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-white/50">
-                                <Mic size={16} className="text-red-500" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">LIVE</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-white/50">
-                                <Video size={16} className="text-red-500" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">HD</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-white/50">
-                                <Phone size={16} className="text-blue-400" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">GPS</span>
-                            </div>
-                        </div>
-
-                        {/* Stop Trigger */}
-                        <div className="flex flex-col items-center gap-6">
-                            <button
-                                onClick={() => setStep('pin')}
-                                className="group relative size-28 active:scale-95 transition-all"
+                        {/* Top Header */}
+                        <div className="p-6 text-center space-y-4">
+                            <div
+                                className="inline-flex items-center gap-3 px-6 py-2.5 bg-red-600 rounded-2xl text-white font-black text-xs tracking-widest uppercase shadow-[0_0_30px_rgba(220,38,38,0.5)] border border-white/20 animate-pulse"
                             >
-                                <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-10" />
-                                <div className="relative h-full w-full rounded-full bg-white flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.2)]">
-                                    <div className="size-10 bg-red-600 rounded-xl" />
+                                <div className="size-2.5 rounded-full bg-white" />
+                                REC • EN VIVO
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <h1 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-1">PROTOCOLO ACTIVO</h1>
+                                    <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Sincronizando con autoridades...</p>
                                 </div>
-                            </button>
-                            <div className="text-center">
-                                <p className="text-white font-black text-xs uppercase tracking-widest mb-1">DETENER ALERTA</p>
-                                <p className="text-white/30 font-medium text-[9px] uppercase tracking-widest font-mono">(Requiere PIN)</p>
+
+                                <div className="flex flex-col gap-3 bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-6 max-w-[320px] mx-auto shadow-2xl">
+                                    <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '200ms' }}>
+                                        <div className="size-5 rounded-full bg-red-500 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                                            <span className="text-[10px] text-white font-black">📞</span>
+                                        </div>
+                                        <p className="text-[11px] font-black text-white uppercase tracking-widest">LLAMANDO AL 112...</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '400ms' }}>
+                                        <div className="size-5 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.5)]">
+                                            <span className="text-[10px] text-black font-black">✓</span>
+                                        </div>
+                                        <p className="text-[11px] font-black text-white uppercase tracking-widest">Contactos Alertados</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '600ms' }}>
+                                        <div className="size-5 rounded-full bg-blue-500 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+                                            <div className="size-2 rounded-full bg-white animate-pulse" />
+                                        </div>
+                                        <p className="text-[11px] font-black text-blue-400 uppercase tracking-widest">Compartiendo Vídeo + GPS</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Bottom Nav Spacer */}
-                    <div className="pb-safe-bottom" />
-                    <div className="h-[84px] shrink-0" />
-                </div>
+                        {/* Center Visual/Status */}
+                        {!isCameraStarted && Capacitor.isNativePlatform() && (
+                            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                                <Loader2 className="animate-spin text-white/40" size={40} />
+                                <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">Enlazando cámara de seguridad...</p>
+                            </div>
+                        )}
+
+                        <div className="flex-1" />
+
+                        {/* Bottom Indicators & Stop Button */}
+                        <div className="p-10 space-y-12">
+                            {/* HUD Indicators */}
+                            <div className="flex justify-center gap-6">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-white/50">
+                                    <Mic size={16} className="text-red-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">LIVE</span>
+                                </div>
+                                <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-white/50">
+                                    <Video size={16} className="text-red-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">HD</span>
+                                </div>
+                                <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-white/50">
+                                    <Phone size={16} className="text-blue-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">GPS</span>
+                                </div>
+                            </div>
+
+                            {/* Stop Trigger */}
+                            <div className="flex flex-col items-center gap-6">
+                                <button
+                                    onClick={() => setStep('pin')}
+                                    className="group relative size-28 active:scale-95 transition-all"
+                                >
+                                    <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-10" />
+                                    <div className="relative h-full w-full rounded-full bg-white flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.2)]">
+                                        <div className="size-10 bg-red-600 rounded-xl" />
+                                    </div>
+                                </button>
+                                <div className="text-center">
+                                    <p className="text-white font-black text-xs uppercase tracking-widest mb-1">DETENER ALERTA</p>
+                                    <p className="text-white/30 font-medium text-[9px] uppercase tracking-widest font-mono">(Requiere PIN)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Nav Spacer */}
+                        <div className="pb-safe-bottom" />
+                        <div className="h-[84px] shrink-0" />
+                    </div>
+                )
             )}
 
             {step === 'pin' && (

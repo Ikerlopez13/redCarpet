@@ -56,7 +56,7 @@ export const LocationHistoryModal: React.FC<LocationHistoryModalProps> = ({ isOp
 
             const initMap = new mapboxgl.Map({
                 container: mapContainer,
-                style: 'mapbox://styles/mapbox/dark-v11',
+                style: 'mapbox://styles/mapbox/navigation-night-v1',
                 center: locations.length > 0 ? [locations[0].lng, locations[0].lat] : [2.1734, 41.3851],
                 zoom: 12,
                 pitch: 45

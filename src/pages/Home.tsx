@@ -49,7 +49,7 @@ interface UIMember {
 export const Home: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { user, isPremium } = useAuth();
+    const { user, isPremium, refreshProfile } = useAuth();
     const { openSOSModal, openPaywall } = useSOS();
 
     // Estados
@@ -111,23 +111,42 @@ export const Home: React.FC = () => {
                     
                 const dangers = (dangerData || []) as any[];
                 
+                const { getFamilyGroup, createFamilyGroup } = await import('../services/familyService');
+                let group = await getFamilyGroup(user.id);
+                if (!group) {
+                    const { group: newGroup } = await createFamilyGroup("Mi Círculo", "parental", user.id);
+                    group = newGroup;
+                }
+                setFamilyGroup(group);
+
                 const [zones] = await Promise.all([
-                    getSafeZones(user.id)
+                    group ? getSafeZones(group.id) : Promise.resolve([])
                 ]);
                 
                 setSafeZones(zones);
                 setActiveAlerts(alerts);
-                setIncidenceZones(dangers.map(zone => ({
-                    id: zone.id,
-                    lat: zone.lat,
-                    lng: zone.lng,
-                    radius: zone.radius,
-                    title: (zone.type === 'dark' ? t('map.light_notice') : 
-                            zone.type === 'incident' ? t('map.incident') : 
-                            zone.type === 'construction' ? t('map.construction') : 
-                            zone.type === 'traffic' ? t('map.traffic') : t('map.poi')),
-                    description: zone.description || t('map.active_zone_detected')
-                })));
+                setIncidenceZones(dangers.map(zone => {
+                    let title = (zone.type === 'dark' ? t('map.light_notice') : 
+                                 zone.type === 'incident' ? t('map.incident') : 
+                                 zone.type === 'construction' ? t('map.construction') : 
+                                 zone.type === 'traffic' ? t('map.traffic') : t('map.poi'));
+                    let description = zone.description || t('map.active_zone_detected');
+                    
+                    if (zone.description && zone.description.includes(' - ')) {
+                        const parts = zone.description.split(' - ');
+                        title = parts[0];
+                        description = parts[1];
+                    }
+
+                    return {
+                        id: zone.id,
+                        lat: zone.lat,
+                        lng: zone.lng,
+                        radius: zone.radius,
+                        title,
+                        description
+                    };
+                }));
                 
                 if (alerts.length > 0) {
                     setActiveTab('family');
@@ -148,6 +167,11 @@ export const Home: React.FC = () => {
                         const loc = locations.find((l: any) => l.user_id === c.associated_user_id);
                         const hasActiveAlert = alerts.some((a) => a.user_id === c.associated_user_id);
                         
+                        // Life360 Privacy: Only show location if they share it, OR if they are in an active emergency
+                        if (!c.share_location && !hasActiveAlert) {
+                            return null;
+                        }
+
                         let timeString = t('common.no_data') || 'Sin datos';
                         if (loc?.created_at) {
                             const date = new Date(loc.created_at);
@@ -177,7 +201,7 @@ export const Home: React.FC = () => {
                     });
                     
                     const myAlert = alerts.find(a => a.user_id === user.id);
-                    if (myAlert && !uiMembers.find(m => m.id === user.id)) {
+                    if (myAlert && !uiMembers.find(m => m?.id === user.id)) {
                         uiMembers.push({
                             id: user.id,
                             name: t('home.me'),
@@ -196,7 +220,7 @@ export const Home: React.FC = () => {
                         });
                     }
 
-                    setFamilyMembers(uiMembers);
+                    setFamilyMembers(uiMembers.filter(Boolean) as UIMember[]);
                 } else {
                     setFamilyMembers([]);
                 }
@@ -242,25 +266,54 @@ export const Home: React.FC = () => {
         };
     }, [user]);
 
-    // Onboarding check
+    // Onboarding check - waits for profile to load before deciding
     useEffect(() => {
-        const onboarding = localStorage.getItem('onboarding_complete');
-        if (!onboarding) {
+        // 1. If already marked complete in localStorage → skip
+        const localOnboarding = localStorage.getItem('onboarding_complete');
+        if (localOnboarding) return;
+
+        // 2. If user exists but profile hasn't loaded yet → wait (avoid race condition)
+        if (user && !user.profile) return;
+
+        // 3. Profile is loaded — check if they already completed onboarding on another device
+        if (user?.profile?.has_accepted_privacy_policy || user?.profile?.dob) {
+            localStorage.setItem('onboarding_complete', 'true');
+            return;
+        }
+
+        // 4. Profile is loaded and shows this is a brand new user → send to onboarding
+        if (user && user.profile) {
             navigate('/onboarding');
         }
-    }, [navigate]);
+    }, [navigate, user, user?.profile]);
+
 
     // Cargar si ya estaba configurado SOS localmente y forzar si no
     useEffect(() => {
         const checkSOSConfig = async () => {
+            // Prevent prompt if we already asked during this session
+            if (sessionStorage.getItem('sos_config_prompted') === 'true') {
+                return;
+            }
+
             const { Preferences } = await import('@capacitor/preferences');
             const { value: pin } = await Preferences.get({ key: 'SOS_PIN' });
+            const { value: localConfig } = await Preferences.get({ key: 'sos_config' });
             
-            if (pin) {
+            let parsedPin = '';
+            if (localConfig) {
+                try {
+                    parsedPin = JSON.parse(localConfig).pin;
+                } catch {}
+            }
+
+            const activePin = pin || parsedPin || user?.profile?.sos_pin;
+
+            if (activePin) {
                 if (!sosConfig) {
                     setSOSConfig({
                         contacts: [],
-                        pin: pin,
+                        pin: activePin,
                         autoCall112: true,
                         shareLocation: true,
                         recordAudio: true,
@@ -268,16 +321,16 @@ export const Home: React.FC = () => {
                         isConfigured: true,
                     });
                 }
-            }
-            if (user?.profile?.sos_pin) {
-                // All good
             } else {
-                // If NO PIN, force open setup immediately for security compliance
+                // If NO PIN at all, force open setup immediately for security compliance, but flag it
+                sessionStorage.setItem('sos_config_prompted', 'true');
                 setShowSOSConfig(true);
             }
         };
 
-        checkSOSConfig();
+        if (user) {
+            checkSOSConfig();
+        }
     }, [user, sosConfig]);
 
     useEffect(() => {
@@ -400,11 +453,7 @@ export const Home: React.FC = () => {
 
             {/* Header con buscador - Cleaned version (Floating) */}
             
-            {/* Quick SOS Floating Button */}
-            <div className="absolute top-[270px] right-4 z-40 animate-fade-in">
-                <UltimateSOSButton />
-            </div>
-
+            {/* Header con buscador - Cleaned version (Floating) */}
             <div className="absolute top-12 left-0 right-0 z-40 px-6 flex justify-between items-center pointer-events-none">
                 <div className="flex items-center gap-3 pointer-events-auto w-full">
                     <div className={clsx(
@@ -527,7 +576,7 @@ export const Home: React.FC = () => {
                         setSelectedMember(id);
                     }}
                 >
-                    <div className="absolute top-[210px] right-4 z-40 pointer-events-auto">
+                    <div className="absolute top-[210px] right-4 z-40 pointer-events-auto flex flex-col items-end gap-4">
                         <button
                             onClick={() => setShowReportDangerModal(true)}
                             className="size-12 bg-amber-500 rounded-[1rem] border border-amber-400/50 flex items-center justify-center shadow-lg shadow-amber-500/30 text-black hover:bg-amber-400 active:scale-90 transition-all pointer-events-auto"
@@ -535,6 +584,10 @@ export const Home: React.FC = () => {
                         >
                             <span className="material-symbols-outlined text-2xl font-black">warning</span>
                         </button>
+
+                        <div className="animate-fade-in pointer-events-auto">
+                            <UltimateSOSButton />
+                        </div>
                     </div>
                 </UnifiedMap>
             </div>
@@ -597,6 +650,14 @@ export const Home: React.FC = () => {
                     {activeTab === 'places' && (
                         <div className="flex flex-col gap-3">
 
+                            {/* Button to Add Trusted Place */}
+                            <button
+                                onClick={() => setShowAddZoneModal(true)}
+                                className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl flex items-center justify-center gap-2 font-bold text-sm shadow-lg transition-all active:scale-[0.98] mb-2"
+                            >
+                                <span className="material-symbols-outlined text-lg">add_location_alt</span>
+                                Añadir Lugar de Confianza
+                            </button>
 
                             {/* Lugares guardados */}
                             {safeZones.length === 0 ? (
@@ -605,22 +666,35 @@ export const Home: React.FC = () => {
                                 </div>
                             ) : (
                                 safeZones.map((zone) => (
-                                    <button
+                                    <div
                                         key={zone.id}
                                         onClick={() => navigate('/route', { state: { destination: { lat: zone.lat, lng: zone.lng }, destinationName: zone.name } })}
-                                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors"
+                                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors cursor-pointer"
                                     >
-                                        <div className="size-10 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                                        <div className="size-10 rounded-full bg-white/10 flex items-center justify-center text-xl shrink-0">
                                             {zone.name.toLowerCase().includes('casa') ? '🏠' :
                                                 zone.name.toLowerCase().includes('escuela') || zone.name.toLowerCase().includes('colegio') ? '🎓' :
                                                     zone.name.toLowerCase().includes('trabajo') ? '💼' : '📍'}
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="font-semibold">{zone.name}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold truncate">{zone.name}</p>
                                             <p className="text-xs text-white/40">{t('home.radius')}: {zone.radius}m</p>
                                         </div>
-                                        <span className="material-symbols-outlined text-white/40">chevron_right</span>
-                                    </button>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if(window.confirm('¿Eliminar este lugar de confianza?')) {
+                                                    await supabase.from('safe_zones').delete().eq('id', zone.id);
+                                                    loadData();
+                                                }
+                                            }}
+                                            className="p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all shrink-0"
+                                            title="Eliminar lugar"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                        </button>
+                                        <span className="material-symbols-outlined text-white/40 shrink-0">chevron_right</span>
+                                    </div>
                                 ))
                             )}
 
@@ -667,7 +741,7 @@ export const Home: React.FC = () => {
                                     <span className="material-symbols-outlined text-4xl text-white/20">group_add</span>
                                     Aún no tienes a nadie en Tu Círculo.
                                     <button 
-                                        onClick={() => navigate('/trusted-contacts')}
+                                        onClick={() => navigate('/contacts')}
                                         className="mt-2 bg-primary text-white font-bold py-2 px-4 rounded-xl text-xs active:scale-95 transition-all"
                                     >
                                         Añadir Contactos
@@ -703,7 +777,7 @@ export const Home: React.FC = () => {
                                     </button>
                                 ))}
                                 <button 
-                                    onClick={() => navigate('/trusted-contacts')}
+                                    onClick={() => navigate('/contacts')}
                                     className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 border-dashed text-left hover:bg-white/10 transition-colors mt-2"
                                 >
                                     <div className="size-10 rounded-full bg-white/5 flex items-center justify-center text-xl text-white/40">
@@ -724,7 +798,34 @@ export const Home: React.FC = () => {
             <SOSConfigSheet
                 isOpen={showSOSConfig}
                 onClose={() => setShowSOSConfig(false)}
-                onSave={setSOSConfig}
+                onSave={async (config) => {
+                    // 1. Save to Capacitor Preferences
+                    const { Preferences } = await import('@capacitor/preferences');
+                    await Preferences.set({ key: 'sos_config', value: JSON.stringify(config) });
+                    await Preferences.set({ key: 'SOS_PIN', value: config.pin });
+                    
+                    // 2. Save to localStorage for Web compatibility
+                    localStorage.setItem('sos_config', JSON.stringify(config));
+                    localStorage.setItem('SOS_PIN', config.pin);
+                    
+                    // 3. Save to remote Supabase
+                    if (user) {
+                        try {
+                            await supabase.from('profiles').update({ sos_pin: config.pin }).eq('id', user.id);
+                            await refreshProfile();
+                        } catch (err) {
+                            console.error('[Home] Error updating profile pin:', err);
+                        }
+                    }
+                    
+                    setSOSConfig(config);
+                    setShowSOSConfig(false);
+                    
+                    // Show Premium interstitial
+                    setTimeout(() => {
+                        navigate('/subscription');
+                    }, 500);
+                }}
                 currentConfig={sosConfig || undefined}
             />
 
@@ -769,11 +870,11 @@ export const Home: React.FC = () => {
                 </div>
             )}
 
-            {/* Add Safe Zone Modal (Now using user.id instead of familyGroup) */}
+            {/* Add Safe Zone Modal (Now using familyGroup.id again) */}
             <AddSafeZoneModal
                 isOpen={showAddZoneModal}
                 onClose={() => setShowAddZoneModal(false)}
-                familyId={user?.id || ''}
+                familyId={familyGroup?.id || ''}
                 onSuccess={loadData}
             />
 

@@ -56,12 +56,42 @@ export const Account: React.FC = () => {
         }
         setIsLoading(true);
         try {
+            // 1. Save to Capacitor Preferences (SOS_PIN and sos_config)
             await Preferences.set({ key: 'SOS_PIN', value: newPin });
+            const { value: configRaw } = await Preferences.get({ key: 'sos_config' });
+            if (configRaw) {
+                try {
+                    const parsed = JSON.parse(configRaw);
+                    parsed.pin = newPin;
+                    await Preferences.set({ key: 'sos_config', value: JSON.stringify(parsed) });
+                } catch (e) {
+                    console.warn('[Account] Could not sync PIN into existing sos_config:', e);
+                }
+            }
+            
+            // 2. Save to localStorage for Web compatibility
+            localStorage.setItem('SOS_PIN', newPin);
+            if (configRaw) {
+                try {
+                    const parsed = JSON.parse(configRaw);
+                    parsed.pin = newPin;
+                    localStorage.setItem('sos_config', JSON.stringify(parsed));
+                } catch {}
+            }
+
+            // 3. Save to remote Supabase Database & Refresh Profile
+            if (user) {
+                const { error } = await supabase.from('profiles').update({ sos_pin: newPin }).eq('id', user.id);
+                if (error) throw error;
+                await refreshProfile();
+            }
+
             setCurrentPin(newPin);
             setNewPin('');
             setIsEditingPin(false);
             alert(t('account.pin_success'));
         } catch (err: any) {
+            console.error('[Account] Error updating PIN:', err);
             alert(t('account.pin_error'));
         } finally {
             setIsLoading(false);
@@ -92,7 +122,7 @@ export const Account: React.FC = () => {
                         </div>
                     </div>
                     <div className="text-center">
-                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">{user?.profile?.full_name || user?.email?.split('@')[0] || t('common.user')}</h2>
+                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">{user?.profile?.full_name || user?.email?.split('@')?.[0] || t('common.user')}</h2>
                         <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">{t('account.active_member')}</p>
                     </div>
                 </div>

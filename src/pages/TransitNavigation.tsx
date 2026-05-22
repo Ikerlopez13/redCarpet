@@ -169,7 +169,7 @@ export const TransitNavigation: React.FC<TransitNavigationProps> = ({
                             zoom: 14,
                             pitch: 45
                         }}
-                        mapStyle="mapbox://styles/mapbox/dark-v11"
+                        mapStyle="mapbox://styles/mapbox/navigation-night-v1"
                         mapboxAccessToken={MAPBOX_TOKEN}
                         style={{ width: '100%', height: '100%' }}
                         attributionControl={false}

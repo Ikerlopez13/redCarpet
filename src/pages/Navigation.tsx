@@ -9,6 +9,7 @@ import { RouteLine, ROUTE_COLORS } from '../components/map/RouteLine';
 import { IncidenceZones } from '../components/map/IncidenceZone';
 import { getRoute, formatDuration, formatDistance, type RouteStep } from '../services/directionsService';
 import { searchPlaces } from '../services/geocodingService';
+import { ReportDangerModal } from '../components/safety/ReportDangerModal';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -48,6 +49,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     onClose
 }) => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
 
     // Barcelona danger zones - same as UnifiedMap
     const barcelonaIncidenceZones = [
@@ -73,6 +75,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     const [totalDistance, setTotalDistance] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [eta, setEta] = useState('');
+    const [showReportDangerModal, setShowReportDangerModal] = useState(false);
     const [viewState, setViewState] = useState({
         latitude: origin.lat,
         longitude: origin.lng,
@@ -190,7 +193,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                 <Map
                     {...viewState}
                     onMove={evt => setViewState(evt.viewState)}
-                    mapStyle="mapbox://styles/mapbox/dark-v11"
+                    mapStyle="mapbox://styles/mapbox/navigation-night-v1"
                     mapboxAccessToken={MAPBOX_TOKEN}
                     style={{ width: '100%', height: '100%' }}
                     attributionControl={false}
@@ -214,7 +217,6 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         trackUserLocation={true}
                         showUserLocation={true}
                         showUserHeading={true}
-                        style={{ display: 'none' }} // Hidden visually but logic runs internally
                     />
 
                     {/* Default Mapbox Popup for Instructions */}
@@ -256,6 +258,10 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     </Marker>
                 </Map>
 
+                <style>{`
+                    .mapboxgl-ctrl-geolocate { display: none !important; }
+                `}</style>
+
                 {/* Floating Map Controls */}
                 <div className="absolute right-4 top-4 flex flex-col gap-3">
                     <button 
@@ -268,10 +274,17 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         <span className="material-symbols-outlined text-2xl">volume_up</span>
                     </button>
                     <button 
-                        onClick={() => navigate('/feedback')}
-                        className="size-14 bg-amber-500 rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
+                        onClick={() => setShowReportDangerModal(true)}
+                        className="size-14 bg-safety-orange rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
                     >
-                        <span className="material-symbols-outlined text-2xl font-black">chat_bubble</span>
+                        <span className="material-symbols-outlined text-2xl font-black">shield</span>
+                    </button>
+                    <button 
+                        onClick={() => navigate('/emergency')}
+                        className="size-14 bg-safety-red rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform border border-red-400/30 relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                        <span className="font-black text-xl tracking-tighter italic z-10">SOS</span>
                     </button>
                 </div>
             </div>
@@ -296,6 +309,13 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     </button>
                 </div>
             </div>
+
+            <ReportDangerModal 
+                isOpen={showReportDangerModal} 
+                onClose={() => setShowReportDangerModal(false)} 
+                userLat={userLocation.lat} 
+                userLng={userLocation.lng} 
+            />
         </div>
     );
 };

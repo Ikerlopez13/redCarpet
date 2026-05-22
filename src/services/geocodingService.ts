@@ -1,8 +1,7 @@
-// Mapbox Geocoding API Service for place autocomplete
-// Searches for places and returns suggestions
+// Mapbox Search Box API Service for premium place autocomplete and POI searching
+// Searches for places, addresses, and establishments (such as colleges/universities)
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const GEOCODING_API_BASE = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
 
 export interface GeocodingResult {
     id: string;
@@ -13,8 +12,16 @@ export interface GeocodingResult {
     category?: string;
 }
 
+// Generate a random session token for Search Box API billing/sessionization
+function generateSessionToken(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+// Keep a persistent session token that updates per search sequence
+let activeSessionToken = generateSessionToken();
+
 /**
- * Search for places using Mapbox Geocoding API
+ * Search for places using Mapbox Search Box API (Suggest & Retrieve)
  * @param query - Search query string
  * @param proximity - Optional coordinates to bias results towards
  */
@@ -22,51 +29,83 @@ export async function searchPlaces(
     query: string,
     proximity?: { lat: number; lng: number }
 ): Promise<GeocodingResult[]> {
-    if (!query || query.length < 2) {
+    if (!query || query.trim().length < 2) {
         return [];
     }
 
-    const params = new URLSearchParams({
-        access_token: MAPBOX_TOKEN,
-        autocomplete: 'true',
-        fuzzyMatch: 'true',
-        limit: '25',
-        language: 'es',
-        country: 'es',
-        types: 'poi,address,neighborhood,locality,place'
-    });
+    // Refresh session token if a new search interaction starts (2 chars)
+    if (query.trim().length === 2) {
+        activeSessionToken = generateSessionToken();
+    }
 
-    // High-priority proximity bias for local relevance
+    const suggestUrl = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');
+    suggestUrl.searchParams.append('q', query);
+    suggestUrl.searchParams.append('access_token', MAPBOX_TOKEN);
+    suggestUrl.searchParams.append('session_token', activeSessionToken);
+    suggestUrl.searchParams.append('limit', '8');
+    suggestUrl.searchParams.append('language', 'es');
+    suggestUrl.searchParams.append('country', 'es');
+    // Heavily prioritize POIs (universities, businesses) and addresses to ensure high quality results
+    suggestUrl.searchParams.append('types', 'poi,address,place,neighborhood');
+
     if (proximity) {
-        params.append('proximity', `${proximity.lng},${proximity.lat}`);
-    } 
-
-    const url = `${GEOCODING_API_BASE}/${encodeURIComponent(query)}.json?${params}`;
-
+        suggestUrl.searchParams.append('proximity', `${proximity.lng},${proximity.lat}`);
+    }
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(suggestUrl.toString());
         const data = await response.json();
 
-        if (data.features) {
-            return data.features.map((feature: any) => ({
-                id: feature.id,
-                name: feature.text,
-                address: feature.place_name,
-                lat: feature.center[1],
-                lng: feature.center[0],
-                category: feature.properties?.category || getIconFromType(feature.place_type?.[0])
-            }));
+        if (!data.suggestions || data.suggestions.length === 0) {
+            return [];
         }
-        return [];
+
+        // Sort suggestions to prioritize exact addresses over POIs to avoid business names overshadowing homes
+        const sortedSuggestions = data.suggestions.sort((a: any, b: any) => {
+            if (a.feature_type === 'address' && b.feature_type !== 'address') return -1;
+            if (b.feature_type === 'address' && a.feature_type !== 'address') return 1;
+            return 0;
+        });
+
+        // We only retrieve coordinates for the top suggestions to be extremely fast (max 6)
+        const suggestionsToFetch = sortedSuggestions.slice(0, 6);
+
+        const results = await Promise.all(
+            suggestionsToFetch.map(async (suggestion: any) => {
+                try {
+                    const retrieveUrl = `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}?access_token=${MAPBOX_TOKEN}&session_token=${activeSessionToken}`;
+                    const retrieveResponse = await fetch(retrieveUrl);
+                    const retrieveData = await retrieveResponse.json();
+
+                    if (retrieveData.features && retrieveData.features.length > 0) {
+                        const feature = retrieveData.features[0];
+                        return {
+                            id: suggestion.mapbox_id,
+                            name: suggestion.name,
+                            address: suggestion.full_address || suggestion.place_formatted,
+                            lat: feature.geometry.coordinates[1],
+                            lng: feature.geometry.coordinates[0],
+                            category: suggestion.maki || (suggestion.poi_category_ids ? suggestion.poi_category_ids[0] : 'place')
+                        } as GeocodingResult;
+                    }
+                } catch (err) {
+                    console.error(`Error retrieving details for Mapbox ID ${suggestion.mapbox_id}:`, err);
+                }
+                return null;
+            })
+        );
+
+        // Filter out any failed retrievals
+        return results.filter((r): r is GeocodingResult => r !== null);
+
     } catch (error) {
-        console.error('Error searching places:', error);
+        console.error('Error searching places with Search Box API:', error);
         return [];
     }
 }
 
 /**
- * Get an icon name based on place type
+ * Get an icon name based on place type (legacy helper)
  */
 function getIconFromType(type: string): string {
     switch (type) {

@@ -15,16 +15,19 @@ import clsx from 'clsx';
 import { useAuth } from '../contexts/AuthContext';
 import { getFamilyData } from '../services/familyService';
 import { getSOSHistory } from '../services/sosService';
+import { supabase } from '../services/supabaseClient';
+import { TrustedContactsService } from '../services/trustedContactsService';
 
 interface NotificationItem {
   id: string;
-  type: 'emergency' | 'family' | 'system';
+  type: 'emergency' | 'family' | 'system' | 'warning';
   title: string;
   message: string;
   time: string;
   isRead: boolean;
   action?: string;
   alertId?: string;
+  createdAt: string;
 }
 
 export const Notifications: React.FC = () => {
@@ -39,46 +42,105 @@ export const Notifications: React.FC = () => {
     const fetchNotifs = async () => {
         if (!user) return;
         try {
-            const { group, members } = await getFamilyData(user.id);
-            if (group) {
-                const alerts = await getSOSHistory(group.id, 20);
-                const filteredAlerts = alerts.filter(a => a.user_id !== user.id);
-                const mapped: NotificationItem[] = filteredAlerts.map(a => {
-                    const member = members.find(m => m.profile?.id === a.user_id);
-                    const name = member?.profile?.full_name?.split(' ')[0] || t('notifications.unknown_contact');
-                    
-                    const date = new Date(a.created_at);
-                    const now = new Date();
-                    const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
-                    let timeStr = t('notifications.just_now');
-                    if (diffMins > 0 && diffMins < 60) timeStr = t('notifications.mins_ago', { count: diffMins });
-                    else if (diffMins >= 60 && diffMins < 1440) timeStr = t('notifications.hours_ago', { count: Math.floor(diffMins/60) });
-                    else if (diffMins >= 1440) timeStr = t('notifications.days_ago', { count: Math.floor(diffMins/1440) });
+            // Fetch accepted trusted contacts
+            const contacts = await TrustedContactsService.getContacts(user.id);
+            const acceptedContacts = contacts.filter(c => c.status === 'accepted' && c.associated_user_id);
+            const contactUserIds = acceptedContacts.map(c => c.associated_user_id as string);
+            const relevantUserIds = [user.id, ...contactUserIds];
 
-                    return {
-                        id: a.id,
-                        alertId: a.id,
-                        type: a.status === 'active' ? 'emergency' : 'family',
-                        title: a.status === 'active' ? t('notifications.journey_alert_title', { name }) : t('notifications.journey_finished_title', { name }),
-                        message: a.message || t('notifications.update_processed'),
-                        time: timeStr,
-                        isRead: a.status !== 'active',
-                        action: a.status === 'active' ? t('notifications.open_map') : t('notifications.view_history')
-                    };
-                });
-                // Add a welcome notification if it's too empty
-                if (mapped.length === 0) {
-                  mapped.push({
-                    id: 'welcome',
-                    type: 'system',
-                    title: t('notifications.welcome_title'),
-                    message: t('notifications.welcome_message'),
-                    time: t('notifications.just_now'),
-                    isRead: false
-                  });
-                }
-                setNotifications(mapped);
+            // Fetch profiles to map names
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', relevantUserIds);
+
+            // Fetch SOS alerts
+            const { data: alertsData } = await supabase
+                .from('sos_alerts')
+                .select('*')
+                .in('user_id', relevantUserIds)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            // Fetch danger zones (street danger reports)
+            const { data: dangerData } = await supabase
+                .from('danger_zones')
+                .select('*')
+                .in('reporter_id', relevantUserIds)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            const formatTime = (dateStr: string) => {
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+                if (diffMins <= 0) return t('notifications.just_now');
+                if (diffMins < 60) return t('notifications.mins_ago', { count: diffMins });
+                if (diffMins < 1440) return t('notifications.hours_ago', { count: Math.floor(diffMins / 60) });
+                return t('notifications.days_ago', { count: Math.floor(diffMins / 1440) });
+            };
+
+            const mappedSOS: NotificationItem[] = (alertsData || []).map(a => {
+                const isOwn = a.user_id === user.id;
+                const profile = profiles?.find(p => p.id === a.user_id);
+                const name = isOwn ? t('notifications.me', 'Yo') : (profile?.full_name?.split(' ')[0] || t('notifications.unknown_contact'));
+                
+                return {
+                    id: a.id,
+                    alertId: a.id,
+                    type: a.status === 'active' ? 'emergency' : 'family',
+                    title: isOwn 
+                        ? t('notifications.own_sos_title', 'SOS enviado correctamente') 
+                        : (a.status === 'active' 
+                            ? t('notifications.journey_alert_title', { name }) 
+                            : t('notifications.journey_finished_title', { name })),
+                    message: isOwn 
+                        ? t('notifications.own_alert_message', 'Se ha alertado correctamente y se ha avisado a tus contactos.') 
+                        : (a.message || t('notifications.update_processed')),
+                    time: formatTime(a.created_at),
+                    isRead: a.status !== 'active',
+                    action: a.status === 'active' ? t('notifications.open_map') : t('notifications.view_history'),
+                    createdAt: a.created_at
+                };
+            });
+
+            const mappedDangers: NotificationItem[] = (dangerData || []).map(d => {
+                const isOwn = d.reporter_id === user.id;
+                const profile = profiles?.find(p => p.id === d.reporter_id);
+                const name = isOwn ? t('notifications.me', 'Yo') : (profile?.full_name?.split(' ')[0] || t('notifications.unknown_contact'));
+                
+                return {
+                    id: d.id,
+                    type: 'warning',
+                    title: isOwn 
+                        ? t('notifications.own_danger_title', 'Aviso de peligro enviado') 
+                        : t('notifications.danger_alert_title', 'Peligro reportado por {{name}}', { name }),
+                    message: isOwn 
+                        ? t('notifications.own_alert_message', 'Se ha alertado correctamente y se ha avisado a tus contactos.') 
+                        : (d.description || t('map.active_zone_detected')),
+                    time: formatTime(d.created_at),
+                    isRead: false,
+                    action: t('notifications.open_map'),
+                    createdAt: d.created_at
+                };
+            });
+
+            let combined = [...mappedSOS, ...mappedDangers];
+            combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            // Add a welcome notification if it's too empty
+            if (combined.length === 0) {
+              combined.push({
+                id: 'welcome',
+                type: 'system',
+                title: t('notifications.welcome_title'),
+                message: t('notifications.welcome_message'),
+                time: t('notifications.just_now'),
+                isRead: false,
+                createdAt: new Date().toISOString()
+              });
             }
+            setNotifications(combined);
         } catch (e) {
             console.error('Failed to load notifs', e);
         } finally {
@@ -126,6 +188,8 @@ export const Notifications: React.FC = () => {
               key={notif.id}
               className={clsx(
                 "relative group p-4 rounded-2xl border transition-all active:scale-[0.98] animate-slide-up",
+                notif.type === 'emergency' && !notif.isRead ? 'bg-red-600/5 border-red-500/20' :
+                notif.type === 'warning' && !notif.isRead ? 'bg-amber-500/5 border-amber-500/20' :
                 notif.isRead ? 'bg-white/5 border-white/5' : 'bg-primary/5 border-primary/20'
               )}
               style={{ animationDelay: `${index * 100}ms` }}
@@ -135,10 +199,12 @@ export const Notifications: React.FC = () => {
                 <div className={clsx(
                   "size-12 rounded-2xl flex items-center justify-center shrink-0",
                   notif.type === 'emergency' ? 'bg-red-600/20 text-red-500' :
+                  notif.type === 'warning' ? 'bg-amber-500/20 text-amber-500' :
                   notif.type === 'family' ? 'bg-green-500/20 text-green-500' :
                   'bg-blue-500/20 text-blue-500'
                 )}>
                   {notif.type === 'emergency' ? <ShieldAlert size={24} /> :
+                   notif.type === 'warning' ? <ShieldAlert size={24} className="text-amber-500" /> :
                    notif.type === 'family' ? <Users size={24} /> :
                    <Info size={24} />}
                 </div>
@@ -162,7 +228,10 @@ export const Notifications: React.FC = () => {
                   {notif.action && (
                     <button 
                       onClick={() => handleAction(notif)}
-                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors"
+                      className={clsx(
+                        "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors",
+                        notif.type === 'warning' ? "text-amber-500" : "text-primary"
+                      )}
                     >
                       {notif.action}
                       <ArrowRight size={12} />
@@ -172,7 +241,12 @@ export const Notifications: React.FC = () => {
 
                 {/* Unread dot */}
                 {!notif.isRead && (
-                  <div className="absolute top-4 right-4 size-2 bg-primary rounded-full shadow-[0_0_10px_rgba(255,49,49,1)]" />
+                  <div className={clsx(
+                    "absolute top-4 right-4 size-2 rounded-full",
+                    notif.type === 'warning' 
+                      ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,1)]" 
+                      : "bg-primary shadow-[0_0_10px_rgba(255,49,49,1)]"
+                  )} />
                 )}
               </div>
             </div>

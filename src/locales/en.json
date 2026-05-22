@@ -13,7 +13,8 @@
     "save": "Save",
     "success": "Success",
     "user": "User",
-    "go": "GO"
+    "go": "GO",
+    "report": "Reportar"
   },
   "auth": {
     "login_tab": "Login",
@@ -35,7 +36,8 @@
     "login_btn": "Login",
     "register_btn": "Register",
     "reset_btn": "Recover Account",
-    "continue_with": "Or continue with", "continue_with_apple": "Continue with Apple",
+    "continue_with": "Or continue with",
+    "continue_with_apple": "Continue with Apple",
     "google": "Google",
     "apple": "Apple",
     "app_subtitle": "Your urban experience, guided and safe",
@@ -93,7 +95,9 @@
     "poi_open": "Open",
     "poi_rating": "Rating",
     "poi_price": "Price",
-    "no_family_members": "Invite family members to see them on the map"
+    "no_family_members": "Invite family members to see them on the map",
+    "report_danger": "Reportar Incidencia",
+    "report_danger_desc": "Avisa a otros usuarios sobre peligros en tu ubicación actual."
   },
   "map": {
     "light_notice": "Lighting notice",
@@ -104,7 +108,11 @@
     "construction": "Construction",
     "traffic": "Traffic",
     "poi": "Point of interest",
-    "active_zone_detected": "Active zone detected"
+    "active_zone_detected": "Active zone detected",
+    "incident_desc": "Incidencia reportada por un usuario cercano.",
+    "construction_desc": "Zona en obras o cortada temporalmente.",
+    "traffic_desc": "Problemas de tráfico reportados en la vía.",
+    "dark_desc": "Zona poco iluminada, mantenga precaución."
   },
   "settings": {
     "title": "Settings",
@@ -132,7 +140,7 @@
       "greencarpet": "GreenCarpet",
       "greencarpet_sub": "CO2 Impact",
       "contact": "Support",
-      "feedback": "Feedback",
+      "feedback": "Rate our app",
       "faq": "FAQ",
       "privacy_policy": "Privacy Policy",
       "terms_of_use": "Terms of Use",
@@ -424,15 +432,26 @@
     "kilometers": "Kilometers",
     "journeys": "Journeys",
     "trees_title": "568 Trees",
-    "trees_desc": "Absorption capacity",
-    "liters_title": "4,200 Liters",
-    "liters_desc": "Fuel saved",
+    "trees_desc": "CO₂ absorption capacity",
+    "liters_title": "5,413 Liters",
+    "liters_desc": "Fossil fuel saved",
     "emissions_title": "125,000 Km",
-    "emissions_desc": "Emissions avoided",
+    "emissions_desc": "Flight emissions avoided",
     "your_co2": "Your CO₂ Kilograms",
     "eco_elite": "Eco-Elite",
     "eco_elite_desc": "You actively contribute to the development of comfortable cities.",
-    "share_impact": "Share Impact"
+    "share_impact": "Share Impact",
+    "investor_title": "Investor Metrics",
+    "growth_rate_title": "Eco-Trips Growth",
+    "growth_rate_desc": "Accumulated MoM rate",
+    "sdg_alignment_title": "SDG Alignment",
+    "sdg_alignment_desc": "SDG 11 & 13 indicators",
+    "carbon_credits_title": "Carbon Credits",
+    "carbon_credits_desc": "Est. registrable tCO₂e",
+    "trend_title": "Impact Trend",
+    "trend_desc": "CO₂ avoided history (kg)",
+    "clean_energy_title": "14.8 MWh",
+    "clean_energy_desc": "Equivalent clean energy"
   },
   "navigation": {
     "loading": "Preparing your safe route...",
@@ -469,10 +488,19 @@
     "delete_confirm": "Are you sure you want to remove {{name}} from your trusted contacts?",
     "delete_error": "Error deleting contact",
     "respond_error": "Error responding to request",
-    "sync_error": "Error synchronizing change."
+    "sync_error": "Error synchronizing change.",
+    "add_manual": "Add manually",
+    "import_agenda": "Import Contacts",
+    "search_agenda": "Search contacts...",
+    "select_phone": "Select Phone",
+    "multiple_phones": "This contact has multiple numbers. Please select one:",
+    "permission_denied": "Permission Denied",
+    "permission_denied_desc": "Could not access your contacts because permission was denied. Please enable it in system settings.",
+    "import_error": "Error importing contact",
+    "contact_no_phone": "The selected contact has no registered phone number."
   },
   "feedback": {
-    "title": "Feedback",
+    "title": "Rate our app",
     "rate_experience": "Rate your experience",
     "how_to_improve": "How can we improve?",
     "placeholder": "Write your suggestions here...",
@@ -497,7 +525,12 @@
     "welcome_message": "Journey alerts and urban incidents from your family circle will appear here.",
     "all_clear": "All clear",
     "no_notifications": "You have no new notifications",
-    "privacy_footer": "Your journey data is protected with end-to-end encryption."
+    "privacy_footer": "Your journey data is protected with end-to-end encryption.",
+    "own_sos_title": "SOS sent",
+    "own_danger_title": "Danger alert sent",
+    "danger_alert_title": "Danger reported by {{name}}",
+    "me": "Me",
+    "own_alert_message": "You have successfully alerted your trusted contacts."
   },
   "privacy": {
     "back": "Back",
@@ -533,13 +566,35 @@
     "section3_content": "REDCARPET processes personal data respecting principles of lawfulness, purpose limitation, data minimization, accuracy, storage limitation, integrity, and proactive responsibility.",
     "section4_title": "4. Categories of Data Processed",
     "section4_1_title": "4.1 Identifying Data",
-    "section4_1_list": ["Full name.", "Postal address.", "Email address.", "Phone number."],
+    "section4_1_list": [
+      "Full name.",
+      "Postal address.",
+      "Email address.",
+      "Phone number."
+    ],
     "section4_2_title": "4.2 Technical Data",
-    "section4_2_list": ["IP address.", "Unique user ID.", "Device identifiers.", "Access logs.", "Technical metadata."],
+    "section4_2_list": [
+      "IP address.",
+      "Unique user ID.",
+      "Device identifiers.",
+      "Access logs.",
+      "Technical metadata."
+    ],
     "section4_3_title": "4.3 Location and Mobility Data",
-    "section4_3_list": ["Real-time GPS location.", "Location history.", "Visit frequency.", "Stay time.", "Habitual mobility hours.", "Movement patterns."],
+    "section4_3_list": [
+      "Real-time GPS location.",
+      "Location history.",
+      "Visit frequency.",
+      "Stay time.",
+      "Habitual mobility hours.",
+      "Movement patterns."
+    ],
     "section4_4_title": "4.4 Economic Data",
-    "section4_4_list": ["Billing data.", "Payment history.", "Accounting information."],
+    "section4_4_list": [
+      "Billing data.",
+      "Payment history.",
+      "Accounting information."
+    ],
     "section4_footer": "REDCARPET expressly declares that it does not process special categories of personal data (Article 9 GDPR).",
     "section5_title": "5. Purposes of Processing",
     "section5_list": [

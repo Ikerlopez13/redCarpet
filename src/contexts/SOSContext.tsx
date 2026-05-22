@@ -19,7 +19,8 @@ export function SOSProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const checkConfig = async () => {
             const { value } = await (await import('@capacitor/preferences')).Preferences.get({ key: 'sos_config' });
-            setIsConfigured(!!value);
+            const { value: completed } = await (await import('@capacitor/preferences')).Preferences.get({ key: 'sos_config_completed' });
+            setIsConfigured(!!value || completed === 'true' || localStorage.getItem('sos_config_completed') === 'true');
         };
         checkConfig();
 

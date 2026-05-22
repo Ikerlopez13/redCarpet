@@ -8,7 +8,8 @@ import {
     Zap, 
     Activity,
     Lock,
-    Shield
+    Shield,
+    Grid
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSOS } from '../contexts/SOSContext.base';
@@ -25,7 +26,7 @@ export const Emergency: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const handleStartSOS = async () => {
-        if (!user || !familyGroup || isActivating) return;
+        if (!user || isActivating) return;
         
         setIsActivating(true);
         setError(null);
@@ -33,8 +34,27 @@ export const Emergency: React.FC = () => {
         try {
             console.log('[Emergency-Page] Single-click SOS Triggered');
             
+            // 1. Get or create group to ensure it never fails
+            const { getFamilyGroup, createFamilyGroup } = await import('../services/familyService');
+            let group = familyGroup;
+            if (!group) {
+                group = await getFamilyGroup(user.id);
+            }
+            if (!group) {
+                console.log('[Emergency-Page] Auto-creating circle...');
+                const { group: newGroup, error: groupError } = await createFamilyGroup(
+                    "Mi Círculo",
+                    "parental", 
+                    user.id
+                );
+                if (groupError || !newGroup) {
+                    throw new Error(groupError || "No se pudo crear el grupo de seguridad.");
+                }
+                group = newGroup;
+            }
+
             // Execute the full SOS protocol (112 + Contacts + Location)
-            const { alert, error: sosError } = await executeSOSProtocol(user.id, familyGroup.id, 'security');
+            const { alert, error: sosError } = await executeSOSProtocol(user.id, group.id, 'security');
 
             if (sosError || !alert) {
                 throw new Error(sosError || 'Error al activar el protocolo SOS');
@@ -157,6 +177,25 @@ export const Emergency: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Widgets & Discreet SOS banner */}
+            <div className="relative z-10 px-8">
+                <button
+                    onClick={() => navigate('/widgets')}
+                    className="w-full flex items-center justify-between p-5 rounded-[2rem] bg-gradient-to-r from-amber-500/20 to-amber-700/10 border border-amber-500/30 hover:from-amber-500/30 transition-all active:scale-[0.98]"
+                >
+                    <div className="flex items-center gap-4 text-left">
+                        <div className="size-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                            <Grid size={24} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-black italic uppercase tracking-tighter text-white">Widgets y SOS Discreto</p>
+                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">Configurar widgets y patrón secreto</p>
+                        </div>
+                    </div>
+                    <span className="material-symbols-outlined text-white/40">chevron_right</span>
+                </button>
             </div>
 
             {/* Footer Legal/Info */}

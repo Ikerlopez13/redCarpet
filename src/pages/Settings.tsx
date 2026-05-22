@@ -13,7 +13,7 @@ import clsx from 'clsx';
 export const Settings: React.FC = () => {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
-    const { user, isPremium, logout } = useAuth(); // Connect to AuthContext
+    const { user, isPremium, logout, refreshProfile } = useAuth(); // Connect to AuthContext
     const [isUploading, setIsUploading] = useState(false);
     const [showLanguageSelector, setShowLanguageSelector] = useState(false);
     const [showSOSConfig, setShowSOSConfig] = useState(false);
@@ -116,7 +116,11 @@ export const Settings: React.FC = () => {
     const languages = [
         { code: 'es', name: 'Español', flag: '🇪🇸' },
         { code: 'ca', name: 'Català', flag: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600"><rect width="900" height="600" fill="%23fcd116"/><rect width="900" height="66.666" y="66.666" fill="%23ce1126"/><rect width="900" height="66.666" y="200" fill="%23ce1126"/><rect width="900" height="66.666" y="333.333" fill="%23ce1126"/><rect width="900" height="66.666" y="466.666" fill="%23ce1126"/></svg>' },
-        { code: 'en', name: 'English', flag: '🇺🇸' }
+        { code: 'en', name: 'English', flag: '🇺🇸' },
+        { code: 'fr', name: 'Français', flag: '🇫🇷' },
+        { code: 'pt', name: 'Português', flag: '🇵🇹' },
+        { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+        { code: 'it', name: 'Italiano', flag: '🇮🇹' }
     ];
 
     const changeLanguage = (lng: string) => {
@@ -143,6 +147,13 @@ export const Settings: React.FC = () => {
                     subLabel: "Ajustar protocolo y contactos", 
                     action: "reconfigure-sos",
                     iconColor: "text-red-500"
+                },
+                {
+                    icon: "widgets",
+                    label: "Widgets y SOS Discreto",
+                    subLabel: "Configuración y demo táctil",
+                    path: "/widgets",
+                    iconColor: "text-amber-500"
                 },
             ]
         },
@@ -183,7 +194,7 @@ export const Settings: React.FC = () => {
         {
             title: t('settings.groups.support_legal'),
             items: [
-                { icon: "mail", label: t('settings.items.contact'), subLabel: "soporte.urbanguide@gmail.com", email: "soporte.urbanguide@gmail.com" },
+                { icon: "mail", label: t('settings.items.contact'), subLabel: "soporte.redcarpet@gmail.com", email: "soporte.redcarpet@gmail.com" },
                 { icon: "chat_bubble", label: t('settings.items.feedback'), path: "/feedback" },
                 { icon: "help", label: t('settings.items.faq'), path: "/faq" },
                 { icon: "verified_user", label: t('settings.items.privacy_policy'), path: "/privacy" },
@@ -389,10 +400,36 @@ export const Settings: React.FC = () => {
                 isOpen={showSOSConfig}
                 onClose={() => setShowSOSConfig(false)}
                 onSave={async (config) => {
+                    // 1. Save to Capacitor Preferences
                     await Preferences.set({ key: 'sos_config', value: JSON.stringify(config) });
+                    await Preferences.set({ key: 'SOS_PIN', value: config.pin });
+                    
+                    // 2. Save to localStorage for Web compatibility
+                    localStorage.setItem('sos_config', JSON.stringify(config));
+                    localStorage.setItem('SOS_PIN', config.pin);
+                    
+                    // 3. Save to remote Supabase Database & Refresh Profile
+                    if (user) {
+                        try {
+                            const { supabase } = await import('../services/supabaseClient');
+                            await supabase.from('profiles').update({ sos_pin: config.pin }).eq('id', user.id);
+                            await refreshProfile();
+                        } catch (err) {
+                            console.error('[Settings] Error updating profile pin:', err);
+                        }
+                    }
+                    
                     setShowSOSConfig(false);
                 }}
-                currentConfig={JSON.parse(localStorage.getItem('sos_config') || '{}')}
+                currentConfig={(() => {
+                    const localRaw = localStorage.getItem('sos_config');
+                    if (localRaw) {
+                        try {
+                            return JSON.parse(localRaw);
+                        } catch {}
+                    }
+                    return undefined;
+                })()}
             />
         </div>
     );

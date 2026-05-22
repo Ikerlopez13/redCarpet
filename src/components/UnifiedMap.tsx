@@ -125,17 +125,28 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 if (error) throw error;
                 
                 if (data && data.length > 0) {
-                    const mappedZones = data.map((zone: IncidenceZone) => ({
-                        id: zone.id,
-                        lat: zone.lat,
-                        lng: zone.lng,
-                        radius: zone.radius,
-                        title: (zone.type === 'dark' ? t('map.light_notice') : 
-                                zone.type === 'incident' ? t('map.incident') : 
-                                zone.type === 'construction' ? t('map.construction') : 
-                                zone.type === 'traffic' ? t('map.traffic') : t('map.poi')),
-                        description: zone.description || t('map.active_zone_detected')
-                    }));
+                    const mappedZones = data.map((zone: IncidenceZone) => {
+                        let title = (zone.type === 'dark' ? t('map.light_notice') : 
+                                     zone.type === 'incident' ? t('map.incident') : 
+                                     zone.type === 'construction' ? t('map.construction') : 
+                                     zone.type === 'traffic' ? t('map.traffic') : t('map.poi'));
+                        let description = zone.description || t('map.active_zone_detected');
+                        
+                        if (zone.description && zone.description.includes(' - ')) {
+                            const parts = zone.description.split(' - ');
+                            title = parts[0];
+                            description = parts[1];
+                        }
+
+                        return {
+                            id: zone.id,
+                            lat: zone.lat,
+                            lng: zone.lng,
+                            radius: zone.radius,
+                            title,
+                            description
+                        };
+                    });
                     setIncidenceZones(mappedZones);
                 } else {
                     // Force demo zones if DB is empty
@@ -204,7 +215,10 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         const initLocation = async () => {
             try {
                 if (Capacitor.isNativePlatform()) {
-                    await Geolocation.requestPermissions();
+                    const status = await Geolocation.checkPermissions();
+                    if (status.location !== 'granted' && status.location !== 'denied') {
+                        await Geolocation.requestPermissions();
+                    }
                     
                     // Request orientation permissions for iOS
                     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {

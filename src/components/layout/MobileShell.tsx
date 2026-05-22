@@ -5,6 +5,7 @@ import { Map, Settings, BatteryFull, Wifi, Signal, Users, Crown, ShieldAlert } f
 import clsx from 'clsx';
 import { SplashScreen } from './SplashScreen';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSOS } from '../../contexts/SOSContext';
 
 import { Capacitor } from '@capacitor/core';
 import { DeepLinkHandler } from '../auth/DeepLinkHandler';
@@ -171,6 +172,9 @@ const BottomNav = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const { openSOSModal } = useSOS();
+    const [isActivating, setIsActivating] = useState(false);
 
     const tabs = [
         { icon: Map, label: t('nav.map'), path: '/' },
@@ -200,12 +204,16 @@ const BottomNav = () => {
                             "flex items-center justify-center transition-all",
                             isSOS ? "size-14 rounded-full bg-primary shadow-[0_0_25px_rgba(255,49,49,0.6)] -mt-10 mb-2 text-white animate-pulse" : "size-10"
                         )}>
-                            <tab.icon 
-                                size={isSOS ? 32 : 24} 
-                                strokeWidth={isActive || isSOS ? 2.5 : 2} 
-                                fill={(isActive || isSOS) ? "currentColor" : "none"} 
-                                fillOpacity={isSOS ? 1 : 0.2} 
-                            />
+                            {isSOS && isActivating ? (
+                                <span className="material-symbols-outlined text-[32px] animate-spin text-white">sync</span>
+                            ) : (
+                                <tab.icon 
+                                    size={isSOS ? 32 : 24} 
+                                    strokeWidth={isActive || isSOS ? 2.5 : 2} 
+                                    fill={(isActive || isSOS) ? "currentColor" : "none"} 
+                                    fillOpacity={isSOS ? 1 : 0.2} 
+                                />
+                            )}
                         </div>
                         <span className={clsx(
                             "text-[10px] font-bold transition-all",

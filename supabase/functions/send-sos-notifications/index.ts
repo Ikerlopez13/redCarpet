@@ -30,47 +30,83 @@ serve(async (req) => {
             firebaseInitialized = true;
         }
 
-        // 1. Get family members to notify (anyone in the group except the sender)
-        const { data: members, error: membersError } = await supabaseClient
-            .from('family_members')
-            .select('user_id')
-            .eq('group_id', groupId)
-            .neq('user_id', userId)
+        // 1. Get family members and accepted trusted contacts to notify
+        let userIds: string[] = [];
 
-        if (membersError) throw membersError
+        if (groupId) {
+            const { data: members, error: membersError } = await supabaseClient
+                .from('family_members')
+                .select('user_id')
+                .eq('group_id', groupId)
+                .neq('user_id', userId);
 
-        if (!members || members.length === 0) {
-            return new Response(JSON.stringify({ message: "No members to notify" }), {
-                headers: { "Content-Type": "application/json" },
-            })
+            if (!membersError && members) {
+                userIds = [...userIds, ...members.map((m: any) => m.user_id)];
+            }
         }
 
-        const userIds = members.map((m: any) => m.user_id)
+        const { data: contacts, error: contactsError } = await supabaseClient
+            .from('trusted_contacts')
+            .select('associated_user_id')
+            .eq('user_id', userId)
+            .eq('status', 'accepted');
+
+        if (!contactsError && contacts) {
+            userIds = [
+                ...userIds, 
+                ...contacts
+                    .filter((c: any) => c.associated_user_id)
+                    .map((c: any) => c.associated_user_id as string)
+            ];
+        }
+
+        // De-duplicate userIds and filter out the sender itself
+        userIds = Array.from(new Set(userIds)).filter(id => id !== userId);
+
+        if (userIds.length === 0) {
+            return new Response(JSON.stringify({ message: "No members to notify" }), {
+                headers: { "Content-Type": "application/json" },
+            });
+        }
 
         // 3. Get push tokens for these users
         const { data: tokens, error: tokensError } = await supabaseClient
             .from('push_tokens')
             .select('token, platform')
-            .in('user_id', userIds)
+            .in('user_id', userIds);
 
-        if (tokensError) throw tokensError
+        if (tokensError) throw tokensError;
 
         if (!tokens || tokens.length === 0) {
             return new Response(JSON.stringify({ message: "No tokens found for members" }), {
                 headers: { "Content-Type": "application/json" },
-            })
+            });
+        }
+
+        // Fetch sender's name for personalized alert
+        let senderName = 'Un contacto';
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('full_name')
+            .eq('id', userId)
+            .single();
+        if (profile?.full_name) {
+            senderName = profile.full_name.split(' ')[0];
         }
 
         // 4. Send Notifications via Firebase Admin
-        console.log(`[SOS] Sending notification to ${tokens.length} devices`)
+        console.log(`[SOS] Sending notification to ${tokens.length} devices`);
 
+        const isDangerZone = config?.isDangerZone || false;
         const payload = {
             notification: {
-                title: '🚨 Alerta SOS',
-                body: config.message || 'Un miembro de tu familia necesita ayuda.'
+                title: isDangerZone ? '⚠️ Peligro Reportado' : '🚨 Alerta SOS',
+                body: config?.message || (isDangerZone 
+                    ? `${senderName} ha avisado de un peligro cercano.` 
+                    : `¡SOS de ${senderName}! Necesita ayuda.`)
             },
             data: {
-                type: 'sos',
+                type: isDangerZone ? 'danger_zone' : 'sos',
                 alertId: alertId || ''
             }
         };

@@ -58,11 +58,10 @@ export class RevenueCatService {
         if (!Capacitor.isNativePlatform()) {
             console.warn('⚠️ Web Mock: Simulando paquetes de RevenueCat para el navegador');
             return [
-                { identifier: 'redcarpet.premium.onemonths', product: { identifier: 'redcarpet.premium.onemonths', priceString: '9,99 €', title: 'Mensual' } } as any,
-                { identifier: 'redcarpet.premium.oneyear', product: { identifier: 'redcarpet.premium.oneyear', priceString: '49,99 €', title: 'Anual' } } as any,
-                { identifier: 'redcarpet.premium.student', product: { identifier: 'redcarpet.premium.student', priceString: '4,99 €', title: 'Estudiante' } } as any,
-                { identifier: 'safe_pass_72h', product: { identifier: 'safe_pass_72h', priceString: '1,99 €', title: 'Pase 72h' } } as any,
-                { identifier: 'redcarpet.premium.family', product: { identifier: 'redcarpet.premium.family', priceString: '14,99 €', title: 'Familiar' } } as any,
+                { identifier: 'redcarpet.premium.onemonths', product: { identifier: 'redcarpet.premium.onemonths', priceString: '12,99 €', title: 'Mensual' } } as any,
+                { identifier: 'redcarpet.premium.oneyear', product: { identifier: 'redcarpet.premium.oneyear', priceString: '79,99 €', title: 'Anual' } } as any,
+                { identifier: 'redcarpet.premium.72h', product: { identifier: 'redcarpet.premium.72h', priceString: '4,99 €', title: 'Pase 72h' } } as any,
+                { identifier: 'redcarpet.premium.family', product: { identifier: 'redcarpet.premium.family', priceString: '119,99 €', title: 'Familiar' } } as any,
             ];
         }
         

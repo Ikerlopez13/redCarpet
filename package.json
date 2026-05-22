@@ -1,7 +1,7 @@
 {
   "name": "redcarpet",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "@capacitor-community/apple-sign-in": "^6.0.0",
     "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor-community/camera-preview": "^6.0.1",
+    "@capacitor-community/contacts": "^6.1.1",
     "@capacitor-firebase/messaging": "^6.2.2",
     "@capacitor/android": "^6.2.1",
     "@capacitor/app": "^6.0.0",

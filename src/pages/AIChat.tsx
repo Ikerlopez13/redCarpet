@@ -99,7 +99,7 @@ export const AIChat: React.FC = () => {
                             <p className="text-sm font-bold uppercase tracking-tight mb-1">{t('chat.not_found_prompt')}</p>
                             <p className="text-xs text-white/40 mb-4 px-4 font-medium italic">{t('chat.contact_support_desc')}</p>
                             <a 
-                                href="mailto:soporte.urbanguide@gmail.com"
+                                href="mailto:soporte.redcarpet@gmail.com"
                                 className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-full text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/30 active:scale-95 transition-all"
                             >
                                 {t('chat.contact_support_btn')}

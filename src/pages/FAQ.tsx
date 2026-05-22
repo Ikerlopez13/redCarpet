@@ -74,7 +74,7 @@ export const FAQ: React.FC = () => {
                         <p className="text-[10px] text-white/40">{t('faq.support_desc')}</p>
                     </div>
                     <button 
-                        onClick={() => window.open(`mailto:soporte.urbanguide@gmail.com?subject=Soporte ${t('onboarding.welcome.title')}`, '_blank')}
+                        onClick={() => window.open(`mailto:soporte.redcarpet@gmail.com?subject=Soporte ${t('onboarding.welcome.title')}`, '_blank')}
                         className="w-full py-3 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
                     >
                         {t('faq.contact_support')}

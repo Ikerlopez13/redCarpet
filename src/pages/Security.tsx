@@ -67,44 +67,15 @@ export const Security: React.FC = () => {
         fetchAlarms();
     }, [user]);
 
-    const bottomModules = [
-        {
-            id: 'danger_zones',
-            title: 'Zonas de Peligro',
-            desc: 'Mapa en tiempo real',
-            icon: AlertTriangle,
-            color: 'text-red-500',
-            bg: 'bg-red-500/10',
-            path: '/'
-        },
-        {
-            id: 'safe_routes',
-            title: 'Rutas seguras GPS',
-            desc: 'IA de navegación',
-            icon: RouteIcon,
-            color: 'text-primary',
-            bg: 'bg-primary/10',
-            path: '/route'
-        },
-        {
-            id: 'crash_alert',
-            title: 'Alerta de choque',
-            desc: 'Detección automática',
-            icon: Activity,
-            color: 'text-amber-500',
-            bg: 'bg-amber-500/10',
-            path: '/settings'
-        },
-        {
-            id: 'emergency_contacts',
-            title: 'Contactos',
-            desc: 'Gestión de círculo',
-            icon: Users,
-            color: 'text-green-500',
-            bg: 'bg-green-500/10',
-            path: '/contacts'
-        }
-    ];
+    // Dummy states for visual toggles as requested by user to clarify what is "Active"
+    const [toggles, setToggles] = useState({
+        danger_zones: true,
+        safe_routes: true,
+    });
+
+    const handleToggle = (key: keyof typeof toggles) => {
+        setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+    };
 
     return (
         <div className="flex flex-col h-full w-full bg-[#0d0d0d] text-white overflow-hidden font-display animate-fade-in">
@@ -204,25 +175,64 @@ export const Security: React.FC = () => {
 
                 {/* Bottom Block Grid */}
                 <section className="space-y-4">
-                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 italic px-2">Bloque de Seguridad</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        {bottomModules.map((mod) => (
-                            <button
-                                key={mod.id}
-                                onClick={() => navigate(mod.path)}
-                                className="flex flex-col items-start p-5 rounded-[2rem] bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all text-left group"
-                            >
-                                <div className={clsx(
-                                    "size-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
-                                    mod.bg,
-                                    mod.color
-                                )}>
-                                    <mod.icon size={24} />
+                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 italic px-2">Configuración Activa</h2>
+                    <div className="flex flex-col gap-3">
+                        {/* Zonas Peligro */}
+                        <div className="bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="size-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center">
+                                    <AlertTriangle size={24} />
                                 </div>
-                                <h3 className="text-sm font-black uppercase italic tracking-tighter mb-1">{mod.title}</h3>
-                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{mod.desc}</p>
+                                <div>
+                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Zonas de Peligro</h3>
+                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Avisos en tiempo real</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => handleToggle('danger_zones')}
+                                className={clsx("w-14 h-8 rounded-full p-1 transition-colors relative", toggles.danger_zones ? "bg-primary" : "bg-white/10")}
+                            >
+                                <div className={clsx("size-6 bg-white rounded-full transition-transform absolute top-1", toggles.danger_zones ? "translate-x-6" : "translate-x-0")} />
                             </button>
-                        ))}
+                        </div>
+
+                        {/* Rutas Seguras GPS */}
+                        <div className="bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                                    <RouteIcon size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Rutas Seguras</h3>
+                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">IA de navegación</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => handleToggle('safe_routes')}
+                                className={clsx("w-14 h-8 rounded-full p-1 transition-colors relative", toggles.safe_routes ? "bg-primary" : "bg-white/10")}
+                            >
+                                <div className={clsx("size-6 bg-white rounded-full transition-transform absolute top-1", toggles.safe_routes ? "translate-x-6" : "translate-x-0")} />
+                            </button>
+                        </div>
+
+
+
+                        {/* Contactos */}
+                        <button 
+                            onClick={() => navigate('/contacts')}
+                            className="bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="size-12 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center">
+                                    <Users size={24} />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Contactos</h3>
+                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Gestionar círculo</p>
+                                </div>
+                            </div>
+                            <ChevronLeft size={20} className="text-white/40 rotate-180" />
+                        </button>
                     </div>
                 </section>
 

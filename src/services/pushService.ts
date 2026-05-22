@@ -6,11 +6,18 @@ import { supabase } from './supabaseClient';
  */
 export async function initPushNotifications(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-        // Request permission
-        const { receive } = await FirebaseMessaging.requestPermissions();
-
-        if (receive !== 'granted') {
-            return { success: false, error: 'Permission not granted' };
+        // First check permission status
+        const status = await getPushPermissionStatus();
+        if (status !== 'granted') {
+            // Only request if status is 'prompt' (not decided yet)
+            if (status === 'prompt') {
+                const { receive } = await FirebaseMessaging.requestPermissions();
+                if (receive !== 'granted') {
+                    return { success: false, error: 'Permission not granted' };
+                }
+            } else {
+                return { success: false, error: 'Permission denied' };
+            }
         }
 
         // Get the FCM token and save it

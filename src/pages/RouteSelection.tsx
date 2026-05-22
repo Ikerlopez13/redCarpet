@@ -64,6 +64,8 @@ export const RouteSelection: React.FC = () => {
     const [selectedDestination, setSelectedDestination] = useState<string | null>(initialDestinationName);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const [loadingMessage, setLoadingMessage] = useState('');
     const [routes, setRoutes] = useState<RoutesState>({ safe: null, balanced: null, fast: null });
     const [routeGeometry, setRouteGeometry] = useState<RouteGeometry>({ safe: null, balanced: null, fast: null });
     const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(initialDestinationCoords);
@@ -128,44 +130,34 @@ export const RouteSelection: React.FC = () => {
         if (!userLocation) return; // Wait for user location
 
         setIsLoading(true);
+        setLoadingProgress(0);
+        setLoadingMessage('Preparando ruta...');
+        
+        let progress = 0;
+        const messages = [
+            'Conectando con Ministerio del Interior...',
+            'Analizando índices de conflictividad...',
+            'Verificando alumbrado de calles...',
+            'Generando rutas inteligentes...'
+        ];
+        
+        const progressInterval = setInterval(() => {
+            progress += Math.floor(Math.random() * 15) + 5;
+            if (progress > 90) progress = 90;
+            setLoadingProgress(progress);
+            
+            const msgIndex = Math.min(Math.floor(progress / 25), messages.length - 1);
+            setLoadingMessage(messages[msgIndex]);
+        }, 150);
+
         const origin = userLocation;
 
-        if (transportMode === 'transit') {
-            try {
-                // Import getTransitOptions dynamically or via top-level import
-                const { getTransitOptions } = await import('../services/transitRoutingService');
-                const transitRoutes = await getTransitOptions(origin, destCoords);
-                
-                if (transitRoutes && transitRoutes.length > 0) {
-                    const safeOpt = transitRoutes[0];
-                    const balOpt = transitRoutes[1] || transitRoutes[0];
-                    const fastOpt = transitRoutes[transitRoutes.length - 1] || transitRoutes[0];
-
-                    setRoutes({
-                        safe: {
-                            time: formatDuration(safeOpt.totalDuration),
-                            distance: formatDistance(safeOpt.totalDistance),
-                            description: safeOpt.summary + ' ' + t('route.recommended'),
-                            extra: t('route.transit_desc'),
-                        },
-                        balanced: {
-                            time: formatDuration(balOpt.totalDuration),
-                            distance: formatDistance(balOpt.totalDistance),
-                            description: balOpt.summary,
-                        },
-                        fast: {
-                            time: formatDuration(fastOpt.totalDuration),
-                            distance: formatDistance(fastOpt.totalDistance),
-                            description: fastOpt.summary + ' ' + t('route.more_direct'),
-                        }
-                    });
-                }
-                setRouteGeometry({ safe: null, balanced: null, fast: null }); // Don't draw car lines for transit
-            } catch (error) {
-                console.error('Error fetching transit options:', error);
-            } finally {
-                setIsLoading(false);
-            }
+        if (transportMode !== 'walking') {
+            setRoutes({ safe: null, balanced: null, fast: null });
+            setRouteGeometry({ safe: null, balanced: null, fast: null });
+            clearInterval(progressInterval);
+            setLoadingProgress(100);
+            setTimeout(() => setIsLoading(false), 250);
             return;
         }
 
@@ -185,8 +177,8 @@ export const RouteSelection: React.FC = () => {
                 const safeRoute: RouteData = {
                     time: formatDuration(safeBase.duration),
                     distance: formatDistance(safeBase.distance),
-                    description: isNightMode ? aiAnalysis.description : t('route.safe_desc'),
-                    extra: isNightMode ? t('route.ai_prioritizing') : t('route.police_presence'),
+                    description: isNightMode ? aiAnalysis.description : 'Evita callejones. Vías principales.',
+                    extra: 'Fuentes Oficiales / Zonas Iluminadas',
                     geometry: safeBase.geometry.coordinates as [number, number][]
                 };
 
@@ -214,16 +206,49 @@ export const RouteSelection: React.FC = () => {
         } catch (error) {
             console.error('Error fetching routes:', error);
         } finally {
-            setIsLoading(false);
+            clearInterval(progressInterval);
+            setLoadingProgress(100);
+            setTimeout(() => setIsLoading(false), 250);
         }
-    }, [transportMode, userLocation]);
+    }, [transportMode, userLocation, isPremium, t]);
 
-    // Effect to refetch when transport mode changes
+    const handleNativeRedirect = useCallback(async (mode: 'walking' | 'cycling' | 'transit' | 'driving', dest: { lat: number; lng: number }) => {
+        if (!userLocation) return;
+        try {
+            const { Capacitor } = await import('@capacitor/core');
+            const isAndroid = Capacitor.getPlatform() === 'android';
+            
+            let appleDirFlg = 'd';
+            let googleMode = 'driving';
+            if (mode === 'transit') {
+                appleDirFlg = 'r';
+                googleMode = 'transit';
+            } else if (mode === 'cycling') {
+                appleDirFlg = 'w';
+                googleMode = 'bicycling';
+            }
+
+            const url = isAndroid
+                ? `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${dest.lat},${dest.lng}&travelmode=${googleMode}`
+                : `http://maps.apple.com/?saddr=${userLocation.lat},${userLocation.lng}&daddr=${dest.lat},${dest.lng}&dirflg=${appleDirFlg}`;
+
+            window.open(url, '_blank');
+        } catch (err) {
+            console.error('Error opening native maps:', err);
+        }
+    }, [userLocation]);
+
+    // Effect to refetch when transport mode changes or redirect if non-walking modes are chosen
     useEffect(() => {
         if (destinationCoords) {
-            fetchRoutes(destinationCoords);
+            if (transportMode === 'transit' || transportMode === 'driving') {
+                handleNativeRedirect(transportMode, destinationCoords);
+                setTransportMode('walking');
+            } else {
+                fetchRoutes(destinationCoords);
+            }
         }
-    }, [transportMode, destinationCoords, fetchRoutes]);
+    }, [transportMode, destinationCoords, fetchRoutes, handleNativeRedirect]);
 
     // Handle suggestion selection
     const handleSelectSuggestion = (suggestion: GeocodingResult) => {
@@ -232,14 +257,12 @@ export const RouteSelection: React.FC = () => {
         setSearchQuery('');
         setSuggestions([]);
         setShowSuggestions(false);
-        fetchRoutes({ lat: suggestion.lat, lng: suggestion.lng });
     };
 
     // Handle saved destination selection
     const handleSelectSavedDestination = (dest: typeof savedDestinations[0]) => {
         setSelectedDestination(dest.name);
         setDestinationCoords(dest.coords);
-        fetchRoutes(dest.coords);
     };
 
     return (
@@ -353,10 +376,17 @@ export const RouteSelection: React.FC = () => {
 
                 {/* Loading indicator */}
                 {isLoading && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
-                        <div className="bg-zinc-900 rounded-2xl px-6 py-4 flex items-center gap-3">
-                            <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="text-white font-medium">{t('route.calculating')}</span>
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20 backdrop-blur-sm">
+                        <div className="bg-zinc-900 rounded-2xl px-8 py-6 flex flex-col items-center gap-4 shadow-2xl border border-white/10 w-4/5 max-w-sm">
+                            <div className="relative size-16 flex items-center justify-center">
+                                <div className="absolute inset-0 border-4 border-white/10 rounded-full" />
+                                <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                                <span className="text-white font-bold text-sm">{loadingProgress}%</span>
+                            </div>
+                            <div className="text-center">
+                                <span className="text-white font-bold text-lg block mb-1">{t('route.calculating')}</span>
+                                <span className="text-primary/80 font-medium text-xs leading-tight block h-8">{loadingMessage}</span>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -481,15 +511,19 @@ export const RouteSelection: React.FC = () => {
                         /* Route Options */
                         <>
                             <div className="flex flex-col gap-2.5 mt-1">
-                                {transportMode === 'transit' ? (
+                                {transportMode !== 'walking' ? (
                                     <div className="flex items-center gap-3 bg-blue-500/10 border-2 border-blue-500/50 rounded-xl px-4 py-6 justify-center text-center">
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="size-12 bg-blue-500 rounded-full flex items-center justify-center text-white mb-1 shadow-lg shadow-blue-500/30">
-                                                <span className="material-symbols-outlined text-2xl">directions_transit</span>
+                                                <span className="material-symbols-outlined text-2xl">
+                                                    {transportMode === 'transit' ? 'directions_transit' : transportMode === 'cycling' ? 'pedal_bike' : 'directions_car'}
+                                                </span>
                                             </div>
-                                            <h3 className="text-white font-bold text-lg">{t('route.transit')}</h3>
+                                            <h3 className="text-white font-bold text-lg">
+                                                {transportMode === 'transit' ? t('route.transit') : transportMode === 'cycling' ? 'Bicicleta' : 'Coche'}
+                                            </h3>
                                             <p className="text-blue-200/70 text-sm max-w-[250px]">
-                                                {t('transit.open_native_maps') || 'Abre Apple Maps o Google Maps para ver horarios y rutas exactas de transporte público.'}
+                                                {t('transit.open_native_maps') || 'Abre Apple Maps o Google Maps para ver la ruta exacta.'}
                                             </p>
                                         </div>
                                     </div>
@@ -509,11 +543,6 @@ export const RouteSelection: React.FC = () => {
                                                 selectedRoute === 'safe' ? "border-green-500 shadow-lg shadow-green-500/20" : "border-white/10 opacity-80"
                                             )}
                                         >
-                                            {!isPremium && (
-                                                <div className="absolute top-0 right-0 p-2 text-yellow-500/80">
-                                                    <span className="material-symbols-outlined text-[12px] bg-black/50 rounded-full p-1" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
-                                                </div>
-                                            )}
                                             <div className="flex items-center gap-3">
                                                 <div className={clsx("flex items-center justify-center rounded-xl shrink-0 size-10", isPremium && isNightTime() ? "text-indigo-400 bg-indigo-500/20" : "text-green-500 bg-green-500/20")}>
                                                     <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>{isPremium && isNightTime() ? 'auto_awesome' : 'verified_user'}</span>
@@ -593,7 +622,29 @@ export const RouteSelection: React.FC = () => {
 
                             <div className="mt-4">
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
+                                        if (transportMode !== 'walking' && destinationCoords && userLocation) {
+                                            const { Capacitor } = await import('@capacitor/core');
+                                            const isAndroid = Capacitor.getPlatform() === 'android';
+                                            
+                                            let appleDirFlg = 'd';
+                                            let googleMode = 'driving';
+                                            if (transportMode === 'transit') {
+                                                appleDirFlg = 'r';
+                                                googleMode = 'transit';
+                                            } else if (transportMode === 'cycling') {
+                                                appleDirFlg = 'w'; // Apple doesn't universally support cycling
+                                                googleMode = 'bicycling';
+                                            }
+
+                                            if (isAndroid) {
+                                                window.open(`https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${destinationCoords.lat},${destinationCoords.lng}&travelmode=${googleMode}`, '_blank');
+                                            } else {
+                                                window.open(`http://maps.apple.com/?saddr=${userLocation.lat},${userLocation.lng}&daddr=${destinationCoords.lat},${destinationCoords.lng}&dirflg=${appleDirFlg}`, '_blank');
+                                            }
+                                            return;
+                                        }
+
                                         if (!canStartRoute(isPremium)) {
                                             setToastMessage(t('route.limit_reached'));
                                             setTimeout(() => {
@@ -605,36 +656,23 @@ export const RouteSelection: React.FC = () => {
 
                                         recordRouteStart(isPremium);
 
-                                        if (transportMode === 'transit' && destinationCoords) {
-                                            const originLat = userLocation?.lat || LOCATIONS.HOME.lat;
-                                            const originLng = userLocation?.lng || LOCATIONS.HOME.lng;
-                                            const destLat = destinationCoords.lat;
-                                            const destLng = destinationCoords.lng;
-                                            
-                                            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                                            let url;
-                                            if (isIOS) {
-                                                url = `http://maps.apple.com/?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}&dirflg=r`;
-                                            } else {
-                                                url = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&travelmode=transit`;
+                                        navigate('/navigate', {
+                                            state: {
+                                                origin: userLocation || { lat: 41.3851, lng: 2.1734 },
+                                                destination: destinationCoords,
+                                                destinationName: selectedDestination,
+                                                transportMode: 'walking' // Natively we only navigate walking
                                             }
-                                            window.open(url, '_blank');
-                                        } else {
-                                            navigate('/navigate', {
-                                                state: {
-                                                    origin: userLocation || LOCATIONS.HOME,
-                                                    destination: destinationCoords,
-                                                    destinationName: selectedDestination,
-                                                    transportMode: transportMode
-                                                }
-                                            });
-                                        }
+                                        });
                                     }}
-                                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-base py-3.5 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] relative overflow-hidden"
+                                    className={clsx(
+                                        "w-full font-bold text-base py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-[0.98] relative overflow-hidden",
+                                        transportMode !== 'walking' ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30" : "bg-primary hover:bg-primary/90 text-white shadow-primary/30"
+                                    )}
                                 >
-                                    <span className="material-symbols-outlined">navigation</span>
-                                    {t('route.start_nav')}
-                                    {!isPremium && (
+                                    <span className="material-symbols-outlined">{transportMode !== 'walking' ? 'map' : 'navigation'}</span>
+                                    {transportMode !== 'walking' ? 'Abrir en Mapas' : t('route.start_nav')}
+                                    {transportMode === 'walking' && !isPremium && (
                                         <div className="absolute top-1 right-2 bg-black/30 rounded-full px-2 py-0.5 text-[10px] font-bold text-white/90">
                                             {getRemainingRoutes(false)} {t('route.remaining')}
                                         </div>

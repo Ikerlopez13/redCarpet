@@ -43,6 +43,11 @@ export interface Database {
                     phone: string | null;
                     has_accepted_privacy_policy: boolean | null;
                     sos_pin: string | null;
+                    dob: string | null;
+                    habitual_city: string | null;
+                    walking_alone_frequency: string | null;
+                    risk_exposure_level: string | null;
+                    habitual_zones: Json | null;
                     created_at: string;
                 };
                 Insert: {
@@ -52,6 +57,11 @@ export interface Database {
                     phone?: string | null;
                     has_accepted_privacy_policy?: boolean | null;
                     sos_pin?: string | null;
+                    dob?: string | null;
+                    habitual_city?: string | null;
+                    walking_alone_frequency?: string | null;
+                    risk_exposure_level?: string | null;
+                    habitual_zones?: Json | null;
                     created_at?: string;
                 };
                 Update: {
@@ -61,6 +71,11 @@ export interface Database {
                     phone?: string | null;
                     has_accepted_privacy_policy?: boolean | null;
                     sos_pin?: string | null;
+                    dob?: string | null;
+                    habitual_city?: string | null;
+                    walking_alone_frequency?: string | null;
+                    risk_exposure_level?: string | null;
+                    habitual_zones?: Json | null;
                     created_at?: string;
                 };
             };
@@ -157,6 +172,9 @@ export interface Database {
                     lng: number | null;
                     status: 'active' | 'resolved' | 'cancelled';
                     message: string | null;
+                    media_video_url: string | null;
+                    media_audio_url: string | null;
+                    context_payload: Json | null;
                     created_at: string;
                 };
                 Insert: {
@@ -167,6 +185,9 @@ export interface Database {
                     lng?: number | null;
                     status?: 'active' | 'resolved' | 'cancelled';
                     message?: string | null;
+                    media_video_url?: string | null;
+                    media_audio_url?: string | null;
+                    context_payload?: Json | null;
                     created_at?: string;
                 };
                 Update: {
@@ -177,6 +198,9 @@ export interface Database {
                     lng?: number | null;
                     status?: 'active' | 'resolved' | 'cancelled';
                     message?: string | null;
+                    media_video_url?: string | null;
+                    media_audio_url?: string | null;
+                    context_payload?: Json | null;
                     created_at?: string;
                 };
             };
