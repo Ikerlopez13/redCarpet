@@ -10,6 +10,7 @@ import { IncidenceZones } from '../components/map/IncidenceZone';
 import { getRoute, formatDuration, formatDistance, type RouteStep } from '../services/directionsService';
 import { searchPlaces } from '../services/geocodingService';
 import { ReportDangerModal } from '../components/safety/ReportDangerModal';
+import { useSOS } from '../contexts/SOSContext.base';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -50,6 +51,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const { openSOSModal } = useSOS();
 
     // Barcelona danger zones - same as UnifiedMap
     const barcelonaIncidenceZones = [
@@ -152,9 +154,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     const handleRecenter = () => {
         setViewState(prev => ({
             ...prev,
+            latitude: userLocation.lat,
+            longitude: userLocation.lng,
             zoom: 17,
-            pitch: 0, // Vista cenital (plana)
-            bearing: 0 // Mirando al norte
+            pitch: 0,
+            bearing: 0
         }));
         geoControlRef.current?.trigger();
     };
@@ -270,22 +274,14 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     >
                         <span className="material-symbols-outlined text-2xl">my_location</span>
                     </button>
-                    <button className="size-14 bg-zinc-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform">
-                        <span className="material-symbols-outlined text-2xl">volume_up</span>
-                    </button>
+
                     <button 
                         onClick={() => setShowReportDangerModal(true)}
                         className="size-14 bg-safety-orange rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
                     >
                         <span className="material-symbols-outlined text-2xl font-black">shield</span>
                     </button>
-                    <button 
-                        onClick={() => navigate('/emergency')}
-                        className="size-14 bg-safety-red rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform border border-red-400/30 relative overflow-hidden"
-                    >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                        <span className="font-black text-xl tracking-tighter italic z-10">SOS</span>
-                    </button>
+
                 </div>
             </div>
 

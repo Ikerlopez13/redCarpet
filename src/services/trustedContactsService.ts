@@ -11,13 +11,13 @@ export async function findUserByShortId(shortId: string): Promise<{ id: string; 
     // Remove leading # and lowercase to match UUID prefix
     const clean = shortId.replace(/^#/, '').toLowerCase();
     if (clean.length < 7) return null;
-    // UUID starts with the first 7 chars of the short ID (no dashes in first segment)
-    // UUID format: 3925dd37-27cf-... → first 8 chars before first dash = 3925dd37
-    // Our short ID uses first 7 chars of UUID without dashes: 3925dd3
-    const { data, error } = await (supabase
-        .from('profiles')
-        .select('id, full_name')
-        .ilike('id', `${clean}%`) as any);
+    
+    // UUID cannot be queried with ILIKE directly from the client.
+    // We use a custom RPC to cast and search.
+    const { data, error } = await supabase.rpc('match_user_by_short_id', {
+        p_short_id: clean
+    });
+    
     if (error || !data || data.length === 0) return null;
     return data[0] as { id: string; full_name: string | null };
 }

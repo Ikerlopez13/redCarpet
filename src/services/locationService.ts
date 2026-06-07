@@ -5,7 +5,7 @@ import { Geolocation } from '@capacitor/geolocation';
 // Mock locations for family members (removed)
 
 
-let watchId: number | null = null;
+let watchId: string | null = null;
 let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null;
 
 /**
@@ -13,7 +13,7 @@ let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null;
  */
 export async function updateLocation(
     userId: string,
-    position: GeolocationPosition,
+    position: any,
     batteryLevel?: number,
     role?: 'admin' | 'member' | 'child',
     isSOSActive?: boolean
@@ -48,19 +48,16 @@ export async function updateLocation(
 /**
  * Get current user position (promisified)
  */
-export function getCurrentPosition(): Promise<GeolocationPosition> {
-    return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-            reject(new Error('Geolocation not supported'));
-            return;
+export async function getCurrentPosition(): Promise<any> {
+    try {
+        const perm = await Geolocation.checkPermissions();
+        if (perm.location !== 'granted') {
+            await Geolocation.requestPermissions();
         }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => resolve(position),
-            (error) => reject(error),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    });
+        return await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    } catch (error) {
+        throw new Error('Geolocation not supported or permission denied: ' + error);
+    }
 }
 
 /**
@@ -107,14 +104,9 @@ export async function getFamilyLocations(memberIds: string[]): Promise<Record<st
  */
 export async function startLocationTracking(
     userId: string,
-    onUpdate?: (position: GeolocationPosition) => void,
+    onUpdate?: (position: any) => void,
     intervalMs: number = 30000
 ) {
-    if (!navigator.geolocation) {
-        console.error('Geolocation not supported');
-        return { stop: () => { } };
-    }
-    
     try {
         await Geolocation.requestPermissions();
     } catch (e) {
@@ -122,33 +114,37 @@ export async function startLocationTracking(
     }
 
     // Get initial position
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            updateLocation(userId, position);
-            onUpdate?.(position);
-        },
-        (error) => console.error('Location error:', error),
-        { enableHighAccuracy: true }
-    );
+    try {
+        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+        updateLocation(userId, position);
+        onUpdate?.(position);
+    } catch (error) {
+        console.error('Location error:', error);
+    }
 
     // Watch for changes
-    watchId = navigator.geolocation.watchPosition(
-        (position) => {
-            updateLocation(userId, position);
-            onUpdate?.(position);
-        },
-        (error) => console.error('Location watch error:', error),
+    watchId = await Geolocation.watchPosition(
         {
             enableHighAccuracy: true,
             timeout: 10000,
             maximumAge: intervalMs
+        },
+        (position, error) => {
+            if (error) {
+                console.error('Location watch error:', error);
+                return;
+            }
+            if (position) {
+                updateLocation(userId, position);
+                onUpdate?.(position);
+            }
         }
     );
 
     return {
-        stop: () => {
+        stop: async () => {
             if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
+                await Geolocation.clearWatch({ id: watchId });
                 watchId = null;
             }
         }

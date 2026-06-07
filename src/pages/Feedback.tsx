@@ -32,9 +32,10 @@ export const Feedback: React.FC = () => {
                 const storeUrl = 'https://apps.apple.com/es/app/redcarpet/id6755689618?action=write-review';
                 
                 try {
-                    window.open(storeUrl, '_system');
+                    const { App } = await import('@capacitor/app');
+                    await App.openUrl({ url: storeUrl });
                 } catch (e) {
-                    window.open(storeUrl, '_blank');
+                    window.open(storeUrl, '_system');
                 }
                 // Go back to settings
                 navigate('/settings', { replace: true });

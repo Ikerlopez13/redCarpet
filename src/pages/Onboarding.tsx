@@ -24,8 +24,11 @@ export const Onboarding: React.FC = () => {
     const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
     // Profile State
-    const [fullName, setFullName] = useState('');
+    const [fullName, setFullName] = useState(user?.profile?.full_name || user?.user_metadata?.full_name || '');
     const [dob, setDob] = useState('');
+    const hasNameFromProvider = !!(user?.profile?.full_name || user?.user_metadata?.full_name);
+    const isAppleUser = user?.app_metadata?.provider === 'apple' || user?.app_metadata?.providers?.includes('apple');
+    const shouldAskName = !hasNameFromProvider && !isAppleUser;
     const [habitualCity, setHabitualCity] = useState('');
 
     // Habits State
@@ -104,7 +107,7 @@ export const Onboarding: React.FC = () => {
 
     const isNextDisabled = () => {
         if (isProcessing) return true;
-        if (step === 'profile') return !fullName || !dob || !habitualCity;
+        if (step === 'profile') return (shouldAskName && !fullName) || !dob || !habitualCity;
         if (step === 'habits') return !walkingAlone || !riskExposure;
         if (step === 'privacy') return !hasAcceptedPrivacy;
         return false;
@@ -144,16 +147,18 @@ export const Onboarding: React.FC = () => {
                         <p className="text-white/40 text-xs leading-relaxed px-4">Esta información vital nos ayudará a identificar tus patrones y agilizar el rescate en caso de emergencia.</p>
                         
                         <div className="w-full max-w-xs space-y-4 text-left">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2"><User size={12}/> Nombre Completo</label>
-                                <input 
-                                    type="text" 
-                                    value={fullName}
-                                    onChange={e => setFullName(e.target.value)}
-                                    placeholder="Ej. Ana García"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-colors"
-                                />
-                            </div>
+                            {shouldAskName && (
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2"><User size={12}/> Nombre Completo</label>
+                                    <input 
+                                        type="text" 
+                                        value={fullName}
+                                        onChange={e => setFullName(e.target.value)}
+                                        placeholder="Ej. Ana García"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                            )}
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2"><Calendar size={12}/> Fecha de Nacimiento</label>
                                 <input 

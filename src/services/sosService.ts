@@ -51,11 +51,20 @@ export async function requestSOSPermissions(): Promise<boolean> {
         const { Camera } = await import('@capacitor/camera');
         const { Geolocation } = await import('@capacitor/geolocation');
         
-        const cameraStatus = await Camera.requestPermissions({ permissions: ['camera'] });
-        const voiceStatus = await VoiceRecorder.requestAudioRecordingPermission();
+        let cameraStatus = await Camera.checkPermissions();
+        if (cameraStatus.camera !== 'granted') {
+            cameraStatus = await Camera.requestPermissions({ permissions: ['camera'] });
+        }
         
-        // Request Location permissions (targeting 'Always' if available)
-        const locationStatus = await Geolocation.requestPermissions();
+        let voiceStatus = await VoiceRecorder.hasAudioRecordingPermission();
+        if (!voiceStatus.value) {
+            voiceStatus = await VoiceRecorder.requestAudioRecordingPermission();
+        }
+        
+        let locationStatus = await Geolocation.checkPermissions();
+        if (locationStatus.location !== 'granted') {
+            locationStatus = await Geolocation.requestPermissions();
+        }
         
         console.log('[SOS-Service] Permission statuses:', {
             camera: cameraStatus.camera,
@@ -168,15 +177,15 @@ export async function activateSOS(
         // 1. Get position with fallback
         const position = await (async () => {
             try {
-                const geoPromise = new Promise<GeolocationPosition | null>((resolve) => {
-                    navigator.geolocation.getCurrentPosition(
-                        (p) => resolve(p),
-                        (err) => {
-                            console.warn('[SOS-Service] Geolocation error:', err);
-                            resolve(null);
-                        },
-                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
-                    );
+                const geoPromise = new Promise<any>((resolve) => {
+                    import('@capacitor/geolocation').then(({ Geolocation }) => {
+                        Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 })
+                            .then(p => resolve(p))
+                            .catch(err => {
+                                console.warn('[SOS-Service] Geolocation error:', err);
+                                resolve(null);
+                            });
+                    }).catch(() => resolve(null));
                 });
                 const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
                 return Promise.race([geoPromise, timeoutPromise]);
@@ -314,8 +323,8 @@ export function subscribeToSOSAlerts(groupId: string, onNewAlert: (alert: SOSAle
 export async function call112() {
     console.log('[SOS-Service] Initiating 112 call...');
     if (Capacitor.isNativePlatform()) {
-        // Use tel: link which triggers OS dialer
-        window.location.href = 'tel:112';
+        const { App } = await import('@capacitor/app');
+        await App.openUrl({ url: 'tel:112' });
     } else {
         alert('Simulación de llamada al 112 (Solo disponible en dispositivos móviles)');
     }

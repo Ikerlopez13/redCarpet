@@ -225,6 +225,7 @@ export const TrustedContacts: React.FC = () => {
         setContacts(prev => [...prev, tempContact]);
         setShowContactPicker(false);
         setShowNumberSelector(null);
+        setShowAddContactSelector(false); // Close the Apple-style drawer!
         
         // Background sync
         const { contact, error, isPendingRequest } = await TrustedContactsService.addContact(user.id, name, phone, undefined, 'Familiar');
@@ -233,6 +234,8 @@ export const TrustedContacts: React.FC = () => {
             setContacts(prev => prev.map(c => c.id === tempId ? contact : c));
             if (isPendingRequest) {
                 alert(t('contacts.sync_alert', { name }));
+            } else {
+                alert(`✅ Solicitud enviada a ${name}. Cuando acepte aparecerá en tu lista.`);
             }
         } else if (error) {
             setContacts(prev => prev.filter(c => c.id !== tempId));
@@ -293,7 +296,7 @@ export const TrustedContacts: React.FC = () => {
     };
 
     const handleRequest = async (requestId: string, accept: boolean) => {
-        const { error } = await TrustedContactsService.respondToRequest(requestId, accept);
+        const { error } = await TrustedContactsService.respondToRequest(requestId, accept, user?.id);
         if (!error) {
             setPendingRequests(pendingRequests.filter(req => req.request_id !== requestId));
             if (accept) {
@@ -323,7 +326,7 @@ export const TrustedContacts: React.FC = () => {
 
     const handleWhatsAppInvite = () => {
         const shortId = myShortId;
-        const inviteText = `¡Únete a mi círculo de seguridad en RedCarpet! 🛡️🔴\n\nMi ID es: ${shortId}\n\n📥 Descárgate la app y añádeme con mi ID:\nhttps://apps.apple.com/app/id6755689618\n\n🔗 Si ya la tienes, pulsa aquí para añadirme directamente:\ncom.vibecode.redcarpet://invite?host=${user?.id}`;
+        const inviteText = `¡Únete a mi círculo de seguridad en RedCarpet! 🛡️🔴\n\nMi ID es: ${shortId}\n\n📥 Descárgate la app y añádeme con mi ID:\nhttps://apps.apple.com/app/id6755689618`;
         window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, '_blank');
     };
 
@@ -718,6 +721,21 @@ export const TrustedContacts: React.FC = () => {
                                         <span className="material-symbols-outlined text-white/30 text-xl">chevron_right</span>
                                     </div>
 
+
+                                    {/* Native Contact Picker */}
+                                    <div 
+                                        onClick={handleNativeAddContact}
+                                        className="flex items-center gap-4 p-5 bg-white/[0.02] border border-white/5 rounded-3xl active:bg-white/5 hover:bg-white/[0.04] transition-all cursor-pointer group"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 transition-colors group-hover:bg-blue-500/20">
+                                            <span className="material-symbols-outlined text-2xl">contacts</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-white text-base">Desde la Agenda</h4>
+                                            <p className="text-white/40 text-xs mt-1">Selecciona un contacto directamente de tu teléfono.</p>
+                                        </div>
+                                        <span className="material-symbols-outlined text-white/30 text-xl">chevron_right</span>
+                                    </div>
 
                                     {/* Manual Add */}
                                     <div 

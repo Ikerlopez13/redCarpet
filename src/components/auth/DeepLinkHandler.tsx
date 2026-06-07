@@ -10,18 +10,18 @@ export const DeepLinkHandler = () => {
     const handleDeepLink = useCallback(async (url: string) => {
         console.log('⚡️ Processing Deep Link URL:', url);
 
-        // 1. Check if we already have a session (Loop Protection)
-        const { data } = await supabase.auth.getSession();
-        if (data?.session) {
-            console.log('✅ User already has a session. Ignoring Deep Link.');
-            return;
-        }
-
-        // 2. Handle SOS Widget Trigger
+        // 1. Handle SOS Widget Trigger (Must run even if session exists)
         if (url.includes('sos/activate') || url.includes('sos')) {
             console.log('🚨 SOS WIDGET TRIGGERED!');
             window.dispatchEvent(new CustomEvent('sos:activate_trigger', { detail: { type: 'widget' } }));
             navigate('/emergency');
+            return;
+        }
+
+        // 2. Check if we already have a session (Loop Protection for auth flows)
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+            console.log('✅ User already has a session. Ignoring Auth Deep Link.');
             return;
         }
 

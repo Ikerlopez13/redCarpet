@@ -99,7 +99,7 @@ export const Notifications: React.FC = () => {
                         : (a.message || t('notifications.update_processed')),
                     time: formatTime(a.created_at),
                     isRead: a.status !== 'active',
-                    action: a.status === 'active' ? t('notifications.open_map') : t('notifications.view_history'),
+                    action: a.status === 'active' ? t('notifications.open_map') : undefined,
                     createdAt: a.created_at
                 };
             });

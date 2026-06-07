@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Map, Settings, BatteryFull, Wifi, Signal, Users, Crown, ShieldAlert } from 'lucide-react';
 import clsx from 'clsx';
-import { SplashScreen } from './SplashScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSOS } from '../../contexts/SOSContext';
 
@@ -47,12 +46,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode, t?: any
 export const MobileShell: React.FC = () => {
     const { t } = useTranslation();
     const { isLoading: isAuthLoading } = useAuth();
-    const [splashAnimationFinished, setSplashAnimationFinished] = useState(false);
     const location = useLocation();
     const isNative = Capacitor.isNativePlatform();
-
-    // Show splash if animation hasn't finished OR auth is still loading
-    const showSplash = !splashAnimationFinished || isAuthLoading;
 
     // If native (iOS/Android), disable the mock shell and render full screen
     if (isNative) {
@@ -108,8 +103,7 @@ export const MobileShell: React.FC = () => {
                     {/* Inner Screen Container */}
                     <div className="h-full w-full overflow-hidden rounded-[2rem] bg-background-dark relative z-20 flex flex-col">
 
-                        {/* Splash Screen - Show until BOTH animation finishes AND auth is ready */}
-                        {showSplash && <SplashScreen onFinish={() => setSplashAnimationFinished(true)} />}
+                        {/* Splash Screen Removed */}
 
                         {/* Dynamic Island / Notch */}
                         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 h-[35px] w-[120px] bg-black rounded-b-[18px] z-50 pointer-events-none mt-[11px] flex items-center justify-center">

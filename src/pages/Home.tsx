@@ -25,8 +25,9 @@ import { NightModeWarning } from '../components/safety/NightModeWarning';
 import { ReportDangerModal } from '../components/safety/ReportDangerModal';
 import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
 import { ShieldAlert, Send, Users, Battery, Shield, Zap } from 'lucide-react';
-import { UltimateSOSButton } from '../components/SOS/UltimateSOSButton';
+
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
+import { AlertDetailsModal } from '../components/safety/AlertDetailsModal';
 
 // Tipos para el estado de la UI
 interface UIMember {
@@ -62,6 +63,7 @@ export const Home: React.FC = () => {
 
     const [showAddZoneModal, setShowAddZoneModal] = useState(false);
     const [showReportDangerModal, setShowReportDangerModal] = useState(false);
+    const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
     const [showHistoryModal, setShowHistoryModal] = useState<UIMember | null>(null);
     const [sosConfig, setSOSConfig] = useState<SOSConfigData | null>(null);
     const [, setSheetHeight] = useState(45);
@@ -78,6 +80,9 @@ export const Home: React.FC = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    
+    // Loader state
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     // Cargar familia y zonas
     const loadData = async () => {
@@ -85,95 +90,124 @@ export const Home: React.FC = () => {
             setFamilyMembers([]);
             setFamilyGroup(null);
             setSafeZones([]);
+            setIsInitialLoading(false);
             return;
         }
 
-        setTimeout(async () => {
-            try {
-                const contacts = await TrustedContactsService.getContacts(user.id);
-                const acceptedContacts = contacts.filter(c => c.status === 'accepted' && c.associated_user_id);
-                
-                // Get my own active alert, plus alerts from accepted contacts
-                const relevantUserIds = [user.id, ...acceptedContacts.map(c => c.associated_user_id as string)];
-                
-                const { data: alertsData } = await supabase
-                    .from('sos_alerts')
-                    .select('*')
-                    .in('user_id', relevantUserIds)
-                    .eq('status', 'active');
-                    
-                const alerts = (alertsData || []) as SOSAlert[];
-                
-                const { data: dangerData } = await supabase
-                    .from('danger_zones')
-                    .select('*')
-                    .or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`);
-                    
-                const dangers = (dangerData || []) as any[];
-                
-                const { getFamilyGroup, createFamilyGroup } = await import('../services/familyService');
-                let group = await getFamilyGroup(user.id);
-                if (!group) {
-                    const { group: newGroup } = await createFamilyGroup("Mi Círculo", "parental", user.id);
-                    group = newGroup;
-                }
-                setFamilyGroup(group);
+        try {
+            // Parallelize independent initial requests
+            const contactsPromise = TrustedContactsService.getContacts(user.id);
+            const dangerPromise = supabase
+                .from('danger_zones')
+                .select('*')
+                .or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`);
 
-                const [zones] = await Promise.all([
-                    group ? getSafeZones(group.id) : Promise.resolve([])
-                ]);
+            const { getFamilyGroup, createFamilyGroup } = await import('../services/familyService');
+            const groupPromise = getFamilyGroup(user.id).then(async (g) => {
+                if (!g) {
+                    const { group: newG } = await createFamilyGroup("Mi Círculo", "parental", user.id);
+                    return newG;
+                }
+                return g;
+            });
+
+            const [contacts, { data: dangerData }, group] = await Promise.all([
+                contactsPromise, 
+                dangerPromise, 
+                groupPromise
+            ]);
+
+            setFamilyGroup(group);
+
+            const acceptedContacts = contacts.filter(c => c.status === 'accepted' && c.associated_user_id);
+            const relevantUserIds = [user.id, ...acceptedContacts.map(c => c.associated_user_id as string)];
+            
+            // Now fetch dependent requests in parallel
+            const alertsPromise = supabase
+                .from('sos_alerts')
+                .select('*')
+                .in('user_id', relevantUserIds)
+                .eq('status', 'active');
+            
+            const safeZonesPromise = group ? getSafeZones(group.id) : Promise.resolve([]);
+
+            const [{ data: alertsData }, zones] = await Promise.all([alertsPromise, safeZonesPromise]);
+            
+            const alerts = (alertsData || []) as SOSAlert[];
+            const dangers = (dangerData || []) as any[];
+
+            setSafeZones(zones);
+            setActiveAlerts(alerts);
+            setIncidenceZones(dangers.map(zone => {
+                let title = (zone.type === 'dark' ? t('map.light_notice') : 
+                             zone.type === 'incident' ? t('map.incident') : 
+                             zone.type === 'construction' ? t('map.construction') : 
+                             zone.type === 'traffic' ? t('map.traffic') : t('map.poi'));
+                let description = zone.description || t('map.active_zone_detected');
                 
-                setSafeZones(zones);
-                setActiveAlerts(alerts);
-                setIncidenceZones(dangers.map(zone => {
-                    let title = (zone.type === 'dark' ? t('map.light_notice') : 
-                                 zone.type === 'incident' ? t('map.incident') : 
-                                 zone.type === 'construction' ? t('map.construction') : 
-                                 zone.type === 'traffic' ? t('map.traffic') : t('map.poi'));
-                    let description = zone.description || t('map.active_zone_detected');
+                if (zone.description && zone.description.includes(' - ')) {
+                    const parts = zone.description.split(' - ');
+                    title = parts[0];
+                    description = parts[1];
+                }
+
+                return {
+                    id: zone.id,
+                    lat: zone.lat,
+                    lng: zone.lng,
+                    radius: zone.radius,
+                    title,
+                    description
+                };
+            }));
+            
+            if (alerts.length > 0) {
+                setActiveTab('family');
+            }
+
+                if (contacts.length > 0) {
+                    // Fetch latest locations for contacts that have associated user IDs
+                    const contactIds = contacts.map(c => c.associated_user_id as string).filter(Boolean);
                     
-                    if (zone.description && zone.description.includes(' - ')) {
-                        const parts = zone.description.split(' - ');
-                        title = parts[0];
-                        description = parts[1];
+                    let locations: any[] = [];
+                    let profilesMap: Record<string, string> = {};
+                    if (contactIds.length > 0) {
+                        const profRes = await supabase.from('profiles').select('id, avatar_url').in('id', contactIds);
+                        
+                        // Fetch latest location for EACH contact individually to avoid Supabase 1000 row limits cutting off recent data
+                        const locPromises = contactIds.map(id => 
+                            supabase.from('locations')
+                                .select('*')
+                                .eq('user_id', id)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .single()
+                        );
+                        
+                        const locResults = await Promise.allSettled(locPromises);
+                        locations = locResults
+                            .filter(r => r.status === 'fulfilled' && r.value.data)
+                            .map((r: any) => r.value.data);
+                        
+                        const profiles = profRes.data || [];
+                        profilesMap = profiles.reduce((acc: any, p: any) => {
+                            if (p.avatar_url) acc[p.id] = p.avatar_url;
+                            return acc;
+                        }, {});
                     }
 
-                    return {
-                        id: zone.id,
-                        lat: zone.lat,
-                        lng: zone.lng,
-                        radius: zone.radius,
-                        title,
-                        description
-                    };
-                }));
-                
-                if (alerts.length > 0) {
-                    setActiveTab('family');
-                }
-
-                if (acceptedContacts.length > 0) {
-                    // Fetch latest locations for contacts
-                    const contactIds = acceptedContacts.map(c => c.associated_user_id as string);
-                    const { data: locData } = await supabase
-                        .from('locations')
-                        .select('*')
-                        .in('user_id', contactIds)
-                        .order('created_at', { ascending: false });
+                    const uiMembers: UIMember[] = contacts.map((c) => {
+                        const isPending = c.status === 'pending' || !c.associated_user_id;
+                        const loc = isPending ? undefined : locations.find((l: any) => l.user_id === c.associated_user_id);
+                        const hasActiveAlert = !isPending && alerts.some((a) => a.user_id === c.associated_user_id);
                         
-                    const locations = locData || [];
-
-                    const uiMembers: UIMember[] = acceptedContacts.map((c) => {
-                        const loc = locations.find((l: any) => l.user_id === c.associated_user_id);
-                        const hasActiveAlert = alerts.some((a) => a.user_id === c.associated_user_id);
-                        
-                        // Life360 Privacy: Only show location if they share it, OR if they are in an active emergency
-                        if (!c.share_location && !hasActiveAlert) {
-                            return null;
-                        }
+                        // Location is visible if they are an accepted contact
+                        const isLocationHidden = false;
 
                         let timeString = t('common.no_data') || 'Sin datos';
-                        if (loc?.created_at) {
+                        if (isPending) {
+                            timeString = 'Pendiente';
+                        } else if (loc?.created_at) {
                             const date = new Date(loc.created_at);
                             const now = new Date();
                             const diff = (now.getTime() - date.getTime()) / 1000 / 60;
@@ -182,15 +216,26 @@ export const Home: React.FC = () => {
                             else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         }
 
+                        let displayLocation = t('home.no_location');
+                        if (isPending) {
+                            displayLocation = 'Invitación pendiente...';
+                        } else if (hasActiveAlert) {
+                            displayLocation = `⚠️ ${t('home.emergency_active')}`;
+                        } else if (isLocationHidden) {
+                            displayLocation = loc ? t('home.current_location') + ' (Pausada)' : t('home.no_location');
+                        } else if (loc) {
+                            displayLocation = t('home.current_location');
+                        }
+
                         return {
-                            id: c.associated_user_id as string,
+                            id: c.associated_user_id || c.id, // Fallback to contact ID if pending
                             name: c.name,
-                            avatar: '👤',
-                            avatarUrl: null, // we could fetch profile avatar if needed
-                            avatarBg: hasActiveAlert ? 'bg-red-600' : 'bg-slate-600',
-                            location: hasActiveAlert ? `⚠️ ${t('home.emergency_active')}` : (loc ? t('home.current_location') : t('home.no_location')),
-                            lat: loc ? loc.lat : 0,
-                            lng: loc ? loc.lng : 0,
+                            avatar: isPending ? '⏳' : '👤',
+                            avatarUrl: !isPending && c.associated_user_id ? (profilesMap[c.associated_user_id] || null) : null,
+                            avatarBg: hasActiveAlert ? 'bg-red-600' : (isPending ? 'bg-zinc-700' : 'bg-slate-600'),
+                            location: displayLocation,
+                            lat: (!isLocationHidden && loc) ? loc.lat : 0,
+                            lng: (!isLocationHidden && loc) ? loc.lng : 0,
                             status: loc && loc.speed && loc.speed > 5 ? 'moving' : 'stationary',
                             speed: loc?.speed ? `${Math.round(loc.speed)} km/h` : null,
                             battery: loc?.battery_level || 0,
@@ -200,36 +245,19 @@ export const Home: React.FC = () => {
                         };
                     });
                     
-                    const myAlert = alerts.find(a => a.user_id === user.id);
-                    if (myAlert && !uiMembers.find(m => m?.id === user.id)) {
-                        uiMembers.push({
-                            id: user.id,
-                            name: t('home.me'),
-                            avatar: '👤',
-                            avatarUrl: user.profile?.avatar_url || null,
-                            avatarBg: 'bg-red-600',
-                            location: `⚠️ ${t('home.emergency_active')}`,
-                            lat: myAlert.lat || 0,
-                            lng: myAlert.lng || 0,
-                            status: 'stationary',
-                            speed: null,
-                            battery: 100,
-                            lastUpdate: t('common.now'),
-                            isEmergency: true,
-                            route: null
-                        });
-                    }
+
 
                     setFamilyMembers(uiMembers.filter(Boolean) as UIMember[]);
                 } else {
                     setFamilyMembers([]);
                 }
-            } catch (error) {
-                console.error('Error loading data:', error);
-                setFamilyMembers([]);
-                setSafeZones([]);
-            }
-        }, 100);
+        } catch (error) {
+            console.error('Error loading data:', error);
+            setFamilyMembers([]);
+            setSafeZones([]);
+        } finally {
+            setIsInitialLoading(false);
+        }
     };
 
     // Suscribir a alertas en tiempo real
@@ -339,11 +367,16 @@ export const Home: React.FC = () => {
         // Request permissions on entry for better SOS readiness
         const requestInitialPermissions = async () => {
             try {
-                // Parallel request for all critical permissions
-                await Promise.all([
-                    requestSOSPermissions(),
-                    requestNotificationPermission()
-                ]);
+                const { Geolocation } = await import('@capacitor/geolocation');
+                const locPerms = await Geolocation.checkPermissions();
+                if (locPerms.location !== 'granted') {
+                    await Geolocation.requestPermissions();
+                }
+                const { PushNotifications } = await import('@capacitor/push-notifications');
+                const pushPerms = await PushNotifications.checkPermissions();
+                if (pushPerms.receive !== 'granted') {
+                    await requestNotificationPermission();
+                }
                 console.log('Initial permissions checked');
             } catch (err) {
                 console.warn('Initial permission request failed:', err);
@@ -450,9 +483,18 @@ export const Home: React.FC = () => {
             className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative"
             onClick={handleMapShortcut}
         >
+            {isInitialLoading && (
+                <div className="absolute inset-0 z-[10000] flex flex-col items-center justify-center bg-[#0d0d0d] text-white">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#FF3131]/10 blur-[100px] rounded-full pointer-events-none" />
+                    
+                    <div className="relative z-10 flex flex-col items-center animate-scale-in">
+                        <div className="w-24 h-24 rounded-[2rem] bg-[#FF3131]/10 border border-[#FF3131]/20 flex items-center justify-center shadow-[0_0_40px_rgba(255,49,49,0.2)] p-4 animate-pulse">
+                            <img src="/logo.png" alt="RedCarpet" className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,49,49,0.5)]" />
+                        </div>
+                    </div>
+                </div>
+            )}
 
-            {/* Header con buscador - Cleaned version (Floating) */}
-            
             {/* Header con buscador - Cleaned version (Floating) */}
             <div className="absolute top-12 left-0 right-0 z-40 px-6 flex justify-between items-center pointer-events-none">
                 <div className="flex items-center gap-3 pointer-events-auto w-full">
@@ -527,25 +569,6 @@ export const Home: React.FC = () => {
                         )}
 
                     </div>
-
-                    <button
-                        onClick={() => navigate('/notifications')}
-                        className={clsx(
-                            "size-12 rounded-2xl flex items-center justify-center shrink-0 relative transition-all active:scale-90 border",
-                            activeAlerts.length > 0 
-                                ? "bg-red-600 text-white border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]" 
-                                : "bg-white/10 text-white border-white/10"
-                        )}
-                    >
-                        <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            {activeAlerts.length > 0 ? 'notifications_active' : 'notifications'}
-                        </span>
-                        {activeAlerts.length > 0 && (
-                            <span className="absolute -top-1 -right-1 size-5 bg-white text-red-600 text-[10px] font-black rounded-full flex items-center justify-center border-2 border-red-600">
-                                {activeAlerts.length}
-                            </span>
-                        )}
-                    </button>
                 </div>
             </div>
 
@@ -575,19 +598,48 @@ export const Home: React.FC = () => {
                         setShowSuggestions(false);
                         setSelectedMember(id);
                     }}
+                    onZoneClick={(id) => {
+                        setShowSuggestions(false);
+                        setSelectedZoneId(id);
+                    }}
                 >
-                    <div className="absolute top-[210px] right-4 z-40 pointer-events-auto flex flex-col items-end gap-4">
+                    <div className="absolute top-[120px] right-4 z-40 pointer-events-auto flex flex-col items-end gap-3">
+                        <button
+                            onClick={() => navigate('/notifications')}
+                            className={clsx(
+                                "size-14 rounded-2xl flex items-center justify-center shrink-0 relative transition-all active:scale-90 border shadow-xl backdrop-blur-md",
+                                activeAlerts.length > 0
+                                    ? "bg-red-600/90 text-white border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" 
+                                    : "bg-zinc-900/90 text-white border-white/10"
+                            )}
+                        >
+                            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                {activeAlerts.length > 0 ? 'notifications_active' : 'notifications'}
+                            </span>
+                            {activeAlerts.length > 0 && (
+                                <span className="absolute -top-1 -right-1 size-5 bg-white text-red-600 text-[10px] font-black rounded-full flex items-center justify-center border-2 border-red-600">
+                                    {activeAlerts.length}
+                                </span>
+                            )}
+                        </button>
+
                         <button
                             onClick={() => setShowReportDangerModal(true)}
-                            className="size-12 bg-amber-500 rounded-[1rem] border border-amber-400/50 flex items-center justify-center shadow-lg shadow-amber-500/30 text-black hover:bg-amber-400 active:scale-90 transition-all pointer-events-auto"
+                            className="size-14 bg-amber-500/90 backdrop-blur-md rounded-2xl border border-amber-400/50 flex items-center justify-center shadow-xl shadow-amber-500/20 text-black hover:bg-amber-400 active:scale-95 transition-all pointer-events-auto"
                             title={t('home.report_danger') || 'Reportar peligro'}
                         >
                             <span className="material-symbols-outlined text-2xl font-black">warning</span>
                         </button>
 
-                        <div className="animate-fade-in pointer-events-auto">
-                            <UltimateSOSButton />
-                        </div>
+                        {sosConfig?.isConfigured && (
+                            <button
+                                onClick={() => setShowSOSConfig(true)}
+                                className="size-14 rounded-2xl bg-zinc-900/90 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shadow-xl shrink-0 hover:bg-zinc-800 active:scale-95 transition-all"
+                                title={t('nav.settings')}
+                            >
+                                <span className="material-symbols-outlined">tune</span>
+                            </button>
+                        )}
                     </div>
                 </UnifiedMap>
             </div>
@@ -598,24 +650,7 @@ export const Home: React.FC = () => {
                 maxHeight={70}
                 defaultHeight={45}
                 onHeightChange={setSheetHeight}
-                floatingContent={
-                    <div className="flex items-center justify-between w-full">
-                        <div className="flex gap-2 shrink-0">
-                            {/* History button removed as requested */}
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                            {sosConfig?.isConfigured && (
-                                <button
-                                    onClick={() => setShowSOSConfig(true)}
-                                    className="size-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg shrink-0"
-                                    title={t('nav.settings')}
-                                >
-                                    <span className="material-symbols-outlined">tune</span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                }
+                floatingContent={null}
             >
                 {/* Tabs estilo Life360 */}
                 <div className="flex items-center justify-center gap-1 px-4 pb-3 shrink-0">
@@ -1078,6 +1113,14 @@ export const Home: React.FC = () => {
                 onClose={() => setShowHistoryModal(null)}
                 memberId={showHistoryModal?.id || ''}
                 memberName={showHistoryModal?.name || ''}
+            />
+
+            {/* Alert Details Modal */}
+            <AlertDetailsModal
+                zoneId={selectedZoneId}
+                isOpen={!!selectedZoneId}
+                onClose={() => setSelectedZoneId(null)}
+                onAlertDeleted={loadData}
             />
 
         </div>

@@ -42,12 +42,11 @@ export const Subscription: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const pass72hPkg = packages.find(p => p.identifier === 'rc_72h_pass' || p.product.identifier === 'rc_72h_pass');
-    const monthlyPkg = packages.find(p => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly' || p.identifier === 'redcarpet.premium.onemonths' || p.product.identifier === 'redcarpet.premium.onemonths');
-    const annualPkg = packages.find(p => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual' || p.identifier === 'redcarpet.premium.oneyear' || p.product.identifier === 'redcarpet.premium.oneyear');
-    const studentPkg = packages.find(p => p.identifier === 'redcarpet.premium.student' || p.product.identifier === 'redcarpet.premium.student');
-    const family1Pkg = packages.find(p => p.identifier === 'redcarpet.parental.1person' || p.product.identifier === 'redcarpet.parental.1person');
-    const family2Pkg = packages.find(p => p.identifier === 'redcarpet.parental.2persons' || p.product.identifier === 'redcarpet.parental.2persons');
-    const family6Pkg = packages.find(p => p.identifier === 'redcarpet.parental.unlimitedchildren' || p.product.identifier === 'redcarpet.parental.unlimitedchildren');
+    const monthlyPkg = packages.find(p => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly' || p.identifier === 'mes_premium' || p.product.identifier === 'mes_premium');
+    const annualPkg = packages.find(p => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual' || p.identifier === 'rc_premium_anual_1y' || p.product.identifier === 'rc_premium_anual_1y');
+    const family1Pkg = packages.find(p => p.identifier === 'rc_familiar_1p_1m' || p.product.identifier === 'rc_familiar_1p_1m');
+    const family2Pkg = packages.find(p => p.identifier === 'rc_familiar_2p_1m' || p.product.identifier === 'rc_familiar_2p_1m');
+    const family6Pkg = packages.find(p => p.identifier === 'rc_familiar_6p_1m' || p.product.identifier === 'rc_familiar_6p_1m');
     
     useEffect(() => {
         const loadOfferings = async () => {
@@ -61,12 +60,12 @@ export const Subscription: React.FC = () => {
                 console.log(`[RevenueCat] 📦 Offerings cargados correctamente. Total de paquetes: ${pkgs.length}`);
                 if (pkgs.length === 0) {
                      console.warn(`[RevenueCat] ⚠️ Advertencia: No se han encontrado paquetes. Intentando fallback directo a Apple...`);
-                     const directProducts = await RevenueCatService.getProductsByIds(['redcarpet.premium.onemonths', 'redcarpet.premium.oneyear']);
+                     const directProducts = await RevenueCatService.getProductsByIds(['mes_premium', 'rc_premium_anual_1y']);
                      if (directProducts.length > 0) {
                           console.log(`[RevenueCat] ✅ Fallback directo exitoso. Productos encontrados:`, directProducts.length);
                           const fallbackPkgs = directProducts.map((prod: any) => ({
                               identifier: prod.identifier,
-                              packageType: prod.identifier.includes('oneyear') ? 'ANNUAL' : 'MONTHLY',
+                              packageType: (prod.identifier.includes('anual') || prod.identifier.includes('1y') || prod.identifier.includes('annual')) ? 'ANNUAL' : 'MONTHLY',
                               product: prod,
                               offeringIdentifier: 'default'
                           })) as PurchasesPackage[];
@@ -180,7 +179,7 @@ export const Subscription: React.FC = () => {
                     REDCARPET <span className="text-primary font-black italic">PRO</span>
                 </h1>
                 <p className="text-xs font-bold text-white/40 max-w-[280px] leading-relaxed uppercase tracking-widest mt-1">
-                    Tranquilidad total e ingeniería de vanguardia a tu alcance
+                    {t('premium.main_subtitle')}
                 </p>
             </div>
 
@@ -200,12 +199,12 @@ export const Subscription: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <Crown size={24} className="text-primary" />
-                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">PREMIUM INDIVIDUAL</h2>
+                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">{t('premium.individual.title')}</h2>
                         </div>
-                        <h3 className="text-lg font-black italic text-primary">Muévete con ventaja</h3>
-                        <p className="text-sm font-bold text-white/80 mt-1">Ve siempre un paso por delante del peligro.</p>
+                        <h3 className="text-lg font-black italic text-primary">{t('premium.individual.subtitle')}</h3>
+                        <p className="text-sm font-bold text-white/80 mt-1">{t('premium.tech_elite')}</p>
                         <p className="text-xs text-white/60 leading-relaxed font-medium mt-2">
-                            La experiencia más avanzada de Red Carpet. Más precisión, más protección y acceso ilimitado a todas las funciones premium.
+                            {t('premium.features_list.ai_shield')}
                         </p>
                     </div>
 
@@ -233,8 +232,8 @@ export const Subscription: React.FC = () => {
                         <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h5 className="font-black italic uppercase text-sm">Premium Individual</h5>
-                                    <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Protección completa mes a mes.</p>
+                                    <h5 className="font-black italic uppercase text-sm">{t('premium.individual.title')}</h5>
+                                    <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('premium.cancel_anytime')}</p>
                                 </div>
                                 <div className="text-right shrink-0">
                                     <span className="font-black italic text-lg text-primary">9,99 €</span>
@@ -242,7 +241,7 @@ export const Subscription: React.FC = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => handlePurchase('monthly', monthlyPkg?.identifier || 'redcarpet.premium.onemonths')}
+                                onClick={() => handlePurchase('monthly', monthlyPkg?.identifier || 'mes_premium')}
                                 disabled={processing}
                                 className="w-full h-10 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2"
                             >
@@ -250,26 +249,7 @@ export const Subscription: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Option: Estudiantes */}
-                        <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h5 className="font-black italic uppercase text-sm">Premium Estudiantes</h5>
-                                    <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1 leading-snug">Todo el Premium con un descuento del 50% para estudiantes.</p>
-                                </div>
-                                <div className="text-right shrink-0">
-                                    <span className="font-black italic text-lg text-primary">4,99 €</span>
-                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => handlePurchase('student', studentPkg?.identifier || 'redcarpet.premium.student')}
-                                disabled={processing}
-                                className="w-full h-10 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2"
-                            >
-                                {processing && selectedPlan === 'student' ? <Loader2 className="animate-spin size-3" /> : "Elegir Estudiantes"}
-                            </button>
-                        </div>
+
 
                         {/* Option: Anual */}
                         <div className="bg-primary/10 rounded-2xl p-4 border border-primary/40 flex flex-col gap-3 relative overflow-hidden">
@@ -277,7 +257,7 @@ export const Subscription: React.FC = () => {
                             <div className="flex justify-between items-start pt-2">
                                 <div>
                                     <h5 className="font-black italic uppercase text-sm text-primary">Premium Anual</h5>
-                                    <p className="text-[10px] text-white/60 uppercase tracking-wide mt-1 leading-snug">Todo el Premium con un descuento del 25% anual.</p>
+                                    <p className="text-[10px] text-white/60 uppercase tracking-wide mt-1 leading-snug">{t('premium.cancel_anytime')}</p>
                                 </div>
                                 <div className="text-right shrink-0">
                                     <span className="font-black italic text-xl text-primary">79,99 €</span>
@@ -285,7 +265,7 @@ export const Subscription: React.FC = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => handlePurchase('annual', annualPkg?.identifier || 'redcarpet.premium.oneyear')}
+                                onClick={() => handlePurchase('annual', annualPkg?.identifier || 'rc_premium_anual_1y')}
                                 disabled={processing}
                                 className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                             >
@@ -306,12 +286,12 @@ export const Subscription: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <Users size={24} className="text-green-400" />
-                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">PLAN FAMILIAR</h2>
+                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">{t('premium.family.title')}</h2>
                         </div>
-                        <h3 className="text-lg font-black italic text-green-400">Protege a quienes más quieres</h3>
-                        <p className="text-sm font-bold text-white/80 mt-1">Porque tu seguridad y la de los tuyos no tiene precio.</p>
+                        <h3 className="text-lg font-black italic text-green-400">{t('premium.family.subtitle')}</h3>
+                        <p className="text-sm font-bold text-white/80 mt-1">{t('premium.family.members')}</p>
                         <p className="text-xs text-white/60 leading-relaxed font-medium mt-2">
-                            Pensado para cuidar a tus seres queridos: hijos, personas mayores o cualquier persona importante para ti.
+                            {t('premium.family.members_desc')}
                         </p>
                     </div>
 
@@ -337,11 +317,17 @@ export const Subscription: React.FC = () => {
                         
                         {/* Option: 1 persona */}
                         <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
-                            <h5 className="font-black italic uppercase text-sm">1 persona</h5>
+                            <div>
+                                <h5 className="font-black italic uppercase text-sm">1 persona</h5>
+                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Suscripción Auto-renovable de 1 Mes</p>
+                            </div>
                             <div className="flex items-center gap-4">
-                                <span className="font-black italic text-lg text-green-400">9,99 €</span>
+                                <div className="text-right shrink-0">
+                                    <span className="font-black italic text-lg text-green-400">9,99 €</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                </div>
                                 <button
-                                    onClick={() => handlePurchase('family1', family1Pkg?.identifier || 'redcarpet.parental.1person')}
+                                    onClick={() => handlePurchase('family1', family1Pkg?.identifier || 'rc_familiar_1p_1m')}
                                     disabled={processing}
                                     className="px-4 h-8 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-green-500/30 transition-all"
                                 >
@@ -352,11 +338,17 @@ export const Subscription: React.FC = () => {
 
                         {/* Option: 2 personas */}
                         <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
-                            <h5 className="font-black italic uppercase text-sm">2 personas</h5>
+                            <div>
+                                <h5 className="font-black italic uppercase text-sm">2 personas</h5>
+                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Suscripción Auto-renovable de 1 Mes</p>
+                            </div>
                             <div className="flex items-center gap-4">
-                                <span className="font-black italic text-lg text-green-400">14,99 €</span>
+                                <div className="text-right shrink-0">
+                                    <span className="font-black italic text-lg text-green-400">14,99 €</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                </div>
                                 <button
-                                    onClick={() => handlePurchase('family2', family2Pkg?.identifier || 'redcarpet.parental.2persons')}
+                                    onClick={() => handlePurchase('family2', family2Pkg?.identifier || 'rc_familiar_2p_1m')}
                                     disabled={processing}
                                     className="px-4 h-8 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-green-500/30 transition-all"
                                 >
@@ -367,11 +359,17 @@ export const Subscription: React.FC = () => {
 
                         {/* Option: Hasta 6 personas */}
                         <div className="flex justify-between items-center bg-green-400/10 rounded-2xl p-4 border border-green-400/30">
-                            <h5 className="font-black italic uppercase text-sm text-green-400">Hasta 6 personas</h5>
+                            <div>
+                                <h5 className="font-black italic uppercase text-sm text-green-400">Hasta 6 personas</h5>
+                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Suscripción Auto-renovable de 1 Mes</p>
+                            </div>
                             <div className="flex items-center gap-4">
-                                <span className="font-black italic text-lg text-green-400">19,99 €</span>
+                                <div className="text-right shrink-0">
+                                    <span className="font-black italic text-lg text-green-400">19,99 €</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                </div>
                                 <button
-                                    onClick={() => handlePurchase('family6', family6Pkg?.identifier || 'redcarpet.parental.unlimitedchildren')}
+                                    onClick={() => handlePurchase('family6', family6Pkg?.identifier || 'rc_familiar_6p_1m')}
                                     disabled={processing}
                                     className="px-4 h-8 bg-green-500 text-black rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
                                 >
@@ -393,12 +391,12 @@ export const Subscription: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <Clock size={24} className="text-amber-500" />
-                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">PASE 72 HORAS</h2>
+                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">{t('premium.72h.title')}</h2>
                         </div>
-                        <h3 className="text-lg font-black italic text-amber-500">Protección inmediata</h3>
-                        <p className="text-sm font-bold text-white/80 mt-1">Seguridad premium cuando más la necesitas.</p>
+                        <h3 className="text-lg font-black italic text-amber-500">{t('premium.72h.subtitle')}</h3>
+                        <p className="text-sm font-bold text-white/80 mt-1">{t('premium.72h.promo')}</p>
                         <p className="text-xs text-white/60 leading-relaxed font-medium mt-2">
-                            Activa todas las funciones premium durante 72 horas completas.
+                            {t('premium.features_list.tactical_nav')}
                         </p>
                     </div>
 
@@ -437,7 +435,7 @@ export const Subscription: React.FC = () => {
                     <div className="bg-amber-500/10 rounded-2xl p-4 border border-amber-500/20 flex flex-col gap-3 mt-2">
                         <div className="flex justify-between items-center">
                             <h5 className="font-black italic uppercase text-sm text-amber-500">Precio</h5>
-                            <span className="font-black italic text-xl text-amber-500">2,99 €</span>
+                            <span className="font-black italic text-xl text-amber-500">1,99 €</span>
                         </div>
                         <p className="text-[10px] text-amber-500/80 uppercase tracking-wide font-bold text-center">72 horas Premium</p>
                         <button
@@ -454,24 +452,20 @@ export const Subscription: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Subscription Legal Terms */}
-                <div className="p-4 rounded-3xl bg-zinc-950/30 border border-white/5 text-center mt-8">
-                    <p className="text-[10px] text-white/30 leading-relaxed font-medium">
+                {/* Subscription Legal Terms for Apple Review */}
+                <div className="p-4 rounded-3xl bg-zinc-950/30 border border-white/5 text-left mt-8 space-y-4">
+                    <p className="text-[10px] text-white/40 leading-relaxed font-medium">
                         {t('premium.legal.iap_disclaimer')}
                     </p>
-                </div>
-
-                {/* Legal Action Links */}
-                <div className="flex flex-col items-center gap-6 pb-20 pt-4 z-10 relative">
-                    <button
-                        onClick={() => RevenueCatService.restorePurchases().then(() => navigate('/'))}
-                        className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-white underline underline-offset-8 transition-colors"
-                    >
-                        {t('premium.restore_purchases')}
-                    </button>
-                    <div className="flex gap-8">
-                        <button onClick={() => navigate('/terms')} className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white underline underline-offset-4 transition-colors">EULA</button>
-                        <button onClick={() => navigate('/privacy')} className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white underline underline-offset-4 transition-colors">Privacy Policy</button>
+                    <div className="flex flex-wrap justify-center gap-6 pt-4 border-t border-white/5">
+                        <button onClick={() => window.open('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/', '_blank')} className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Terms of Use (EULA)</button>
+                        <button onClick={() => navigate('/privacy')} className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Privacy Policy</button>
+                        <button
+                            onClick={() => RevenueCatService.restorePurchases().then(() => navigate('/'))}
+                            className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4"
+                        >
+                            {t('premium.restore_purchases')}
+                        </button>
                     </div>
                 </div>
             </div>

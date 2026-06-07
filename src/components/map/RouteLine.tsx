@@ -9,6 +9,7 @@ interface RouteLineProps {
     color?: string;
     isSelected?: boolean;
     opacity?: number;
+    offset?: number;
 }
 
 export const RouteLine: React.FC<RouteLineProps> = ({
@@ -16,7 +17,8 @@ export const RouteLine: React.FC<RouteLineProps> = ({
     coordinates,
     color = '#FF3131',
     isSelected = false,
-    opacity = 1
+    opacity = 1,
+    offset = 0
 }) => {
     const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
         type: 'Feature',
@@ -35,7 +37,8 @@ export const RouteLine: React.FC<RouteLineProps> = ({
             'line-color': color,
             'line-width': isSelected ? 12 : 0,
             'line-opacity': 0.3,
-            'line-blur': 3
+            'line-blur': 3,
+            'line-offset': offset
         },
         layout: {
             'line-join': 'round',
@@ -51,7 +54,8 @@ export const RouteLine: React.FC<RouteLineProps> = ({
             'line-color': color,
             'line-width': isSelected ? 6 : 4,
             'line-opacity': isSelected ? opacity : opacity * 0.4,
-            'line-dasharray': isSelected ? [1, 0] : [2, 1]
+            'line-dasharray': isSelected ? [1, 0] : [2, 1],
+            'line-offset': offset
         },
         layout: {
             'line-join': 'round',

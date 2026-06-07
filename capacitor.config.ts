@@ -12,9 +12,9 @@ const config: CapacitorConfig = {
             presentationOptions: ['badge', 'sound', 'alert'],
         },
         SplashScreen: {
-            launchAutoHide: false,    // We control hide() from JS after React loads
-            launchShowDuration: 0,    // Irrelevant when autoHide is false
-            backgroundColor: '#0f0808',
+            launchAutoHide: true,    // Auto hide immediately
+            launchShowDuration: 0,   // Show for 0 seconds
+            backgroundColor: '#0d0d0d',
             androidScaleType: 'CENTER_CROP',
             showSpinner: false,
             splashFullScreen: true,

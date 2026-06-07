@@ -13,6 +13,8 @@ PODS:
     - Capacitor
   - CapacitorCommunityCameraPreview (6.0.1):
     - Capacitor
+  - CapacitorCommunityContacts (6.1.1):
+    - Capacitor
   - CapacitorCordova (6.2.1)
   - CapacitorFilesystem (6.0.4):
     - Capacitor
@@ -99,6 +101,7 @@ DEPENDENCIES:
   - "CapacitorCommunityAppleSignIn (from `../../node_modules/@capacitor-community/apple-sign-in`)"
   - "CapacitorCommunityBackgroundGeolocation (from `../../node_modules/@capacitor-community/background-geolocation`)"
   - "CapacitorCommunityCameraPreview (from `../../node_modules/@capacitor-community/camera-preview`)"
+  - "CapacitorCommunityContacts (from `../../node_modules/@capacitor-community/contacts`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
   - "CapacitorFirebaseMessaging (from `../../node_modules/@capacitor-firebase/messaging`)"
@@ -138,6 +141,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor-community/background-geolocation"
   CapacitorCommunityCameraPreview:
     :path: "../../node_modules/@capacitor-community/camera-preview"
+  CapacitorCommunityContacts:
+    :path: "../../node_modules/@capacitor-community/contacts"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
   CapacitorFilesystem:
@@ -167,6 +172,7 @@ SPEC CHECKSUMS:
   CapacitorCommunityAppleSignIn: c9c2541ee7580618055a91b3516c3f0313fe2544
   CapacitorCommunityBackgroundGeolocation: 750523ec6dd1cc94cf4e2bf7787605106753f73c
   CapacitorCommunityCameraPreview: 56f8ea051d2e7625ee1a561cc50ea451b4ee485c
+  CapacitorCommunityContacts: 9cde99c2cd212f6594677aae542436e2174c4ef2
   CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
   CapacitorFilesystem: 5b9aec35c0212bd0064e26d278c93e925864f212
   CapacitorFirebaseMessaging: 05bf93285c8ae5aeaaddaa938ba1db4fda7305ad
@@ -188,6 +194,6 @@ SPEC CHECKSUMS:
   RevenueCat: e47ff90dfd271fde155a4befe48e8fc02e8281e4
   RevenuecatPurchasesCapacitor: 6727a4dc1455bdf2374259420719ce5dfbe957fa
 
-PODFILE CHECKSUM: b8733f50fdd909a7e713a9012207c910f398b52e
+PODFILE CHECKSUM: c460e8fc07c5ab07b859a9eeb643bb9916e96c9d
 
 COCOAPODS: 1.16.2

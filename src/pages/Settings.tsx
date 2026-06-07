@@ -8,6 +8,7 @@ import { App } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { initPushNotifications, getPushPermissionStatus } from '../services/pushService';
 import { SOSConfigSheet, type SOSConfigData } from '../components/SOSConfigSheet';
+import { Star } from 'lucide-react';
 import clsx from 'clsx';
 
 export const Settings: React.FC = () => {
@@ -49,21 +50,10 @@ export const Settings: React.FC = () => {
 
     const handleNotificationActivation = async () => {
         try {
-            if (notificationStatus === 'denied') {
-                // NativeSettings is the correct way, fallback to window.location for now
-                if (Capacitor.getPlatform() === 'ios') {
-                    window.location.href = 'app-settings:';
-                } else {
-                    alert(t('settings.notifications.open_settings'));
-                }
+            if (Capacitor.getPlatform() === 'ios') {
+                await App.openUrl({ url: 'app-settings:' });
             } else {
-                if (user?.id) {
-                    await initPushNotifications(user.id);
-                    // We don't have direct access to PushNotifications here,
-                    // so we rely on checkNotificationStatus to refresh.
-                    setTimeout(checkNotificationStatus, 1000);
-                    alert(t('settings.notifications.requested'));
-                }
+                alert(t('settings.notifications.open_settings'));
             }
         } catch (err) {
             console.error('Error handling notification activation:', err);
@@ -312,6 +302,28 @@ export const Settings: React.FC = () => {
                     ))}
                 </div>
 
+                {/* Rating / Rate App */}
+                <div className="px-6 mt-8 flex flex-col gap-4">
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mb-[-8px]">Ayúdanos</p>
+                    <button 
+                        onClick={async () => {
+                            if (Capacitor.isNativePlatform()) {
+                                const url = Capacitor.getPlatform() === 'ios'
+                                    ? 'itms-apps://itunes.apple.com/app/idXXXXXXXXX'
+                                    : 'market://details?id=com.vibecode.redcarpet';
+                                try { await App.openUrl({ url }); } catch (e) {}
+                            }
+                        }}
+                        className="w-full h-14 bg-[#1c1c1e] rounded-xl flex items-center gap-4 px-4 hover:bg-white/5 active:bg-white/10 transition-colors"
+                    >
+                        <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                            <Star size={18} />
+                        </div>
+                        <span className="font-bold text-white flex-1 text-left">Valorar la aplicación</span>
+                        <span className="material-symbols-outlined text-white/20 text-sm">chevron_right</span>
+                    </button>
+                </div>
+
                 {/* Logout & Delete */}
                 <div className="px-6 mt-8 mb-8 flex flex-col gap-4">
                     <button
@@ -380,14 +392,7 @@ export const Settings: React.FC = () => {
                 )}
             </div>
 
-            {/* Mandated Disclaimer */}
-            <div className="px-6 mb-8 mt-4">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
-                    <p className="text-[10px] text-zinc-500 leading-relaxed italic">
-                        {t('settings.report_disclaimer')}
-                    </p>
-                </div>
-            </div>
+
 
             {/* Version / Info */}
             <div className="pb-12 text-center text-white/40 text-xs">

@@ -20,10 +20,10 @@ import type { DangerZone as IncidenceZone } from '../services/database.types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// Default location: Felipe II 229, Barcelona (Sant Martí district)
+// Default location: Sagrada Familia, Barcelona (as requested to avoid doxing)
 const DEFAULT_VIEW = {
-    latitude: 41.4088,
-    longitude: 2.1890,
+    latitude: 41.4036,
+    longitude: 2.1744,
     zoom: 16
 };
 
@@ -81,6 +81,7 @@ interface UnifiedMapProps {
     routeGeometry?: RouteGeometry;
     origin?: { lat: number; lng: number };
     destination?: { lat: number; lng: number };
+    onZoneClick?: (zoneId: string) => void;
 }
 
 export const UnifiedMap: React.FC<UnifiedMapProps> = ({
@@ -99,7 +100,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     selectedRoute = 'safe',
     routeGeometry,
     origin,
-    destination
+    destination,
+    onZoneClick
 }) => {
     const { t } = useTranslation();
     const [showTraffic, setShowTraffic] = useState(true);
@@ -111,7 +113,19 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     const [incidenceZones, setIncidenceZones] = useState<any[]>([]);
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
     const [is3D, setIs3D] = useState(false);
+    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const [isTrackingUser, setIsTrackingUser] = useState(true);
     const geoControlRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (isTrackingUser && userLocation) {
+            setViewState(prev => ({
+                ...prev,
+                latitude: userLocation.lat,
+                longitude: userLocation.lng
+            }));
+        }
+    }, [userLocation, isTrackingUser]);
 
     // Fetch Danger Zones from Supabase
     useEffect(() => {
@@ -214,20 +228,20 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
 
         const initLocation = async () => {
             try {
-                if (Capacitor.isNativePlatform()) {
-                    const status = await Geolocation.checkPermissions();
-                    if (status.location !== 'granted' && status.location !== 'denied') {
-                        await Geolocation.requestPermissions();
-                    }
-                    
-                    // Request orientation permissions for iOS
-                    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-                        await (DeviceOrientationEvent as any).requestPermission();
-                    }
-                    
+                const status = await Geolocation.checkPermissions();
+                if (status.location !== 'granted' && status.location !== 'denied') {
+                    await Geolocation.requestPermissions();
+                }
+                
+                // Request orientation permissions for iOS
+                if (Capacitor.isNativePlatform() && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+                    await (DeviceOrientationEvent as any).requestPermission();
+                }
+                
                 const initialPos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
                 if (initialPos) {
                     const { latitude, longitude } = initialPos.coords;
+                    setUserLocation({ lat: latitude, lng: longitude });
                     setViewState(prev => ({ 
                         ...prev, 
                         latitude, 
@@ -237,12 +251,12 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     }));
                 }
 
-                }
-
-                // Trigger Mapbox's control to render the native blue dot and handle tracking
-                setTimeout(() => {
-                    geoControlRef.current?.trigger();
-                }, 500);
+                // Native watching position to update blue dot
+                watchId = await Geolocation.watchPosition({ enableHighAccuracy: true }, (pos, err) => {
+                    if (pos) {
+                        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    }
+                });
 
                 // Listen for device orientation to rotate map
                 window.addEventListener('deviceorientation', handleHeading, true);
@@ -256,6 +270,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         
         return () => {
             window.removeEventListener('deviceorientation', handleHeading);
+            if (watchId) {
+                Geolocation.clearWatch({ id: watchId });
+            }
         };
     }, []);
 
@@ -271,16 +288,22 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     }, []);
 
     const recenterToUser = useCallback(() => {
-        setViewState(prev => ({
-            ...prev,
-            zoom: 18, // Zoom in for "Grandmother-friendly" detail
-            pitch: 0,  // Force cenital view
-            bearing: 0 // Reset rotation to North
-        }));
-        setIs3D(false);
-        // Trigger the geolocate control natively
-        geoControlRef.current?.trigger();
-    }, []);
+        setIsTrackingUser(true);
+        if (userLocation) {
+            setViewState(prev => ({
+                ...prev,
+                latitude: userLocation.lat,
+                longitude: userLocation.lng,
+                zoom: 18, // Zoom in for "Grandmother-friendly" detail
+                pitch: 0,  // Force cenital view
+                bearing: 0 // Reset rotation to North
+            }));
+            setIs3D(false);
+        } else {
+            setViewState(prev => ({ ...prev, zoom: 18, pitch: 0, bearing: 0 }));
+            setIs3D(false);
+        }
+    }, [userLocation]);
 
     // Fetch transit stops when showTransit is enabled
     useEffect(() => {
@@ -335,6 +358,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
             <Map
                 {...viewState}
                 onMove={evt => setViewState(evt.viewState)}
+                onMoveStart={evt => { if (evt.originalEvent) setIsTrackingUser(false); }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
                 mapboxAccessToken={MAPBOX_TOKEN}
                 style={{ width: '100%', height: '100%' }}
@@ -351,14 +375,17 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
 
                 {/* Map UI Cleaned up as requested */}
             
-            {/* Nav controls */}
-                {/* Nav controls cleaned up */}
-                <GeolocateControl
-                    ref={geoControlRef}
-                    position="top-left"
-                    trackUserLocation
-                    showUserHeading
-                />
+                {/* Custom Native User Location Marker */}
+                {userLocation && (
+                    <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
+                        <div className="relative flex items-center justify-center transition-transform duration-300">
+                            <div className="absolute w-12 h-12 bg-blue-500/20 rounded-full animate-ping" />
+                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.3)] z-10">
+                                <div className="w-3.5 h-3.5 bg-blue-500 rounded-full" />
+                            </div>
+                        </div>
+                    </Marker>
+                )}
 
                 {/* Incidence Zones Component - Centered Info & Absolute Size */}
                 {showIncidenceZones && (
@@ -371,7 +398,10 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                             })),
                             ...incidenceZones,
                             ...externalIncidenceZones
-                        ]} 
+                        ].map(z => ({
+                            ...z,
+                            onClick: onZoneClick
+                        }))} 
                     />
                 )}
 
@@ -405,6 +435,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 coordinates={routeGeometry.safe}
                                 color={ROUTE_COLORS.safe}
                                 isSelected={selectedRoute === 'safe'}
+                                offset={-5}
                             />
                         )}
                         {/* Balanced route */}
@@ -414,6 +445,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 coordinates={routeGeometry.balanced}
                                 color={ROUTE_COLORS.balanced}
                                 isSelected={selectedRoute === 'balanced'}
+                                offset={0}
                             />
                         )}
                         {/* Fast route */}
@@ -423,6 +455,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 coordinates={routeGeometry.fast}
                                 color={ROUTE_COLORS.fast}
                                 isSelected={selectedRoute === 'fast'}
+                                offset={5}
                             />
                         )}
                     </>
@@ -466,11 +499,18 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 ))}
             </Map>
 
-            {/* Custom Recenter Button (Red, Safe Position) */}
-            <div className="absolute top-[150px] right-4 z-40 pointer-events-auto">
+
+            {/* Navigation & Location Controls */}
+            <div className="absolute bottom-[35%] right-4 z-30 pointer-events-auto flex flex-col gap-3">
                 <button
                     onClick={recenterToUser}
-                    className="size-12 bg-red-600 rounded-[1rem] border border-red-500/50 flex items-center justify-center shadow-lg shadow-red-600/30 text-white hover:bg-red-500 active:scale-90 transition-all pointer-events-auto"
+                    className={clsx(
+                        "size-14 rounded-2xl border shadow-xl backdrop-blur-md flex items-center justify-center transition-all",
+                        isTrackingUser 
+                            ? "bg-blue-600/90 text-white border-blue-500 shadow-blue-500/20" 
+                            : "bg-zinc-900/90 text-white border-white/10 hover:bg-zinc-800"
+                    )}
+                    title="Centrar en mi ubicación"
                 >
                     <span className="material-symbols-outlined text-2xl">my_location</span>
                 </button>

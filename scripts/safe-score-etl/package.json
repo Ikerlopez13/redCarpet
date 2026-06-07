@@ -1,0 +1,20 @@
+{
+  "name": "redcarpet-safe-score-etl",
+  "version": "1.0.0",
+  "description": "ETL pipeline to process OSM, MIR, and City Open Data for Red Carpet Safe Score",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "sync:osm": "node import_osm.js",
+    "sync:mir": "node process_mir_data.js",
+    "sync:city": "node process_city_data.js",
+    "sync:all": "npm run sync:mir && npm run sync:city && npm run sync:osm"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2",
+    "@turf/turf": "^6.5.0"
+  }
+}

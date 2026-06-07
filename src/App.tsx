@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import { MobileShell } from './components/layout/MobileShell';
@@ -38,11 +38,25 @@ const Security = lazy(() => import('./pages/Security').then(m => ({ default: m.S
 const WidgetsPage = lazy(() => import('./pages/WidgetsPage').then(m => ({ default: m.WidgetsPage })));
 
 // Generic Loading Screen
-const PageLoader = () => (
-    <div className="flex items-center justify-center h-full w-full bg-background-dark min-h-[400px]">
-        <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-);
+const PageLoader = () => {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShow(true), 1000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!show) return null;
+
+    return (
+        <div className="flex items-center justify-center h-full w-full bg-background-dark min-h-[400px]">
+            <div className="relative animate-pulse flex items-center justify-center">
+                <div className="absolute inset-0 bg-red-600 blur-2xl opacity-20 rounded-full scale-150"></div>
+                <img src="/logo.png" alt="Loading" className="w-16 h-auto object-contain relative z-10 drop-shadow-2xl" />
+            </div>
+        </div>
+    );
+};
 
 import { ForceUpdateGate } from './components/ForceUpdateGate';
 import { useAuth } from './contexts/AuthContext';

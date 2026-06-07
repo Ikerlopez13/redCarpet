@@ -15,6 +15,7 @@ import {
     resolveSOS
 } from '../services/sosService';
 import { useAuth } from '../contexts/AuthContext';
+import { ReviewPromptModal } from '../components/ReviewPromptModal';
 
 export const SOSActivePage: React.FC = () => {
     const location = useLocation();
@@ -33,6 +34,7 @@ export const SOSActivePage: React.FC = () => {
 
     const [isCameraStarted, setIsCameraStarted] = useState(false);
     const [step, setStep] = useState<'active' | 'pin'>('active');
+    const [showReview, setShowReview] = useState(false);
     
     // PIN State
     const [pinInput, setPinInput] = useState('');
@@ -146,10 +148,35 @@ export const SOSActivePage: React.FC = () => {
             (window as any)._sos112Timer = timer;
         };
 
+        let appStateListener: any = null;
+        if (Capacitor.isNativePlatform()) {
+            import('@capacitor/app').then(({ App }) => {
+                App.addListener('appStateChange', async ({ isActive }) => {
+                    if (isActive) {
+                        console.log('[SOS-Active-Page] App resumed, ensuring camera is running');
+                        // Restart camera preview to fix freeze on some iPhones after system alert
+                        try {
+                            await stopSOSPreview();
+                            setTimeout(async () => {
+                                await startSOSPreview();
+                            }, 300);
+                        } catch (e) {
+                            console.error('Error restarting camera preview', e);
+                        }
+                    }
+                }).then(listener => {
+                    appStateListener = listener;
+                });
+            });
+        }
+
         initSOS();
 
         return () => {
             console.log('[SOS-Active-Page] Unmounting. Cleaning up...');
+            if (appStateListener) {
+                appStateListener.remove();
+            }
             if ((window as any)._sos112Timer) {
                 clearTimeout((window as any)._sos112Timer);
             }
@@ -216,6 +243,17 @@ export const SOSActivePage: React.FC = () => {
         }
         
         await cleanAll();
+        
+        const { value } = await Preferences.get({ key: 'HAS_RATED_APP' });
+        if (!value) {
+            setShowReview(true);
+        } else {
+            navigate('/');
+        }
+    };
+
+    const handleReviewClose = () => {
+        setShowReview(false);
         navigate('/');
     };
 
@@ -531,6 +569,8 @@ export const SOSActivePage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <ReviewPromptModal isOpen={showReview} onClose={handleReviewClose} />
         </div>
     );
 };

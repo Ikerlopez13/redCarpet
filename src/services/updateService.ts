@@ -26,8 +26,8 @@ export async function checkUpdateRequired(): Promise<{ required: boolean; storeU
         const bundleId = info.id; // e.g., com.vibecode.redcarpet
 
         if (Capacitor.getPlatform() === 'ios') {
-            // Check App Store
-            const response = await fetch(`https://itunes.apple.com/lookup?bundleId=${bundleId}`);
+            // Check App Store (added cache buster to avoid stale version info)
+            const response = await fetch(`https://itunes.apple.com/lookup?bundleId=${bundleId}&t=${Date.now()}`);
             const data = await response.json();
 
             if (data.resultCount > 0) {

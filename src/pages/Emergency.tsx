@@ -71,6 +71,11 @@ export const Emergency: React.FC = () => {
                 },
                 replace: true
             });
+            
+            // Call 112 at the same time, allowing the app to transition in the background
+            setTimeout(() => {
+                window.location.href = 'tel:112';
+            }, 500);
         } catch (err: any) {
             console.error('[Emergency-Page] SOS Activation failed:', err);
             setError(err.message || 'Error al activar SOS. Por favor, intenta de nuevo.');

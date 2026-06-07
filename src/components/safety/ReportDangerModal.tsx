@@ -10,7 +10,7 @@ interface ReportDangerModalProps {
     onClose: () => void;
     userLat: number;
     userLng: number;
-    onSuccess: () => void;
+    onSuccess?: () => void;
 }
 
 export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, onClose, userLat, userLng, onSuccess }) => {
@@ -97,7 +97,7 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
                 }).catch(err => console.error("Error triggering push for danger zone:", err));
             }
 
-            onSuccess();
+            onSuccess?.();
             onClose();
         } catch (error: any) {
             console.error('Error reporting danger:', error);
