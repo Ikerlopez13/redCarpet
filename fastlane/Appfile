@@ -1,0 +1,5 @@
+app_identifier("com.vibecode.redcarpet")
+team_id("7W52U2SRVA")
+
+json_key_data(ENV["PLAY_SERVICE_ACCOUNT_JSON"])
+package_name("com.vibecode.redcarpet")
