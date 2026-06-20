@@ -77,12 +77,21 @@ export const RouteSelection: React.FC = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
 
-    // Get user location
+    // Get user location — load cached immediately, then refresh with GPS
     useEffect(() => {
         const fetchLoc = async () => {
             try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: cachedStr } = await Preferences.get({ key: 'LAST_KNOWN_LOCATION' });
+                if (cachedStr) {
+                    const cached = JSON.parse(cachedStr);
+                    setUserLocation(prev => prev ?? cached);
+                }
+            } catch { /* ignore */ }
+
+            try {
                 const { Geolocation } = await import('@capacitor/geolocation');
-                const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+                const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 });
                 setUserLocation({
                     lat: position.coords.latitude,
                     lng: position.coords.longitude

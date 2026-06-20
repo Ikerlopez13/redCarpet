@@ -134,6 +134,27 @@ export async function getSafeRouteFromSupabase(origin: Coordinate, destination: 
     }
 }
 
+function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isValidRoute(route: RouteResult, origin: Coordinate, destination: Coordinate): boolean {
+    if (!route.geometry?.coordinates || route.geometry.coordinates.length < 4) return false;
+    if (!route.steps || route.steps.length < 2) return false;
+    const directDist = getHaversineDistance(origin.lat, origin.lng, destination.lat, destination.lng);
+    if (directDist > 0 && route.distance < directDist * 0.7) return false;
+    if (directDist > 0 && route.distance > directDist * 3.5) return false;
+    const last = route.geometry.coordinates[route.geometry.coordinates.length - 1];
+    if (getHaversineDistance(last[1], last[0], destination.lat, destination.lng) > 300) return false;
+    return true;
+}
+
 export async function getAlternativeRoutes(
     origin: Coordinate,
     destination: Coordinate,
@@ -143,8 +164,14 @@ export async function getAlternativeRoutes(
     balanced: RouteResult | null;
     fast: RouteResult | null;
 }> {
-    const fetchProfile = async (profile: string, simulateWalkingSpeed: boolean = false): Promise<RouteResult[]> => {
-        const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
+    const profile = PROFILE_MAP[baseMode] || 'walking';
+
+    const fetchWithWaypoint = async (waypoint: Coordinate | null): Promise<RouteResult[]> => {
+        const coords = waypoint
+            ? `${origin.lng},${origin.lat};${waypoint.lng},${waypoint.lat};${destination.lng},${destination.lat}`
+            : `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+
+        const url = `${DIRECTIONS_API_BASE}/${profile}/${coords}?` +
             new URLSearchParams({
                 access_token: MAPBOX_TOKEN,
                 geometries: 'geojson',
@@ -158,114 +185,97 @@ export async function getAlternativeRoutes(
             const response = await fetch(url);
             const data = await response.json();
             if (!data.routes || data.routes.length === 0) return [];
-
-            return data.routes.map((route: any) => {
-                const calculatedDuration = simulateWalkingSpeed ? route.distance / 1.4 : route.duration;
-                return {
-                    distance: route.distance,
-                    duration: calculatedDuration,
-                    geometry: route.geometry,
-                    steps: route.legs[0].steps.map((step: any) => ({
-                        instruction: step.maneuver.instruction || 'Continúa',
-                        distance: step.distance,
-                        duration: simulateWalkingSpeed ? step.distance / 1.4 : step.duration,
-                        name: step.name || '',
-                        maneuver: step.maneuver
-                    }))
-                };
-            });
+            return data.routes.map((route: any) => ({
+                distance: route.distance,
+                duration: route.duration,
+                geometry: route.geometry,
+                steps: route.legs.flatMap((leg: any) => leg.steps.map((step: any) => ({
+                    instruction: step.maneuver.instruction || 'Continúa',
+                    distance: step.distance,
+                    duration: step.duration,
+                    name: step.name || '',
+                    maneuver: step.maneuver
+                })))
+            }));
         } catch {
             return [];
         }
     };
 
     try {
-        const profile = PROFILE_MAP[baseMode] || 'walking';
         const isWalking = baseMode === 'walking';
-        
+
+        // 6 waypoints: 3 left-side + 3 right-side offsets
+        const midLat = (origin.lat + destination.lat) / 2;
+        const midLng = (origin.lng + destination.lng) / 2;
+        const offsets = [0.0020, 0.0030, 0.0040];
+        const waypoints: Coordinate[] = [
+            ...offsets.map(d => ({ lat: midLat + d, lng: midLng - d })),
+            ...offsets.map(d => ({ lat: midLat - d, lng: midLng + d })),
+        ];
+
         const [
             { data: dangerZones },
-            apiRoutes,
-            dbSafeRoute
+            directRoutes,
+            ...waypointRouteSets
         ] = await Promise.all([
             isWalking ? supabase.from('danger_zones').select('*').or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`) : Promise.resolve({ data: [] }),
-            fetchProfile(profile, false),
-            isWalking ? getSafeRouteFromSupabase(origin, destination) : Promise.resolve(null)
+            fetchWithWaypoint(null),
+            ...waypoints.map(wp => fetchWithWaypoint(wp))
         ]);
 
-        const countDangerIntersections = (route: RouteResult | null) => {
-            if (!route || !route.geometry || !dangerZones) return 0;
-            let intersections = 0;
+        const allRawRoutes = [directRoutes, ...waypointRouteSets].flat();
+        const allRoutes = allRawRoutes.filter(r => isValidRoute(r, origin, destination));
+
+        const countDangerIntersections = (route: RouteResult) => {
+            if (!route.geometry || !dangerZones) return 0;
+            let count = 0;
             const coords = route.geometry.coordinates;
             dangerZones.forEach((zone: any) => {
-                const hit = coords.some((c: any) => {
-                    const R = 6371e3;
-                    const lat1 = c[1] * Math.PI/180;
-                    const lat2 = zone.lat * Math.PI/180;
-                    const dLat = (zone.lat - c[1]) * Math.PI/180;
-                    const dLon = (zone.lng - c[0]) * Math.PI/180;
-                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                              Math.cos(lat1) * Math.cos(lat2) *
-                              Math.sin(dLon/2) * Math.sin(dLon/2);
-                    const cDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    return (R * cDist) < (zone.radius || 100);
-                });
-                if (hit) intersections++;
+                const hit = coords.some((c: any) =>
+                    getHaversineDistance(c[1], c[0], zone.lat, zone.lng) < (zone.radius || 100)
+                );
+                if (hit) count++;
             });
-            return intersections;
+            return count;
         };
 
-        const uniqueRoutesMap = new Map<number, any>();
-        apiRoutes.forEach(r => {
-            // Deduplicate by distance (allow a small delta if needed, but Mapbox distance is usually exact)
-            if (!uniqueRoutesMap.has(r.distance)) {
-                uniqueRoutesMap.set(r.distance, { ...r, dangerCount: countDangerIntersections(r) });
+        // Deduplicate: two routes are "same" if their midpoint is within 20m
+        const uniqueRoutes: (RouteResult & { dangerCount: number })[] = [];
+        for (const route of allRoutes) {
+            const mid = route.geometry.coordinates[Math.floor(route.geometry.coordinates.length / 2)];
+            const isDuplicate = uniqueRoutes.some(u => {
+                const uMid = u.geometry.coordinates[Math.floor(u.geometry.coordinates.length / 2)];
+                return getHaversineDistance(mid[1], mid[0], uMid[1], uMid[0]) < 20;
+            });
+            if (!isDuplicate) {
+                uniqueRoutes.push({ ...route, dangerCount: countDangerIntersections(route) });
             }
-        });
-        const uniqueRoutes = Array.from(uniqueRoutesMap.values());
-        const sortedRoutes = [...uniqueRoutes].sort((a, b) => a.distance - b.distance);
-
-        const fastestRoute = sortedRoutes[0] || null;
-        let balancedRoute = null;
-        let safeRoute = null;
-
-        if (isWalking) {
-            if (dbSafeRoute) {
-                safeRoute = dbSafeRoute;
-                safeRoute.dangerCount = countDangerIntersections(safeRoute);
-            } else if (sortedRoutes.length > 2) {
-                safeRoute = sortedRoutes[sortedRoutes.length - 1];
-            } else if (sortedRoutes.length === 2) {
-                safeRoute = sortedRoutes[1];
-            }
-
-            if (sortedRoutes.length > 2) {
-                balancedRoute = sortedRoutes[1]; // Middle route
-            }
-            
-            // Fix references if there are no alternatives
-            if (!safeRoute) safeRoute = fastestRoute;
-            if (!balancedRoute) balancedRoute = fastestRoute;
-
-            // Nullify duplicates so the UI doesn't render 3 identical cards
-            if (balancedRoute && fastestRoute && balancedRoute.distance === fastestRoute.distance) {
-                balancedRoute = null;
-            }
-            if (safeRoute && fastestRoute && safeRoute.distance === fastestRoute.distance) {
-                safeRoute = null;
-            }
-            if (safeRoute && balancedRoute && safeRoute.distance === balancedRoute.distance) {
-                safeRoute = null;
-            }
-
-            return { fast: fastestRoute as any, balanced: balancedRoute as any, safe: safeRoute as any };
-        } else {
-            // For bikes, transit, cars: just return the distinct routes Mapbox gives us
-            safeRoute = sortedRoutes.length > 2 ? sortedRoutes[2] : null;
-            balancedRoute = sortedRoutes.length > 1 ? sortedRoutes[1] : null;
-            
-            return { fast: fastestRoute as any, balanced: balancedRoute as any, safe: safeRoute as any };
         }
+
+        if (uniqueRoutes.length === 0) {
+            return { safe: null, balanced: null, fast: null };
+        }
+
+        // Greedy assignment: fastest first, balanced second, safest last
+        const byDuration = [...uniqueRoutes].sort((a, b) => a.duration - b.duration);
+        const fastestRoute = byDuration[0];
+        const remaining = byDuration.slice(1);
+
+        let balancedRoute = remaining[0] || null;
+        let safeRoute = remaining[1] || null;
+
+        // Guarantee safe >= balanced in duration
+        if (balancedRoute && safeRoute && balancedRoute.duration > safeRoute.duration) {
+            [balancedRoute, safeRoute] = [safeRoute, balancedRoute];
+        }
+
+        return {
+            fast: fastestRoute,
+            balanced: balancedRoute,
+            safe: safeRoute
+        };
+
     } catch (error) {
         console.error('Error fetching alternative routes:', error);
         return { safe: null, balanced: null, fast: null };

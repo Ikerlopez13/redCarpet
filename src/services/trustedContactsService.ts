@@ -91,6 +91,37 @@ export class TrustedContactsService {
         const associatedUserId = matchedId || null;
         const initialStatus = associatedUserId ? 'pending' : 'accepted';
 
+        // Check for existing contact to avoid unique constraint violations
+        if (associatedUserId) {
+            const { data: existing } = await (supabase.from('trusted_contacts') as any)
+                .select('id, status')
+                .eq('user_id', userId)
+                .eq('associated_user_id', associatedUserId)
+                .maybeSingle();
+
+            if (existing) {
+                if (existing.status === 'pending') {
+                    return { contact: null, error: 'Ya tienes una solicitud pendiente con este contacto.', isPendingRequest: true };
+                }
+                const { data: updated, error: updateError } = await (supabase.from('trusted_contacts') as any)
+                    .update({ name, phone, relation, status: initialStatus } as any)
+                    .eq('id', existing.id)
+                    .select('*')
+                    .single();
+                if (updateError) return { contact: null, error: updateError.message, isPendingRequest: false };
+                return { contact: updated as TrustedContact, error: null, isPendingRequest: initialStatus === 'pending' };
+            }
+        } else {
+            const { data: existingPhone } = await (supabase.from('trusted_contacts') as any)
+                .select('id')
+                .eq('user_id', userId)
+                .eq('phone', phone)
+                .maybeSingle();
+            if (existingPhone) {
+                return { contact: null, error: 'Ya tienes un contacto con este número de teléfono.', isPendingRequest: false };
+            }
+        }
+
         const { data, error } = await (supabase.from('trusted_contacts') as any)
             .insert({
                 user_id: userId,

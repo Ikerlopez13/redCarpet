@@ -1,4 +1,5 @@
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabaseClient';
 
 /**
@@ -130,9 +131,9 @@ function showInAppAlert(alert: { type: string; title: string; body: string; data
  * Get current platform
  */
 function getPlatform(): 'ios' | 'android' | 'web' {
-    const userAgent = navigator.userAgent.toLowerCase();
-    if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
-    if (/android/.test(userAgent)) return 'android';
+    const platform = Capacitor.getPlatform();
+    if (platform === 'ios') return 'ios';
+    if (platform === 'android') return 'android';
     return 'web';
 }
 

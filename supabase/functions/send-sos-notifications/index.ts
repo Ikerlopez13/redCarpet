@@ -4,13 +4,11 @@ import admin from "npm:firebase-admin";
 
 console.log("Starting send-sos-notifications edge function...")
 
-// Initialize Firebase Admin (only once per instance)
 let firebaseInitialized = false;
 
 serve(async (req) => {
     const { alertId, userId, groupId, config } = await req.json()
 
-    // Initialize Supabase Client with Service Role Key for admin access
     const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -20,7 +18,6 @@ serve(async (req) => {
         if (!firebaseInitialized) {
             const serviceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
             if (!serviceAccountStr) {
-                console.error("FIREBASE_SERVICE_ACCOUNT is missing!");
                 throw new Error("Server configuration error: Firebase credentials missing.");
             }
             const serviceAccount = JSON.parse(serviceAccountStr);
@@ -30,38 +27,30 @@ serve(async (req) => {
             firebaseInitialized = true;
         }
 
-        // 1. Get family members and accepted trusted contacts to notify
         let userIds: string[] = [];
 
+        // Family group members
         if (groupId) {
-            const { data: members, error: membersError } = await supabaseClient
+            const { data: members } = await supabaseClient
                 .from('family_members')
                 .select('user_id')
                 .eq('group_id', groupId)
                 .neq('user_id', userId);
-
-            if (!membersError && members) {
-                userIds = [...userIds, ...members.map((m: any) => m.user_id)];
-            }
+            if (members) userIds = [...userIds, ...members.map((m: any) => m.user_id)];
         }
 
-        const { data: contacts, error: contactsError } = await supabaseClient
-            .from('trusted_contacts')
-            .select('associated_user_id')
-            .eq('user_id', userId)
-            .eq('status', 'accepted');
+        // Bidirectional trusted contacts: outbound (user added them) + inbound (they added user)
+        const [{ data: outbound }, { data: inbound }] = await Promise.all([
+            supabaseClient.from('trusted_contacts').select('associated_user_id').eq('user_id', userId).eq('status', 'accepted'),
+            supabaseClient.from('trusted_contacts').select('user_id').eq('associated_user_id', userId).eq('status', 'accepted'),
+        ]);
 
-        if (!contactsError && contacts) {
-            userIds = [
-                ...userIds, 
-                ...contacts
-                    .filter((c: any) => c.associated_user_id)
-                    .map((c: any) => c.associated_user_id as string)
-            ];
-        }
+        if (outbound) userIds = [...userIds, ...outbound.filter((c: any) => c.associated_user_id).map((c: any) => c.associated_user_id)];
+        if (inbound) userIds = [...userIds, ...inbound.map((c: any) => c.user_id)];
 
-        // De-duplicate userIds and filter out the sender itself
-        userIds = Array.from(new Set(userIds)).filter(id => id !== userId);
+        userIds = Array.from(new Set(userIds)).filter(id => id && id !== userId);
+
+        console.log(`[SOS] userId=${userId}, notifying ${userIds.length} users:`, userIds);
 
         if (userIds.length === 0) {
             return new Response(JSON.stringify({ message: "No members to notify" }), {
@@ -69,13 +58,10 @@ serve(async (req) => {
             });
         }
 
-        // 3. Get push tokens for these users
-        const { data: tokens, error: tokensError } = await supabaseClient
+        const { data: tokens } = await supabaseClient
             .from('push_tokens')
-            .select('token, platform')
+            .select('token, platform, user_id')
             .in('user_id', userIds);
-
-        if (tokensError) throw tokensError;
 
         if (!tokens || tokens.length === 0) {
             return new Response(JSON.stringify({ message: "No tokens found for members" }), {
@@ -83,73 +69,73 @@ serve(async (req) => {
             });
         }
 
-        // Fetch sender's name for personalized alert
         let senderName = 'Un contacto';
         const { data: profile } = await supabaseClient
             .from('profiles')
             .select('full_name')
             .eq('id', userId)
             .single();
-        if (profile?.full_name) {
-            senderName = profile.full_name.split(' ')[0];
-        }
+        if (profile?.full_name) senderName = profile.full_name.split(' ')[0];
 
-        // 4. Send Notifications via Firebase Admin
-        console.log(`[SOS] Sending notification to ${tokens.length} devices`);
+        console.log(`[SOS] Sending to ${tokens.length} devices`);
 
         const isDangerZone = config?.isDangerZone || false;
-        const payload = {
+        const fcmTokens = tokens.map((t: any) => t.token);
+
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: fcmTokens,
             notification: {
                 title: isDangerZone ? '⚠️ Peligro Reportado' : '🚨 Alerta SOS',
-                body: config?.message || (isDangerZone 
-                    ? `${senderName} ha avisado de un peligro cercano.` 
+                body: config?.message || (isDangerZone
+                    ? `${senderName} ha avisado de un peligro cercano.`
                     : `¡SOS de ${senderName}! Necesita ayuda.`)
             },
             data: {
                 type: isDangerZone ? 'danger_zone' : 'sos',
                 alertId: alertId || ''
-            }
-        };
-
-        const fcmTokens = tokens.map((t: any) => t.token);
-
-        try {
-            const response = await admin.messaging().sendEachForMulticast({
-                tokens: fcmTokens,
-                notification: payload.notification,
-                data: payload.data,
-                apns: {
-                    payload: {
-                        aps: {
-                            sound: 'default',
-                            badge: 1
-                        }
+            },
+            apns: {
+                headers: {
+                    'apns-priority': '10',
+                    'apns-push-type': 'alert',
+                },
+                payload: {
+                    aps: {
+                        sound: 'default',
+                        badge: 1,
+                        'content-available': 1,
                     }
                 }
-            });
-            console.log(`[SOS] Successfully sent ${response.successCount} messages; Failed: ${response.failureCount}`);
-            if (response.failureCount > 0) {
-                response.responses.forEach((resp: any, idx: number) => {
-                    if (!resp.success) {
-                        console.error(`Token failed: ${fcmTokens[idx]} - Error: ${resp.error}`);
-                    }
-                });
+            },
+            android: { priority: 'high' }
+        });
+
+        console.log(`[SOS] Sent ${response.successCount} OK, ${response.failureCount} failed`);
+
+        // Clean up stale tokens
+        const staleTokens: string[] = [];
+        response.responses.forEach((resp: any, idx: number) => {
+            if (!resp.success && resp.error?.code === 'messaging/registration-token-not-registered') {
+                staleTokens.push(fcmTokens[idx]);
             }
-        } catch (fcmError) {
-            console.error("[SOS] Error sending FCM:", fcmError);
+        });
+        if (staleTokens.length > 0) {
+            await supabaseClient.from('push_tokens').delete().in('token', staleTokens);
+            console.log(`[SOS] Removed ${staleTokens.length} stale tokens`);
         }
 
         return new Response(
             JSON.stringify({
                 success: true,
-                message: `Processed SOS for ${tokens.length} devices`,
-                debug_tokens_count: tokens.length
+                sent: response.successCount,
+                failed: response.failureCount,
+                tokens_count: tokens.length
             }),
             { headers: { "Content-Type": "application/json" } },
         )
 
     } catch (error: any) {
-        console.error(error)
+        console.error("[SOS] Error:", error);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 400,
             headers: { "Content-Type": "application/json" },

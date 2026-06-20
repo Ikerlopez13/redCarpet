@@ -1,11 +1,13 @@
 import { supabase } from './supabaseClient';
 import type { Location, DangerZone } from './database.types';
 import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 
-// Mock locations for family members (removed)
-
+const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation');
 
 let watchId: string | null = null;
+let bgWatcherId: string | null = null;
 let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null;
 
 /**
@@ -115,34 +117,73 @@ export async function startLocationTracking(
 
     // Get initial position
     try {
-        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+        const cached = JSON.stringify({ lat: position.coords.latitude, lng: position.coords.longitude });
+        await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: cached });
         updateLocation(userId, position);
         onUpdate?.(position);
     } catch (error) {
         console.error('Location error:', error);
     }
 
-    // Watch for changes
-    watchId = await Geolocation.watchPosition(
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: intervalMs
-        },
-        (position, error) => {
-            if (error) {
-                console.error('Location watch error:', error);
-                return;
-            }
-            if (position) {
-                updateLocation(userId, position);
-                onUpdate?.(position);
-            }
+    // Use BackgroundGeolocation on native (continues tracking in background with "Always" permission)
+    if (Capacitor.isNativePlatform()) {
+        try {
+            bgWatcherId = await BackgroundGeolocation.addWatcher(
+                {
+                    backgroundMessage: 'RedCarpet está rastreando tu ubicación para tu seguridad.',
+                    backgroundTitle: 'RedCarpet activo',
+                    requestPermissions: false,
+                    stale: false,
+                    distanceFilter: 15,
+                },
+                async (position: any, error: any) => {
+                    if (error) { console.error('BG location error:', error); return; }
+                    if (position) {
+                        const capacitorPosition = {
+                            coords: {
+                                latitude: position.latitude,
+                                longitude: position.longitude,
+                                accuracy: position.accuracy,
+                                altitude: position.altitude,
+                                altitudeAccuracy: position.altitudeAccuracy,
+                                heading: position.bearing,
+                                speed: position.speed,
+                            }
+                        };
+                        const cached = JSON.stringify({ lat: position.latitude, lng: position.longitude });
+                        await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: cached });
+                        updateLocation(userId, capacitorPosition);
+                        onUpdate?.(capacitorPosition);
+                    }
+                }
+            );
+        } catch (bgError) {
+            console.error('BackgroundGeolocation failed, fallback to watchPosition:', bgError);
+            watchId = await Geolocation.watchPosition(
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: intervalMs },
+                (position, error) => {
+                    if (error) { console.error('Location watch error:', error); return; }
+                    if (position) { updateLocation(userId, position); onUpdate?.(position); }
+                }
+            );
         }
-    );
+    } else {
+        watchId = await Geolocation.watchPosition(
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: intervalMs },
+            (position, error) => {
+                if (error) { console.error('Location watch error:', error); return; }
+                if (position) { updateLocation(userId, position); onUpdate?.(position); }
+            }
+        );
+    }
 
     return {
         stop: async () => {
+            if (bgWatcherId !== null) {
+                await BackgroundGeolocation.removeWatcher({ id: bgWatcherId });
+                bgWatcherId = null;
+            }
             if (watchId !== null) {
                 await Geolocation.clearWatch({ id: watchId });
                 watchId = null;

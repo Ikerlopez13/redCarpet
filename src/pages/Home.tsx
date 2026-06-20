@@ -1083,19 +1083,6 @@ export const Home: React.FC = () => {
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
                                             {t('common.go')}
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                if (!isPremium) {
-                                                    openPaywall(t('home.gate_history'));
-                                                } else {
-                                                    setShowHistoryModal(member);
-                                                }
-                                            }}
-                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors text-sm"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">history</span>
-                                            {t('home.history')}
-                                        </button>
                                         <button className="size-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
                                             <span className="material-symbols-outlined text-white/80">call</span>
                                         </button>
