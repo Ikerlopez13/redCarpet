@@ -6,22 +6,30 @@ import { getMessaging } from "npm:firebase-admin/messaging";
 console.log("Starting send-sos-notifications edge function...")
 
 serve(async (req) => {
-    const body = await req.json()
-    const { alertId, userId, groupId, config, notificationType, targetUserId, senderName: senderNameOverride } = body
-
-    const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     try {
+        const body = await req.json()
+        const { alertId, userId, groupId, config, notificationType, targetUserId, senderName: senderNameOverride } = body
+
+        console.log('[SOS] Request received:', { notificationType, userId, targetUserId, alertId });
+
+        const supabaseClient = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+
         if (!getApps().length) {
+            console.log('[SOS] Initializing Firebase...');
             const serviceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
             if (!serviceAccountStr) {
-                throw new Error("Server configuration error: Firebase credentials missing.");
+                throw new Error("Server configuration error: FIREBASE_SERVICE_ACCOUNT environment variable is missing. Contact support.");
             }
-            const serviceAccount = JSON.parse(serviceAccountStr);
-            initializeApp({ credential: cert(serviceAccount) });
+            try {
+                const serviceAccount = JSON.parse(serviceAccountStr);
+                console.log('[SOS] Firebase service account parsed successfully');
+                initializeApp({ credential: cert(serviceAccount) });
+            } catch (parseErr: any) {
+                throw new Error(`Firebase service account JSON parse error: ${parseErr.message}`);
+            }
         }
 
         const messaging = getMessaging();
@@ -186,9 +194,17 @@ serve(async (req) => {
 
     } catch (error: any) {
         console.error("[SOS] Error:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-        })
+        const errorMessage = error?.message || String(error);
+        console.error("[SOS] Error details:", { message: errorMessage, stack: error?.stack });
+        return new Response(
+            JSON.stringify({
+                error: errorMessage,
+                details: "Check Supabase function logs for details"
+            }),
+            {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            }
+        )
     }
 })
