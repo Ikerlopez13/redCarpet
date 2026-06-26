@@ -21,18 +21,21 @@ export const SOSActivePage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, isPremium } = useAuth();
-    
+
     // SOS State from Navigation
-    const sosState = location.state as { 
-        alertId?: string; 
+    const sosState = location.state as {
+        alertId?: string;
         reason?: string;
         mode?: 'visible' | 'discrete';
     } | null;
-    
+
     const alertId = sosState?.alertId || null;
     const sosMode = sosState?.mode || 'visible';
 
     const [isCameraStarted, setIsCameraStarted] = useState(false);
+    const isCameraStartingRef = useRef(false);
+    const isCameraStoppingRef = useRef(false);
+    const cameraRestartTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [step, setStep] = useState<'active' | 'pin'>('active');
     const [showReview, setShowReview] = useState(false);
     const [autoCall112, setAutoCall112] = useState(true);
@@ -138,12 +141,18 @@ export const SOSActivePage: React.FC = () => {
 
             // 2. Start Native Preview (Mirroring handled in Plugin.swift now)
             if (Capacitor.isNativePlatform()) {
-                await startSOSPreview();
+                isCameraStartingRef.current = true;
+                try {
+                    await startSOSPreview();
+                } finally {
+                    isCameraStartingRef.current = false;
+                }
                 // Ensure state updates AFTER preview start to trigger transparency
-                setTimeout(() => {
+                const timer = setTimeout(() => {
                     setIsCameraStarted(true);
                     document.body.classList.add('sos-mode-active');
                 }, 300);
+                return () => clearTimeout(timer);
             }
 
             // 3. Start Recording (Resilient with it's own timeouts)
@@ -167,13 +176,31 @@ export const SOSActivePage: React.FC = () => {
                 App.addListener('appStateChange', async ({ isActive }) => {
                     if (isActive) {
                         console.log('[SOS-Active-Page] App resumed, ensuring camera is running');
+                        // Only restart if camera is not already starting/stopping
+                        if (isCameraStartingRef.current || isCameraStoppingRef.current) {
+                            console.log('[SOS-Active-Page] Camera operation in progress, skipping restart');
+                            return;
+                        }
                         // Restart camera preview to fix freeze on some iPhones after system alert
                         try {
+                            isCameraStoppingRef.current = true;
                             await stopSOSPreview();
-                            setTimeout(async () => {
-                                await startSOSPreview();
+                            isCameraStoppingRef.current = false;
+
+                            if (cameraRestartTimerRef.current) {
+                                clearTimeout(cameraRestartTimerRef.current);
+                            }
+                            cameraRestartTimerRef.current = setTimeout(async () => {
+                                if (isCameraStartingRef.current) return;
+                                isCameraStartingRef.current = true;
+                                try {
+                                    await startSOSPreview();
+                                } finally {
+                                    isCameraStartingRef.current = false;
+                                }
                             }, 300);
                         } catch (e) {
+                            isCameraStoppingRef.current = false;
                             console.error('Error restarting camera preview', e);
                         }
                     }
@@ -193,6 +220,10 @@ export const SOSActivePage: React.FC = () => {
             if ((window as any)._sos112Timer) {
                 clearTimeout((window as any)._sos112Timer);
             }
+            if (cameraRestartTimerRef.current) {
+                clearTimeout(cameraRestartTimerRef.current);
+                cameraRestartTimerRef.current = null;
+            }
             cleanAll();
         };
     }, []);
@@ -202,9 +233,26 @@ export const SOSActivePage: React.FC = () => {
             clearTimeout((window as any)._sos112Timer);
             delete (window as any)._sos112Timer;
         }
+        if (cameraRestartTimerRef.current) {
+            clearTimeout(cameraRestartTimerRef.current);
+            cameraRestartTimerRef.current = null;
+        }
         document.body.classList.remove('sos-mode-active');
         if (Capacitor.isNativePlatform()) {
-            await stopSOSPreview();
+            // Wait for any in-progress operations
+            let attempts = 0;
+            while ((isCameraStartingRef.current || isCameraStoppingRef.current) && attempts < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
+            }
+            if (!isCameraStoppingRef.current) {
+                isCameraStoppingRef.current = true;
+                try {
+                    await stopSOSPreview();
+                } finally {
+                    isCameraStoppingRef.current = false;
+                }
+            }
         }
     };
 
