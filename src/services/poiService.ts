@@ -124,8 +124,9 @@ export async function getNearbyPOIs(
 
 /**
  * Search POIs by query text using Mapbox Geocoding API
+ * Results are sorted by proximity to user location (closest first)
  */
-export async function searchPOIs(query: string, lat: number, lng: number): Promise<POI[]> {
+export async function searchPOIs(query: string, lat: number, lng: number, radiusMeters: number = 5000): Promise<POI[]> {
     if (!query.trim() || !MAPBOX_TOKEN) return [];
 
     try {
@@ -134,7 +135,7 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
             `proximity=${lng},${lat}&` +
             `types=address,place,poi,neighborhood&` +
             `access_token=${MAPBOX_TOKEN}&` +
-            `limit=10`
+            `limit=25`
         );
 
         if (!response.ok) throw new Error('Mapbox search error');
@@ -142,7 +143,7 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
         const data = await response.json();
         if (!data.features) return [];
 
-        return data.features.map((f: any) => {
+        const pois = data.features.map((f: any) => {
             const [poiLng, poiLat] = f.center;
             const distance = calculateDistance(lat, lng, poiLat, poiLng);
 
@@ -151,7 +152,7 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
             let poiCategory: POICategory = 'shop';
             if (mbtypes.includes('restaurant')) poiCategory = 'restaurant';
             else if (mbtypes.includes('cafe')) poiCategory = 'cafe';
-            
+
             // For addresses, use the formatted place name parts rather than POI names
             const isAddress = f.place_type?.includes('address') || f.place_type?.includes('place');
             const primaryName = isAddress ? (f.place_name?.split(',')[0] || f.text) : (f.text_es || f.text);
@@ -167,6 +168,11 @@ export async function searchPOIs(query: string, lat: number, lng: number): Promi
                 distance
             };
         });
+
+        // Filter by radius and sort by distance (closest first)
+        return pois
+            .filter(p => p.distance! <= radiusMeters)
+            .sort((a, b) => (a.distance || 0) - (b.distance || 0));
     } catch (e) {
         console.error('Error searching POIs:', e);
         return [];

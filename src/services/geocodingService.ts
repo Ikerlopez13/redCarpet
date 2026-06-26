@@ -20,10 +20,24 @@ function generateSessionToken(): string {
 // Keep a persistent session token that updates per search sequence
 let activeSessionToken = generateSessionToken();
 
+// Haversine distance calculation (meters)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 /**
  * Search for places using Mapbox Search Box API (Suggest & Retrieve)
+ * Results are sorted by proximity to user location (closest first)
  * @param query - Search query string
- * @param proximity - Optional coordinates to bias results towards
+ * @param proximity - Optional coordinates to bias results towards (and sort by distance)
  */
 export async function searchPlaces(
     query: string,
@@ -42,7 +56,7 @@ export async function searchPlaces(
     suggestUrl.searchParams.append('q', query);
     suggestUrl.searchParams.append('access_token', MAPBOX_TOKEN);
     suggestUrl.searchParams.append('session_token', activeSessionToken);
-    suggestUrl.searchParams.append('limit', '8');
+    suggestUrl.searchParams.append('limit', '12');
     suggestUrl.searchParams.append('language', 'es');
     suggestUrl.searchParams.append('country', 'es');
     // Heavily prioritize POIs (universities, businesses) and addresses to ensure high quality results
@@ -60,15 +74,15 @@ export async function searchPlaces(
             return [];
         }
 
-        // Sort suggestions to prioritize exact addresses over POIs to avoid business names overshadowing homes
+        // Sort suggestions to prioritize exact addresses over POIs
         const sortedSuggestions = data.suggestions.sort((a: any, b: any) => {
             if (a.feature_type === 'address' && b.feature_type !== 'address') return -1;
             if (b.feature_type === 'address' && a.feature_type !== 'address') return 1;
             return 0;
         });
 
-        // We only retrieve coordinates for the top suggestions to be extremely fast (max 6)
-        const suggestionsToFetch = sortedSuggestions.slice(0, 6);
+        // Retrieve coordinates for more suggestions (max 10) to allow better distance-based sorting
+        const suggestionsToFetch = sortedSuggestions.slice(0, 10);
 
         const results = await Promise.all(
             suggestionsToFetch.map(async (suggestion: any) => {
@@ -79,14 +93,19 @@ export async function searchPlaces(
 
                     if (retrieveData.features && retrieveData.features.length > 0) {
                         const feature = retrieveData.features[0];
+                        const lat = feature.geometry.coordinates[1];
+                        const lng = feature.geometry.coordinates[0];
+                        const distance = proximity ? calculateDistance(proximity.lat, proximity.lng, lat, lng) : 0;
+
                         return {
                             id: suggestion.mapbox_id,
                             name: suggestion.name,
                             address: suggestion.full_address || suggestion.place_formatted,
-                            lat: feature.geometry.coordinates[1],
-                            lng: feature.geometry.coordinates[0],
-                            category: suggestion.maki || (suggestion.poi_category_ids ? suggestion.poi_category_ids[0] : 'place')
-                        } as GeocodingResult;
+                            lat,
+                            lng,
+                            category: suggestion.maki || (suggestion.poi_category_ids ? suggestion.poi_category_ids[0] : 'place'),
+                            distance
+                        } as GeocodingResult & { distance: number };
                     }
                 } catch (err) {
                     console.error(`Error retrieving details for Mapbox ID ${suggestion.mapbox_id}:`, err);
@@ -95,8 +114,18 @@ export async function searchPlaces(
             })
         );
 
-        // Filter out any failed retrievals
-        return results.filter((r): r is GeocodingResult => r !== null);
+        // Filter out failed retrievals and sort by distance (closest first)
+        const filtered = results.filter((r): r is (GeocodingResult & { distance: number }) => r !== null);
+
+        if (proximity) {
+            // Sort by distance, prioritizing results within 50km
+            return filtered
+                .filter(r => r.distance <= 50000) // Filter to 50km radius
+                .sort((a, b) => a.distance - b.distance)
+                .map(({ distance, ...rest }) => rest); // Remove distance field before returning
+        }
+
+        return filtered.map(({ distance, ...rest }) => rest);
 
     } catch (error) {
         console.error('Error searching places with Search Box API:', error);
