@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import admin from "npm:firebase-admin";
+import { initializeApp, cert, getApps } from "npm:firebase-admin/app";
+import { getMessaging } from "npm:firebase-admin/messaging";
 
 console.log("Starting send-sos-notifications edge function...")
-
-let firebaseInitialized = false;
 
 serve(async (req) => {
     const { alertId, userId, groupId, config } = await req.json()
@@ -15,21 +14,17 @@ serve(async (req) => {
     )
 
     try {
-        if (!firebaseInitialized) {
+        if (!getApps().length) {
             const serviceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
             if (!serviceAccountStr) {
                 throw new Error("Server configuration error: Firebase credentials missing.");
             }
             const serviceAccount = JSON.parse(serviceAccountStr);
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
-            });
-            firebaseInitialized = true;
+            initializeApp({ credential: cert(serviceAccount) });
         }
 
         let userIds: string[] = [];
 
-        // Family group members
         if (groupId) {
             const { data: members } = await supabaseClient
                 .from('family_members')
@@ -39,7 +34,6 @@ serve(async (req) => {
             if (members) userIds = [...userIds, ...members.map((m: any) => m.user_id)];
         }
 
-        // Bidirectional trusted contacts: outbound (user added them) + inbound (they added user)
         const [{ data: outbound }, { data: inbound }] = await Promise.all([
             supabaseClient.from('trusted_contacts').select('associated_user_id').eq('user_id', userId).eq('status', 'accepted'),
             supabaseClient.from('trusted_contacts').select('user_id').eq('associated_user_id', userId).eq('status', 'accepted'),
@@ -82,7 +76,8 @@ serve(async (req) => {
         const isDangerZone = config?.isDangerZone || false;
         const fcmTokens = tokens.map((t: any) => t.token);
 
-        const response = await admin.messaging().sendEachForMulticast({
+        const messaging = getMessaging();
+        const response = await messaging.sendEachForMulticast({
             tokens: fcmTokens,
             notification: {
                 title: isDangerZone ? '⚠️ Peligro Reportado' : '🚨 Alerta SOS',
@@ -112,11 +107,19 @@ serve(async (req) => {
 
         console.log(`[SOS] Sent ${response.successCount} OK, ${response.failureCount} failed`);
 
-        // Clean up stale tokens
         const staleTokens: string[] = [];
+        const errors: string[] = [];
         response.responses.forEach((resp: any, idx: number) => {
-            if (!resp.success && resp.error?.code === 'messaging/registration-token-not-registered') {
-                staleTokens.push(fcmTokens[idx]);
+            if (!resp.success) {
+                const errCode = resp.error?.code || 'unknown';
+                errors.push(`token[${idx}]: ${errCode}`);
+                console.log(`[SOS] Token ${idx} failed: ${errCode}`);
+                if (
+                    errCode === 'messaging/registration-token-not-registered' ||
+                    errCode === 'messaging/invalid-registration-token'
+                ) {
+                    staleTokens.push(fcmTokens[idx]);
+                }
             }
         });
         if (staleTokens.length > 0) {
@@ -129,7 +132,8 @@ serve(async (req) => {
                 success: true,
                 sent: response.successCount,
                 failed: response.failureCount,
-                tokens_count: tokens.length
+                tokens_count: tokens.length,
+                errors
             }),
             { headers: { "Content-Type": "application/json" } },
         )

@@ -15,6 +15,7 @@ import { getNearbyBusStops, getNearbyMetroStations, type BusStop, type MetroStat
 import { getNearbyPOIs, type POI } from '../services/poiService';
 import { getSafeZones, type SafeZone } from '../services/locationService';
 import { Geolocation } from '@capacitor/geolocation';
+import { Preferences } from '@capacitor/preferences';
 import { supabase } from '../services/supabaseClient';
 import type { DangerZone as IncidenceZone } from '../services/database.types';
 
@@ -228,33 +229,40 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
 
         const initLocation = async () => {
             try {
+                // Load cached location instantly so map centers immediately
+                try {
+                    const { value: cachedStr } = await Preferences.get({ key: 'LAST_KNOWN_LOCATION' });
+                    if (cachedStr) {
+                        const cached = JSON.parse(cachedStr);
+                        setUserLocation({ lat: cached.lat, lng: cached.lng });
+                        setViewState(prev => ({ ...prev, latitude: cached.lat, longitude: cached.lng, zoom: 17, pitch: 0 }));
+                    }
+                } catch { /* ignore */ }
+
                 const status = await Geolocation.checkPermissions();
                 if (status.location !== 'granted' && status.location !== 'denied') {
                     await Geolocation.requestPermissions();
                 }
-                
+
                 // Request orientation permissions for iOS
                 if (Capacitor.isNativePlatform() && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
                     await (DeviceOrientationEvent as any).requestPermission();
                 }
-                
-                const initialPos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
+
+                const initialPos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
                 if (initialPos) {
                     const { latitude, longitude } = initialPos.coords;
                     setUserLocation({ lat: latitude, lng: longitude });
-                    setViewState(prev => ({ 
-                        ...prev, 
-                        latitude, 
-                        longitude, 
-                        zoom: 17, // Start closer for better "Grandmother-friendly" feel
-                        pitch: 0 
-                    }));
+                    setViewState(prev => ({ ...prev, latitude, longitude, zoom: 17, pitch: 0 }));
+                    await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: JSON.stringify({ lat: latitude, lng: longitude }) });
                 }
 
-                // Native watching position to update blue dot
-                watchId = await Geolocation.watchPosition({ enableHighAccuracy: true }, (pos, err) => {
+                // Continuous real-time location updates
+                watchId = await Geolocation.watchPosition({ enableHighAccuracy: true, timeout: 10000 }, async (pos) => {
                     if (pos) {
-                        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        const { latitude, longitude } = pos.coords;
+                        setUserLocation({ lat: latitude, lng: longitude });
+                        await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: JSON.stringify({ lat: latitude, lng: longitude }) });
                     }
                 });
 
