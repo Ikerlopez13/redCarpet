@@ -116,6 +116,8 @@ serve(async (req) => {
             });
         }
 
+        console.log('[SOS] Tokens fetched:', tokens.map((t: any) => ({ platform: t.platform, user_id: t.user_id })));
+
         let senderName = 'Un contacto';
         if (userId) {
             const { data: profile } = await supabaseClient
@@ -166,8 +168,10 @@ serve(async (req) => {
         response.responses.forEach((resp: any, idx: number) => {
             if (!resp.success) {
                 const errCode = resp.error?.code || 'unknown';
-                errors.push(`token[${idx}]: ${errCode}`);
-                console.log(`[SOS] Token ${idx} failed: ${errCode}`);
+                const platform = tokens[idx]?.platform || 'unknown';
+                const errorMessage = resp.error?.message || '';
+                errors.push(`token[${idx}] (${platform}): ${errCode}`);
+                console.log(`[SOS] Token ${idx} (${platform}) failed:`, { code: errCode, message: errorMessage });
                 if (
                     errCode === 'messaging/registration-token-not-registered' ||
                     errCode === 'messaging/invalid-registration-token'
