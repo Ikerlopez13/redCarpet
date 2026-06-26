@@ -133,6 +133,10 @@ serve(async (req) => {
         const isDangerZone = config?.isDangerZone || false;
         const fcmTokens = tokens.map((t: any) => t.token);
 
+        // Keep platform info mapped to tokens for error reporting
+        const tokenPlatforms = tokens.map((t: any) => t.platform);
+        console.log('[SOS] Token platforms:', tokenPlatforms);
+
         const response = await messaging.sendEachForMulticast({
             tokens: fcmTokens,
             notification: {
@@ -168,7 +172,7 @@ serve(async (req) => {
         response.responses.forEach((resp: any, idx: number) => {
             if (!resp.success) {
                 const errCode = resp.error?.code || 'unknown';
-                const platform = tokens[idx]?.platform || 'unknown';
+                const platform = tokenPlatforms[idx] || 'unknown';
                 const errorMessage = resp.error?.message || '';
                 errors.push(`token[${idx}] (${platform}): ${errCode}`);
                 console.log(`[SOS] Token ${idx} (${platform}) failed:`, { code: errCode, message: errorMessage });
