@@ -6,7 +6,8 @@ import { getMessaging } from "npm:firebase-admin/messaging";
 console.log("Starting send-sos-notifications edge function...")
 
 serve(async (req) => {
-    const { alertId, userId, groupId, config } = await req.json()
+    const body = await req.json()
+    const { alertId, userId, groupId, config, notificationType, targetUserId, senderName: senderNameOverride } = body
 
     const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
@@ -23,6 +24,48 @@ serve(async (req) => {
             initializeApp({ credential: cert(serviceAccount) });
         }
 
+        const messaging = getMessaging();
+
+        // ── Friend Request notification (single target) ──────────────────────
+        if (notificationType === 'friend_request' && targetUserId) {
+            const { data: tokens } = await supabaseClient
+                .from('push_tokens')
+                .select('token')
+                .eq('user_id', targetUserId);
+
+            if (!tokens || tokens.length === 0) {
+                return new Response(JSON.stringify({ message: "No tokens for target user" }), {
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            const fcmTokens = tokens.map((t: any) => t.token);
+            const fromName = senderNameOverride || 'Alguien';
+
+            const response = await messaging.sendEachForMulticast({
+                tokens: fcmTokens,
+                notification: {
+                    title: '👥 Nueva solicitud de amistad',
+                    body: `${fromName} quiere añadirte a su círculo de seguridad.`
+                },
+                data: {
+                    type: 'friend_request',
+                    fromUserId: userId || ''
+                },
+                apns: {
+                    headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+                    payload: { aps: { sound: 'default', badge: 1, 'content-available': 1 } }
+                },
+                android: { priority: 'high' }
+            });
+
+            console.log(`[FriendRequest] Sent ${response.successCount} OK, ${response.failureCount} failed`);
+            return new Response(JSON.stringify({ success: true, sent: response.successCount }), {
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
+        // ── SOS / Danger Zone notification (group) ───────────────────────────
         let userIds: string[] = [];
 
         if (groupId) {
@@ -34,13 +77,15 @@ serve(async (req) => {
             if (members) userIds = [...userIds, ...members.map((m: any) => m.user_id)];
         }
 
-        const [{ data: outbound }, { data: inbound }] = await Promise.all([
-            supabaseClient.from('trusted_contacts').select('associated_user_id').eq('user_id', userId).eq('status', 'accepted'),
-            supabaseClient.from('trusted_contacts').select('user_id').eq('associated_user_id', userId).eq('status', 'accepted'),
-        ]);
+        if (userId) {
+            const [{ data: outbound }, { data: inbound }] = await Promise.all([
+                supabaseClient.from('trusted_contacts').select('associated_user_id').eq('user_id', userId).eq('status', 'accepted'),
+                supabaseClient.from('trusted_contacts').select('user_id').eq('associated_user_id', userId).eq('status', 'accepted'),
+            ]);
 
-        if (outbound) userIds = [...userIds, ...outbound.filter((c: any) => c.associated_user_id).map((c: any) => c.associated_user_id)];
-        if (inbound) userIds = [...userIds, ...inbound.map((c: any) => c.user_id)];
+            if (outbound) userIds = [...userIds, ...outbound.filter((c: any) => c.associated_user_id).map((c: any) => c.associated_user_id)];
+            if (inbound) userIds = [...userIds, ...inbound.map((c: any) => c.user_id)];
+        }
 
         userIds = Array.from(new Set(userIds)).filter(id => id && id !== userId);
 
@@ -64,19 +109,20 @@ serve(async (req) => {
         }
 
         let senderName = 'Un contacto';
-        const { data: profile } = await supabaseClient
-            .from('profiles')
-            .select('full_name')
-            .eq('id', userId)
-            .single();
-        if (profile?.full_name) senderName = profile.full_name.split(' ')[0];
+        if (userId) {
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('full_name')
+                .eq('id', userId)
+                .single();
+            if (profile?.full_name) senderName = profile.full_name.split(' ')[0];
+        }
 
         console.log(`[SOS] Sending to ${tokens.length} devices`);
 
         const isDangerZone = config?.isDangerZone || false;
         const fcmTokens = tokens.map((t: any) => t.token);
 
-        const messaging = getMessaging();
         const response = await messaging.sendEachForMulticast({
             tokens: fcmTokens,
             notification: {

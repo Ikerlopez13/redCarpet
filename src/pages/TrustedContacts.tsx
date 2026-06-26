@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { TrustedContactsService, getShortId, findUserByShortId } from '../services/trustedContactsService';
 import type { TrustedContact, PendingRequest } from '../services/trustedContactsService';
+import { sendFriendRequestNotification } from '../services/pushService';
 import { supabase } from '../services/supabaseClient';
 import { Capacitor } from '@capacitor/core';
 interface DeviceContact {
@@ -116,6 +117,9 @@ export const TrustedContacts: React.FC = () => {
             setShowIdForm(false);
             setShowAddContactSelector(false);
             alert(`✅ Solicitud enviada a ${displayName}. Cuando acepte aparecerá en tu lista.`);
+            // Notify recipient via push
+            const myName = user.profile?.full_name?.split(' ')[0] || 'Alguien';
+            sendFriendRequestNotification(found.id, user.id, myName);
         }
         setAddByIdLoading(false);
     };
@@ -234,6 +238,11 @@ export const TrustedContacts: React.FC = () => {
             setContacts(prev => prev.map(c => c.id === tempId ? contact : c));
             if (isPendingRequest) {
                 alert(t('contacts.sync_alert', { name }));
+                // Notify recipient via push when they have the app
+                if (contact.associated_user_id && user) {
+                    const myName = user.profile?.full_name?.split(' ')[0] || 'Alguien';
+                    sendFriendRequestNotification(contact.associated_user_id, user.id, myName);
+                }
             } else {
                 alert(`✅ Solicitud enviada a ${name}. Cuando acepte aparecerá en tu lista.`);
             }

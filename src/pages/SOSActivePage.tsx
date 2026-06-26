@@ -35,6 +35,7 @@ export const SOSActivePage: React.FC = () => {
     const [isCameraStarted, setIsCameraStarted] = useState(false);
     const [step, setStep] = useState<'active' | 'pin'>('active');
     const [showReview, setShowReview] = useState(false);
+    const [autoCall112, setAutoCall112] = useState(true);
     
     // PIN State
     const [pinInput, setPinInput] = useState('');
@@ -42,20 +43,24 @@ export const SOSActivePage: React.FC = () => {
     const [correctPin, setCorrectPin] = useState('0000');
 
     useEffect(() => {
-        const loadCorrectPin = async () => {
+        const loadConfig = async () => {
             const { value: localPin } = await Preferences.get({ key: 'SOS_PIN' });
             const { value: localConfig } = await Preferences.get({ key: 'sos_config' });
             let parsedPin = '';
+            let parsedAutoCall112 = true;
             if (localConfig) {
                 try {
-                    parsedPin = JSON.parse(localConfig).pin;
+                    const parsed = JSON.parse(localConfig);
+                    parsedPin = parsed.pin || '';
+                    parsedAutoCall112 = parsed.autoCall112 !== false;
                 } catch {}
             }
             const pin = user?.profile?.sos_pin || localPin || parsedPin || '0000';
-            console.log('[SOSActivePage] Correct PIN loaded for safety verification:', pin);
+            console.log('[SOSActivePage] PIN loaded:', pin, '| autoCall112:', parsedAutoCall112);
             setCorrectPin(pin);
+            setAutoCall112(parsedAutoCall112);
         };
-        loadCorrectPin();
+        loadConfig();
     }, [user]);
 
     // Discreet SOS Decoy States
@@ -112,13 +117,21 @@ export const SOSActivePage: React.FC = () => {
 
     useEffect(() => {
         console.log('[SOS-Active-Page] Mounted. AlertID:', alertId);
-        
+
         const initSOS = async () => {
-            // Load Decoy preferences
-            const { value } = await Preferences.get({ key: 'DECOY_TYPE' });
-            if (value) {
-                setDecoyType(value as any);
+            // Load all preferences at once to avoid race conditions
+            const [{ value: decoyVal }, { value: localConfig }] = await Promise.all([
+                Preferences.get({ key: 'DECOY_TYPE' }),
+                Preferences.get({ key: 'sos_config' })
+            ]);
+
+            if (decoyVal) setDecoyType(decoyVal as any);
+
+            let call112 = true;
+            if (localConfig) {
+                try { call112 = JSON.parse(localConfig).autoCall112 !== false; } catch {}
             }
+            setAutoCall112(call112);
 
             // 1. Initial delay to ensure the route Transition is smooth
             await new Promise(r => setTimeout(r, 500));
@@ -136,16 +149,16 @@ export const SOSActivePage: React.FC = () => {
             // 3. Start Recording (Resilient with it's own timeouts)
             await startRecording(isPremium);
 
-            // 4. Auto-call 112 if not cancelled within 10 seconds
-            const timer = setTimeout(() => {
-                if (step === 'active') {
-                    console.log('🚨 Auto-calling 112 after 10s timeout');
-                    window.location.href = 'tel:112';
-                }
-            }, 10000);
-
-            // Save timer to window to clean it up if needed
-            (window as any)._sos112Timer = timer;
+            // 4. Auto-call 112 only if user has this option enabled in settings
+            if (call112) {
+                const timer = setTimeout(() => {
+                    if (step === 'active') {
+                        console.log('🚨 Auto-calling 112 after 10s timeout');
+                        window.location.href = 'tel:112';
+                    }
+                }, 10000);
+                (window as any)._sos112Timer = timer;
+            }
         };
 
         let appStateListener: any = null;
@@ -418,12 +431,14 @@ export const SOSActivePage: React.FC = () => {
                                 </div>
 
                                 <div className="flex flex-col gap-3 bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-6 max-w-[320px] mx-auto shadow-2xl">
+                                    {autoCall112 && (
                                     <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '200ms' }}>
                                         <div className="size-5 rounded-full bg-red-500 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.5)]">
                                             <span className="text-[10px] text-white font-black">📞</span>
                                         </div>
                                         <p className="text-[11px] font-black text-white uppercase tracking-widest">LLAMANDO AL 112...</p>
                                     </div>
+                                    )}
                                     <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '400ms' }}>
                                         <div className="size-5 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.5)]">
                                             <span className="text-[10px] text-black font-black">✓</span>

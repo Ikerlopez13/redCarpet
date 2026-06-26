@@ -8,6 +8,7 @@ const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation');
 
 let watchId: string | null = null;
 let bgWatcherId: string | null = null;
+let periodicTimer: ReturnType<typeof setInterval> | null = null;
 let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null;
 
 /**
@@ -178,8 +179,24 @@ export async function startLocationTracking(
         );
     }
 
+    // Force-save location every 5 minutes so stationary users don't show stale data
+    const PERIODIC_MS = 5 * 60 * 1000;
+    periodicTimer = setInterval(async () => {
+        try {
+            const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+            if (pos) {
+                updateLocation(userId, pos);
+                onUpdate?.(pos);
+            }
+        } catch { /* ignore periodic errors */ }
+    }, PERIODIC_MS);
+
     return {
         stop: async () => {
+            if (periodicTimer !== null) {
+                clearInterval(periodicTimer);
+                periodicTimer = null;
+            }
             if (bgWatcherId !== null) {
                 await BackgroundGeolocation.removeWatcher({ id: bgWatcherId });
                 bgWatcherId = null;

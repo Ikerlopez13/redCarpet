@@ -110,11 +110,33 @@ function handleNotificationAction(event: any): void {
     const data = notification.data;
 
     if (data?.type === 'sos' && data?.alertId) {
-        // Navigate to SOS screen
         window.location.href = `/emergency?alertId=${data.alertId}`;
+    } else if (data?.type === 'friend_request') {
+        window.location.href = '/contacts';
     } else if (data?.type === 'location' && data?.userId) {
-        // Navigate to map centered on user
         window.location.href = `/?focusUser=${data.userId}`;
+    }
+}
+
+/**
+ * Send a push notification when a friend request is created
+ */
+export async function sendFriendRequestNotification(
+    toUserId: string,
+    fromUserId: string,
+    fromName: string
+): Promise<void> {
+    try {
+        await supabase.functions.invoke('send-sos-notifications', {
+            body: {
+                notificationType: 'friend_request',
+                targetUserId: toUserId,
+                userId: fromUserId,
+                senderName: fromName
+            }
+        });
+    } catch (err) {
+        console.warn('[Push] Failed to send friend request notification:', err);
     }
 }
 

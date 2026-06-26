@@ -149,10 +149,37 @@ function isValidRoute(route: RouteResult, origin: Coordinate, destination: Coord
     if (!route.steps || route.steps.length < 2) return false;
     const directDist = getHaversineDistance(origin.lat, origin.lng, destination.lat, destination.lng);
     if (directDist > 0 && route.distance < directDist * 0.7) return false;
-    if (directDist > 0 && route.distance > directDist * 3.5) return false;
+    // Tighter cap: reject routes >2.5x the direct distance (was 3.5x — produced knots)
+    if (directDist > 0 && route.distance > directDist * 2.5) return false;
     const last = route.geometry.coordinates[route.geometry.coordinates.length - 1];
     if (getHaversineDistance(last[1], last[0], destination.lat, destination.lng) > 300) return false;
+    if (hasSignificantBacktracking(route, destination)) return false;
     return true;
+}
+
+/**
+ * Detects routes that move significantly away from the destination after reaching a near point.
+ * This catches the "loop/knot" patterns where the route backtracks nonsensically.
+ */
+function hasSignificantBacktracking(route: RouteResult, destination: Coordinate): boolean {
+    const coords = route.geometry.coordinates;
+    if (coords.length < 6) return false;
+    let minDistToDest = Infinity;
+    let minDistIdx = 0;
+    for (let i = 0; i < coords.length; i++) {
+        const d = getHaversineDistance(coords[i][1], coords[i][0], destination.lat, destination.lng);
+        if (d < minDistToDest) { minDistToDest = d; minDistIdx = i; }
+    }
+    // If the closest point to destination is NOT in the last 30% of the route, route backtracks
+    if (minDistIdx < coords.length * 0.7) return true;
+    // Also reject if route wanders >400m away from destination after getting within 200m of it
+    let reachedClose = false;
+    for (let i = 0; i < coords.length; i++) {
+        const d = getHaversineDistance(coords[i][1], coords[i][0], destination.lat, destination.lng);
+        if (d < 200) reachedClose = true;
+        if (reachedClose && d > 400) return true;
+    }
+    return false;
 }
 
 export async function getAlternativeRoutes(
@@ -257,22 +284,29 @@ export async function getAlternativeRoutes(
             return { safe: null, balanced: null, fast: null };
         }
 
-        // Greedy assignment: fastest first, balanced second, safest last
+        // Greedy assignment: fastest = shortest duration; safe = fewest danger zones
         const byDuration = [...uniqueRoutes].sort((a, b) => a.duration - b.duration);
         const fastestRoute = byDuration[0];
         const remaining = byDuration.slice(1);
 
-        let balancedRoute = remaining[0] || null;
-        let safeRoute = remaining[1] || null;
+        // Safe route: among remaining, pick the one with fewest danger intersections,
+        // then fewest distance. This ensures "más segura" is genuinely safer, not just slower.
+        const safeRoute = remaining.length > 0
+            ? [...remaining].sort((a, b) => {
+                if (a.dangerCount !== b.dangerCount) return a.dangerCount - b.dangerCount;
+                return a.distance - b.distance;
+            })[0]
+            : null;
 
-        // Guarantee safe >= balanced in duration
-        if (balancedRoute && safeRoute && balancedRoute.duration > safeRoute.duration) {
-            [balancedRoute, safeRoute] = [safeRoute, balancedRoute];
-        }
+        // Balanced route: between fast and safe, sorted by combined score
+        const remainingForBalanced = remaining.filter(r => r !== safeRoute);
+        const balancedRoute = remainingForBalanced.length > 0
+            ? remainingForBalanced[0]
+            : (remaining[0] !== safeRoute ? remaining[0] : null);
 
         return {
             fast: fastestRoute,
-            balanced: balancedRoute,
+            balanced: balancedRoute || null,
             safe: safeRoute
         };
 

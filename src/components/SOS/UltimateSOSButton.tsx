@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ShieldAlert, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,8 +10,21 @@ export const UltimateSOSButton: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [isActivating, setIsActivating] = useState(false);
+    const touchFiredRef = useRef(false);
+
+    // Safety timeout: if activation hangs >15s, navigate anyway to unblock the user
+    useEffect(() => {
+        if (!isActivating) return;
+        const timeout = setTimeout(() => {
+            console.warn('[Ultimate-SOS] Activation timeout — forcing navigation');
+            navigate('/emergency-live', { state: { reason: 'security', mode: 'visible' }, replace: true });
+        }, 15000);
+        return () => clearTimeout(timeout);
+    }, [isActivating, navigate]);
 
     const handleQuickPress = async () => {
+        // Prevent double-fire from simultaneous touch + click events
+        if (touchFiredRef.current) { touchFiredRef.current = false; return; }
         console.log('[Ultimate-SOS] Clicked!');
         if (isActivating) return;
         if (!user) {
@@ -25,13 +38,13 @@ export const UltimateSOSButton: React.FC = () => {
 
             // 1. Get real group (since profile doesn't have group_id column)
             let group = await getFamilyGroup(user.id);
-            
+
             // 2. AUTO-FIX: Create private group if missing
             if (!group) {
                 console.log('[Ultimate-SOS] Auto-creating circle...');
                 const { group: newGroup, error: groupError } = await createFamilyGroup(
                     "Mi Círculo",
-                    "parental", 
+                    "parental",
                     user.id
                 );
 
@@ -46,7 +59,7 @@ export const UltimateSOSButton: React.FC = () => {
 
             const { alert: sosAlert, error } = await activateSOS(user.id, group.id, {
                 message: `🚨 EMERGENCIA CRÍTICA\nActivada mediante Botón Directo.`,
-                callPolice: true,
+                highPriority: true,
                 notifyContacts: true,
                 shareLocation: true,
                 mode: 'visible',
@@ -57,24 +70,22 @@ export const UltimateSOSButton: React.FC = () => {
                 throw new Error(error);
             }
 
-            if (sosAlert) {
-                console.log('[Ultimate-SOS] Success! Redirecting...');
-                // Direct navigation with small safety delay
-                setTimeout(() => {
-                    navigate('/emergency-live', { 
-                        state: { 
-                            alertId: sosAlert.id,
-                            reason: 'security',
-                            mode: 'visible'
-                        },
-                        replace: true 
-                    });
-                }, 300);
-            }
+            console.log('[Ultimate-SOS] Success! Redirecting...');
+            // Navigate regardless — alert may exist or not
+            setTimeout(() => {
+                navigate('/emergency-live', {
+                    state: {
+                        alertId: sosAlert?.id || null,
+                        reason: 'security',
+                        mode: 'visible'
+                    },
+                    replace: true
+                });
+            }, 300);
         } catch (err: any) {
             console.error('[Ultimate-SOS] Failed:', err);
-            window.alert('SOS Error: ' + (err.message || 'Error desconocido'));
-            setIsActivating(false);
+            // Still navigate to SOS page even on error — user safety is priority
+            navigate('/emergency-live', { state: { reason: 'security', mode: 'visible' }, replace: true });
         }
     };
 
@@ -83,6 +94,7 @@ export const UltimateSOSButton: React.FC = () => {
             <button
                 onClick={handleQuickPress}
                 onTouchStart={(e) => {
+                    touchFiredRef.current = true;
                     handleQuickPress();
                     e.stopPropagation();
                     e.preventDefault();

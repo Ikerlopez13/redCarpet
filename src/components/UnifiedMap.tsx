@@ -212,20 +212,25 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         };
     }, []);
 
+    // Rotate map with compass ONLY during active navigation (showRoutes=true)
+    useEffect(() => {
+        if (!showRoutes) return;
+
+        const handleHeading = (e: DeviceOrientationEvent) => {
+            if ((e as any).webkitCompassHeading !== undefined) {
+                setViewState(prev => ({ ...prev, bearing: (e as any).webkitCompassHeading }));
+            } else if (e.alpha !== null) {
+                setViewState(prev => ({ ...prev, bearing: 360 - e.alpha! }));
+            }
+        };
+
+        window.addEventListener('deviceorientation', handleHeading, true);
+        return () => window.removeEventListener('deviceorientation', handleHeading);
+    }, [showRoutes]);
+
     // Auto trigger geolocation and custom watch on load
     useEffect(() => {
         let watchId: string | null = null;
-        
-        const handleHeading = (e: DeviceOrientationEvent) => {
-            if (e.webkitCompassHeading !== undefined) {
-                // iOS heading
-                const heading = e.webkitCompassHeading;
-                setViewState(prev => ({ ...prev, bearing: heading }));
-            } else if (e.alpha !== null) {
-                // Android heading
-                setViewState(prev => ({ ...prev, bearing: 360 - e.alpha }));
-            }
-        };
 
         const initLocation = async () => {
             try {
@@ -244,9 +249,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     await Geolocation.requestPermissions();
                 }
 
-                // Request orientation permissions for iOS
+                // Request orientation permissions for iOS (needed for compass during navigation)
                 if (Capacitor.isNativePlatform() && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-                    await (DeviceOrientationEvent as any).requestPermission();
+                    try { await (DeviceOrientationEvent as any).requestPermission(); } catch { /* ignore */ }
                 }
 
                 const initialPos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
@@ -257,7 +262,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: JSON.stringify({ lat: latitude, lng: longitude }) });
                 }
 
-                // Continuous real-time location updates
+                // Continuous real-time location updates for the map display only
                 watchId = await Geolocation.watchPosition({ enableHighAccuracy: true, timeout: 10000 }, async (pos) => {
                     if (pos) {
                         const { latitude, longitude } = pos.coords;
@@ -265,19 +270,14 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                         await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: JSON.stringify({ lat: latitude, lng: longitude }) });
                     }
                 });
-
-                // Listen for device orientation to rotate map
-                window.addEventListener('deviceorientation', handleHeading, true);
             } catch (e) {
                 console.error("Permission request or location error:", e);
-                // Fallback to default view happens automatically as state is initialized with DEFAULT_VIEW
             }
         };
 
         initLocation();
-        
+
         return () => {
-            window.removeEventListener('deviceorientation', handleHeading);
             if (watchId) {
                 Geolocation.clearWatch({ id: watchId });
             }

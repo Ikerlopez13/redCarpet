@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { RevenueCatService } from '../services/revenueCatService';
 import { BackgroundGeofenceService } from '../services/backgroundGeofenceService';
+import { startLocationTracking } from '../services/locationService';
 import {
     signIn,
     signUp,
@@ -11,6 +12,8 @@ import {
     signInAsDemo,
     type AuthUser
 } from '../services/authService';
+
+let locationTrackingStop: (() => Promise<void>) | null = null;
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -101,6 +104,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setUser(loggedUser);
                         setIsLoading(false);
                         fetchAndSetProfile(loggedUser);
+
+                        // Start location tracking for all users so contacts always see fresh data
+                        startLocationTracking(loggedUser.id)
+                            .then(tracker => { locationTrackingStop = tracker.stop; })
+                            .catch(err => console.warn('[AuthContext] Location tracking start error (non-fatal):', err));
 
                         // Initialize RevenueCat for native platform (non-blocking)
                         RevenueCatService.initialize(loggedUser.id)
@@ -206,6 +214,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = async () => {
+        if (locationTrackingStop) {
+            await locationTrackingStop().catch(console.error);
+            locationTrackingStop = null;
+        }
         await signOut();
         localStorage.removeItem('mock_user');
         localStorage.removeItem('redcarpet_demo_mode');
