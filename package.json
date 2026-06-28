@@ -1,7 +1,7 @@
 {
   "name": "redcarpet",
   "private": true,
-  "version": "3.0.7",
+  "version": "3.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
