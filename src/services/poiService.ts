@@ -43,17 +43,17 @@ export async function getNearbyPOIs(
     category?: POICategory
 ): Promise<POI[]> {
     if (!MAPBOX_TOKEN) {
-        console.warn('Mapbox token not found, falling back to empty POIs');
+        console.warn('🚨 Mapbox token not found');
         return [];
     }
 
     try {
-        // Broad search for POIs and landmarks - More aggressive to avoid empty results
         const queries = category
             ? [categoryConfig[category].types[0]]
             : ['landmark', 'park', 'university', 'museum', 'monument', 'square', 'market', 'church', 'school', 'hospital', 'restaurant', 'cafe', 'shop', 'pharmacy', 'poi'];
 
-        // We'll combine multiple queries to ensure landmark and POI richness
+        console.log('🔍 getNearbyPOIs queries:', queries.slice(0, 8));
+
         const responses = await Promise.all(queries.slice(0, 8).map(q =>
             fetch(
                 `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?` +
@@ -61,13 +61,20 @@ export async function getNearbyPOIs(
                 `types=poi&` +
                 `access_token=${MAPBOX_TOKEN}&` +
                 `limit=12`
-            ).then(r => r.json())
+            ).then(r => r.json()).catch(err => {
+                console.error(`❌ Mapbox API error for query "${q}":`, err);
+                return { features: [] };
+            })
         ));
 
+        console.log('✅ Mapbox responses received:', responses.length);
+
         const allFeatures = responses.flatMap(r => r.features || []);
+        console.log('📍 Total features from all queries:', allFeatures.length);
 
         // Deduplicate features by ID
         const uniqueFeatures = Array.from(new Map(allFeatures.map(f => [f.id, f])).values());
+        console.log('🗺️ Unique features after dedup:', uniqueFeatures.length);
 
         const pois: POI[] = uniqueFeatures.map((f: any) => {
             const [poiLng, poiLat] = f.center;

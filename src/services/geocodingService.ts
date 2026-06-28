@@ -56,7 +56,7 @@ export async function searchPlaces(
     suggestUrl.searchParams.append('q', query);
     suggestUrl.searchParams.append('access_token', MAPBOX_TOKEN);
     suggestUrl.searchParams.append('session_token', activeSessionToken);
-    suggestUrl.searchParams.append('limit', '12');
+    suggestUrl.searchParams.append('limit', '10');
     suggestUrl.searchParams.append('language', 'es');
     suggestUrl.searchParams.append('country', 'es');
     // Heavily prioritize POIs (universities, businesses) and addresses to ensure high quality results
@@ -70,7 +70,10 @@ export async function searchPlaces(
         const response = await fetch(suggestUrl.toString());
         const data = await response.json();
 
+        console.log('🔎 Mapbox Suggest response:', { status: response.status, suggestionsCount: data.suggestions?.length || 0, data });
+
         if (!data.suggestions || data.suggestions.length === 0) {
+            console.warn('⚠️ No suggestions from Mapbox for query:', query);
             return [];
         }
 
