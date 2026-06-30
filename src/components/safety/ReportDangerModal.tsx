@@ -26,6 +26,7 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
         { id: 'unsafe_env', dbType: 'incident', icon: 'warning', label: 'Ambiente Inseguro', subtitle: 'PELIGRO' },
         { id: 'limited_mobility', dbType: 'incident', icon: 'accessible', label: 'Acceso limitado', subtitle: 'MOVILIDAD REDUCIDA' },
         { id: 'safe_mobility', dbType: 'incident', icon: 'wheelchair_pickup', label: 'Acceso seguro', subtitle: 'MOVILIDAD REDUCIDA' },
+        { id: 'inclusive_zone', dbType: 'incident', icon: 'diversity_3', label: 'Zona inclusiva', subtitle: 'INCLUSIVIDAD' },
         { id: 'street_closed', dbType: 'incident', icon: 'block', label: 'Calle cortada', subtitle: 'VIALIDAD' },
         { id: 'street_damaged', dbType: 'incident', icon: 'construction', label: 'Calle en mal estado', subtitle: 'VIALIDAD' },
         { id: 'security', dbType: 'incident', icon: 'shield', label: 'Autoridades presentes', subtitle: 'SEGURIDAD' }
