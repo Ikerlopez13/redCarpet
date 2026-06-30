@@ -23,11 +23,12 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
 
     const types = [
         { id: 'dark_light', dbType: 'dark', icon: 'lightbulb', label: 'Poca luz', subtitle: 'BAJA VISIBILIDAD' },
-        { id: 'suspicious', dbType: 'incident', icon: 'visibility', label: 'Sospechoso', subtitle: 'ALERTA GENERAL' },
-        { id: 'fog', dbType: 'dark', icon: 'cloud', label: 'Niebla', subtitle: 'VISUAL' },
         { id: 'unsafe_env', dbType: 'incident', icon: 'warning', label: 'Ambiente Inseguro', subtitle: 'PELIGRO' },
-        { id: 'harassment', dbType: 'incident', icon: 'priority_high', label: 'Acoso', subtitle: 'INSEGURIDAD' },
-        { id: 'security', dbType: 'incident', icon: 'shield', label: 'Seguridad', subtitle: 'AUTORIDADES' }
+        { id: 'limited_mobility', dbType: 'incident', icon: 'accessible', label: 'Acceso limitado', subtitle: 'MOVILIDAD REDUCIDA' },
+        { id: 'safe_mobility', dbType: 'incident', icon: 'wheelchair_pickup', label: 'Acceso seguro', subtitle: 'MOVILIDAD REDUCIDA' },
+        { id: 'street_closed', dbType: 'incident', icon: 'block', label: 'Calle cortada', subtitle: 'VIALIDAD' },
+        { id: 'street_damaged', dbType: 'incident', icon: 'construction', label: 'Calle en mal estado', subtitle: 'VIALIDAD' },
+        { id: 'security', dbType: 'incident', icon: 'shield', label: 'Autoridades presentes', subtitle: 'SEGURIDAD' }
     ] as const;
 
     const handleSubmit = async () => {
