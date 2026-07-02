@@ -454,15 +454,23 @@ export const Subscription: React.FC = () => {
 
                 {/* Subscription Legal Terms for Apple Review */}
                 <div className="p-4 rounded-3xl bg-zinc-950/30 border border-white/5 text-left mt-8 space-y-4">
-                    <p className="text-[10px] text-white/40 leading-relaxed font-medium">
+                    <div className="space-y-2 text-[9px] text-white/60 leading-relaxed font-medium">
+                        <p><strong>Auto-Renewable Subscriptions:</strong></p>
+                        <p>• Monthly Premium: Auto-renews monthly</p>
+                        <p>• Annual Premium: Auto-renews annually</p>
+                        <p>• 72-Hour Pass: One-time purchase (non-renewing)</p>
+                        <p>Renewal can be managed in Account Settings. Cancel anytime before renewal.</p>
+                    </div>
+                    <p className="text-[10px] text-white/40 leading-relaxed font-medium border-t border-white/5 pt-3">
                         {t('premium.legal.iap_disclaimer')}
                     </p>
-                    <div className="flex flex-wrap justify-center gap-6 pt-4 border-t border-white/5">
-                        <button onClick={() => window.open('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/', '_blank')} className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Terms of Use (EULA)</button>
-                        <button onClick={() => navigate('/privacy')} className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Privacy Policy</button>
+                    <div className="flex flex-wrap justify-center gap-3 pt-4 border-t border-white/5">
+                        <button onClick={() => window.open('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/', '_blank')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Terms of Use (EULA)</button>
+                        <button onClick={() => navigate('/privacy')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Privacy Policy</button>
+                        <button onClick={() => navigate('/eula')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Full EULA</button>
                         <button
                             onClick={() => RevenueCatService.restorePurchases().then(() => navigate('/'))}
-                            className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4"
+                            className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4"
                         >
                             {t('premium.restore_purchases')}
                         </button>
