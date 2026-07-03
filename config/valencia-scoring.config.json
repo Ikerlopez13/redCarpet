@@ -1,0 +1,21 @@
+{
+  "city": "valencia",
+  "description": "Tuning weights for the barrio safety scoring engine. Mirrored into the scoring_configs table by scripts/seed-valencia.mjs; edit the table row (or re-run the seed) to tune without redeploying.",
+  "default_baseline": 50,
+  "incident_half_life_days": 90,
+  "weights": {
+    "redcarpet_incidents": 0.5,
+    "granular_signals": 0.5
+  },
+  "signal_weights": {
+    "policia_local_incidents": 1.0,
+    "osm_lighting_ratio": 0.6,
+    "population_density": 0.4,
+    "nightlife_density": 0.5
+  },
+  "confidence": {
+    "baseline_only": 0.3,
+    "per_signal_bonus": 0.1,
+    "incident_data_bonus": 0.3
+  }
+}

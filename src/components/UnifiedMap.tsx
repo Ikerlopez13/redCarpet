@@ -10,6 +10,7 @@ import { RouteLine, ROUTE_COLORS } from './map/RouteLine';
 import { TransitLayer } from './map/TransitMarkers';
 import { POILayer } from './map/POIMarker';
 import { SafeZones } from './map/SafeZone';
+import { AuthorityAlerts } from './map/AuthorityAlerts';
 import { LOCATIONS } from '../services/directionsService';
 import { getNearbyBusStops, getNearbyMetroStations, type BusStop, type MetroStation } from '../services/tmbService';
 import { getNearbyPOIs, type POI } from '../services/poiService';
@@ -417,6 +418,14 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 {safeZones.length > 0 && (
                     <SafeZones zones={safeZones} />
                 )}
+
+                {/* Official authority alerts (València sandbox) — badge + violet puntos violeta */}
+                <AuthorityAlerts
+                    bounds={[
+                        viewState.longitude - 0.05, viewState.latitude - 0.05,
+                        viewState.longitude + 0.05, viewState.latitude + 0.05
+                    ]}
+                />
 
                 {/* Transit Layer - Bus Stops & Metro Stations */}
                 {showTransit && transportMode === 'transit' && (

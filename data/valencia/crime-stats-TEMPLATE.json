@@ -1,0 +1,30 @@
+{
+  "_template": true,
+  "_instructions": "Copy this file to crime-stats-<PERIOD>.json, fill the real figures from the Balance de Criminalidad for the MUNICIPALITY of València (not the province), remove the _template and _instructions keys, then run: node scripts/ingest-crime-stats.mjs data/valencia/crime-stats-<PERIOD>.json",
+  "_official_sources": [
+    "https://estadisticasdecriminalidad.ses.mir.es/publico/portalestadistico/balances",
+    "https://www.interior.gob.es/opencms/es/prensa/balances-e-informes/"
+  ],
+  "_population_source": "INE Padrón municipal — https://www.ine.es/jaxiT3/Tabla.htm?t=2903 (municipio 46250 València)",
+  "city_slug": "valencia",
+  "period": "2026-T1",
+  "source": "Ministerio del Interior — Balance de Criminalidad",
+  "source_url": "https://www.interior.gob.es/opencms/export/sites/default/.galleries/galeria-de-prensa/documentos-y-multimedia/balances-e-informes/2026/Balance-de-Criminalidad-Primer-Trimestre-2026.pdf",
+  "population": 0,
+  "total_infracciones": 0,
+  "categories": {
+    "homicidios_dolosos_y_asesinatos_consumados": 0,
+    "homicidios_dolosos_y_asesinatos_en_grado_tentativa": 0,
+    "delitos_graves_y_menos_graves_de_lesiones_y_rina_tumultuaria": 0,
+    "secuestro": 0,
+    "delitos_contra_la_libertad_sexual": 0,
+    "agresion_sexual_con_penetracion": 0,
+    "robos_con_violencia_e_intimidacion": 0,
+    "robos_con_fuerza_en_domicilios_establecimientos_y_otras_instalaciones": 0,
+    "hurtos": 0,
+    "sustracciones_de_vehiculos": 0,
+    "trafico_de_drogas": 0,
+    "resto_criminalidad_convencional": 0,
+    "cibercriminalidad": 0
+  }
+}

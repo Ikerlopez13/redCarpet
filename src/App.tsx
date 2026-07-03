@@ -37,6 +37,14 @@ const SOSActivePage = lazy(() => import('./pages/SOSActivePage').then(m => ({ de
 const Security = lazy(() => import('./pages/Security').then(m => ({ default: m.Security })));
 const WidgetsPage = lazy(() => import('./pages/WidgetsPage').then(m => ({ default: m.WidgetsPage })));
 
+// Authorities dashboard (València sandbox) — web-only, own layout/auth guard
+const DashboardLayout = lazy(() => import('./dashboard/DashboardLayout'));
+const DashboardLogin = lazy(() => import('./dashboard/DashboardLogin'));
+const DashboardOverviewMap = lazy(() => import('./dashboard/OverviewMap'));
+const DashboardAlerts = lazy(() => import('./dashboard/AlertsManager'));
+const DashboardStats = lazy(() => import('./dashboard/StatsPanel'));
+const DashboardAudit = lazy(() => import('./dashboard/AuditLogPage'));
+
 // Generic Loading Screen
 const PageLoader = () => {
     const [show, setShow] = useState(false);
@@ -148,6 +156,15 @@ function App() {
                         <GlobalModals />
                         <Suspense fallback={<PageLoader />}>
                             <Routes>
+                                {/* Authorities dashboard — outside the mobile shell */}
+                                <Route path="/dashboard/login" element={<DashboardLogin />} />
+                                <Route path="/dashboard" element={<DashboardLayout />}>
+                                    <Route index element={<DashboardOverviewMap />} />
+                                    <Route path="alerts" element={<DashboardAlerts />} />
+                                    <Route path="stats" element={<DashboardStats />} />
+                                    <Route path="audit" element={<DashboardAudit />} />
+                                </Route>
+
                                 <Route element={<MobileShell />}>
                                     {/* Auth routes - accessible without login */}
                                     <Route path="/login" element={<Login />} />

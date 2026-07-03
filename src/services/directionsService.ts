@@ -4,6 +4,13 @@
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DIRECTIONS_API_BASE = 'https://api.mapbox.com/directions/v5/mapbox';
 import { supabase } from './supabaseClient';
+import {
+    loadNeighborhoodScores,
+    scoreAtPoint,
+    getLiveAuthorityAlerts,
+    isNightTime,
+    type AuthorityAlert
+} from './citySafetyService';
 
 export interface Coordinate {
     lat: number;
@@ -182,6 +189,92 @@ function hasSignificantBacktracking(route: RouteResult, destination: Coordinate)
     return false;
 }
 
+// ---- València sandbox: authority alerts + barrio scores in routing ----
+
+const CLOSURE_HIT_DISTANCE_M = 30;   // route passes this close to a closed segment → blocked
+const VIOLETA_BONUS_RADIUS_M = 150;  // puntos violeta attract the Safest route within this radius
+const ROUTE_SAMPLE_STEP = 4;         // score every Nth coordinate (perf; ~10-25 samples/route)
+
+const ALERT_SEVERITY_PENALTY: Record<string, number> = { low: 1, medium: 2.5, high: 5 };
+
+export interface RouteSafetyMetrics {
+    blockedByClosure: boolean;
+    authorityPenalty: number;   // danger-type authority alerts crossed, severity-weighted
+    barrioExposure: number;     // mean barrio danger score (0-100) along the route
+    violetaCount: number;       // distinct puntos violeta within bonus radius
+}
+
+// Distance in meters from a point to a line segment, using a local
+// equirectangular projection (accurate at street scale).
+function pointToSegmentMeters(p: number[], a: number[], b: number[]): number {
+    const mPerDegLat = 111320;
+    const mPerDegLng = 111320 * Math.cos((p[1] * Math.PI) / 180);
+    const px = (p[0] - a[0]) * mPerDegLng, py = (p[1] - a[1]) * mPerDegLat;
+    const bx = (b[0] - a[0]) * mPerDegLng, by = (b[1] - a[1]) * mPerDegLat;
+    const lenSq = bx * bx + by * by;
+    const t = lenSq > 0 ? Math.max(0, Math.min(1, (px * bx + py * by) / lenSq)) : 0;
+    const dx = px - t * bx, dy = py - t * by;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function minDistanceToLine(coords: number[][], line: GeoJSON.LineString): number {
+    let min = Infinity;
+    const seg = line.coordinates;
+    for (const c of coords) {
+        for (let i = 0; i < seg.length - 1; i++) {
+            const d = pointToSegmentMeters(c, seg[i], seg[i + 1]);
+            if (d < min) min = d;
+        }
+    }
+    return min;
+}
+
+export function computeRouteSafetyMetrics(
+    route: RouteResult,
+    alerts: AuthorityAlert[],
+    scoreFeatures: Awaited<ReturnType<typeof loadNeighborhoodScores>>
+): RouteSafetyMetrics {
+    const coords: number[][] = route.geometry.coordinates;
+    let blockedByClosure = false;
+    let authorityPenalty = 0;
+    let violetaCount = 0;
+
+    for (const alert of alerts) {
+        let hit = false;
+        if (alert.lat != null && alert.lng != null) {
+            const radius = alert.type === 'punto_violeta'
+                ? VIOLETA_BONUS_RADIUS_M
+                : (alert.radius_m || 100);
+            hit = coords.some((c) => getHaversineDistance(c[1], c[0], alert.lat!, alert.lng!) < radius);
+        } else if (alert.segment_geojson) {
+            hit = minDistanceToLine(coords, alert.segment_geojson) < CLOSURE_HIT_DISTANCE_M;
+        }
+        if (!hit) continue;
+
+        if (alert.type === 'street_closed') {
+            blockedByClosure = true;
+        } else if (alert.type === 'punto_violeta') {
+            violetaCount++;
+        } else {
+            authorityPenalty += ALERT_SEVERITY_PENALTY[alert.severity] ?? 2.5;
+        }
+    }
+
+    let scoreSum = 0;
+    let scoreSamples = 0;
+    for (let i = 0; i < coords.length; i += ROUTE_SAMPLE_STEP) {
+        const s = scoreAtPoint(coords[i][0], coords[i][1], scoreFeatures);
+        if (s !== null) { scoreSum += s; scoreSamples++; }
+    }
+
+    return {
+        blockedByClosure,
+        authorityPenalty,
+        barrioExposure: scoreSamples > 0 ? scoreSum / scoreSamples : 0,
+        violetaCount
+    };
+}
+
 export async function getAlternativeRoutes(
     origin: Coordinate,
     destination: Coordinate,
@@ -232,21 +325,38 @@ export async function getAlternativeRoutes(
     try {
         const isWalking = baseMode === 'walking';
 
-        // 6 waypoints: 3 left-side + 3 right-side offsets
+        // 6 waypoints: 3 left-side + 3 right-side offsets, scaled to trip
+        // length so short hops get proportionate detours (fixed offsets made
+        // every alternative fail validation on sub-500m trips)
         const midLat = (origin.lat + destination.lat) / 2;
         const midLng = (origin.lng + destination.lng) / 2;
-        const offsets = [0.0020, 0.0030, 0.0040];
+        const directDeg = Math.hypot(destination.lat - origin.lat, destination.lng - origin.lng);
+        const scale = Math.max(0.15, Math.min(1, directDeg / 0.02));
+        const offsets = [0.0020 * scale, 0.0030 * scale, 0.0040 * scale];
         const waypoints: Coordinate[] = [
             ...offsets.map(d => ({ lat: midLat + d, lng: midLng - d })),
             ...offsets.map(d => ({ lat: midLat - d, lng: midLng + d })),
         ];
 
+        // bbox around the trip, padded ~1km, to fetch authority alerts once
+        const pad = 0.01;
+        const bbox = {
+            minLng: Math.min(origin.lng, destination.lng) - pad,
+            minLat: Math.min(origin.lat, destination.lat) - pad,
+            maxLng: Math.max(origin.lng, destination.lng) + pad,
+            maxLat: Math.max(origin.lat, destination.lat) + pad
+        };
+
         const [
             { data: dangerZones },
+            authorityAlerts,
+            scoreFeatures,
             directRoutes,
             ...waypointRouteSets
         ] = await Promise.all([
             isWalking ? supabase.from('danger_zones').select('*').or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`) : Promise.resolve({ data: [] }),
+            isWalking ? getLiveAuthorityAlerts(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat) : Promise.resolve([]),
+            isWalking ? loadNeighborhoodScores() : Promise.resolve([]),
             fetchWithWaypoint(null),
             ...waypoints.map(wp => fetchWithWaypoint(wp))
         ]);
@@ -268,7 +378,8 @@ export async function getAlternativeRoutes(
         };
 
         // Deduplicate: two routes are "same" if their midpoint is within 20m
-        const uniqueRoutes: (RouteResult & { dangerCount: number })[] = [];
+        type ScoredRoute = RouteResult & { dangerCount: number; safety: RouteSafetyMetrics };
+        const uniqueRoutes: ScoredRoute[] = [];
         for (const route of allRoutes) {
             const mid = route.geometry.coordinates[Math.floor(route.geometry.coordinates.length / 2)];
             const isDuplicate = uniqueRoutes.some(u => {
@@ -276,7 +387,11 @@ export async function getAlternativeRoutes(
                 return getHaversineDistance(mid[1], mid[0], uMid[1], uMid[0]) < 20;
             });
             if (!isDuplicate) {
-                uniqueRoutes.push({ ...route, dangerCount: countDangerIntersections(route) });
+                uniqueRoutes.push({
+                    ...route,
+                    dangerCount: countDangerIntersections(route),
+                    safety: computeRouteSafetyMetrics(route, authorityAlerts, scoreFeatures)
+                });
             }
         }
 
@@ -284,16 +399,35 @@ export async function getAlternativeRoutes(
             return { safe: null, balanced: null, fast: null };
         }
 
-        // Greedy assignment: fastest = shortest duration; safe = fewest danger zones
-        const byDuration = [...uniqueRoutes].sort((a, b) => a.duration - b.duration);
+        // Active street closures are impassable: drop blocked routes when an
+        // open alternative exists (never leave the user without a route).
+        const openRoutes = uniqueRoutes.filter(r => !r.safety.blockedByClosure);
+        const candidates = openRoutes.length > 0 ? openRoutes : uniqueRoutes;
+        if (openRoutes.length === 0 && uniqueRoutes.some(r => r.safety.blockedByClosure)) {
+            console.warn('[Routing] All routes cross an active closure — returning best effort.');
+        }
+
+        // Fastest = shortest duration among passable routes
+        const byDuration = [...candidates].sort((a, b) => a.duration - b.duration);
         const fastestRoute = byDuration[0];
         const remaining = byDuration.slice(1);
 
-        // Safe route: among remaining, pick the one with fewest danger intersections,
-        // then fewest distance. This ensures "más segura" is genuinely safer, not just slower.
+        // Composite danger for the Safest choice:
+        //   user reports + authority penalties + barrio exposure − punto violeta
+        //   bonus (doubled at night: attended safe points matter most then).
+        const violetaWeight = isNightTime() ? 4 : 2;
+        const compositeDanger = (r: ScoredRoute) =>
+            r.dangerCount * 5
+            + r.safety.authorityPenalty
+            + r.safety.barrioExposure / 10
+            - r.safety.violetaCount * violetaWeight;
+
+        // Safest is picked among `remaining` (all ≥ fastest duration), so the
+        // existing guarantee "Safest is never shorter than Fastest" holds.
         const safeRoute = remaining.length > 0
             ? [...remaining].sort((a, b) => {
-                if (a.dangerCount !== b.dangerCount) return a.dangerCount - b.dangerCount;
+                const d = compositeDanger(a) - compositeDanger(b);
+                if (Math.abs(d) > 0.01) return d;
                 return a.distance - b.distance;
             })[0]
             : null;
@@ -304,10 +438,14 @@ export async function getAlternativeRoutes(
             ? remainingForBalanced[0]
             : (remaining[0] !== safeRoute ? remaining[0] : null);
 
+        // Contract: when a fast route exists the caller always gets 3 routes.
+        // If no meaningful alternative survived validation (typical on very
+        // short hops) the fastest route doubles as safe/balanced — the same
+        // fallback RouteSelection already applies client-side.
         return {
             fast: fastestRoute,
-            balanced: balancedRoute || null,
-            safe: safeRoute
+            balanced: balancedRoute || fastestRoute,
+            safe: safeRoute || fastestRoute
         };
 
     } catch (error) {
