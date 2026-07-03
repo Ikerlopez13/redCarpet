@@ -81,10 +81,17 @@ VALUES ('València', 'valencia', 'ES', 'Europe/Madrid', TRUE,
 ON CONFLICT (slug) DO UPDATE SET boundary = EXCLUDED.boundary, updated_at = NOW();`);
 
   // ---- barrios ----
+  // the official dataset reuses coddistbar 175 for two Poblats del Nord
+  // pedanías (Rafalell-Vistabella / Mahuella-Tauladella) — disambiguate so
+  // both survive the (city_id, code) uniqueness
+  const seenCodes = new Map();
   for (const f of barrios.features) {
     const p = f.properties;
     const districtCode = String(p.coddistrit);
-    const code = String(p.coddistbar); // unique city-wide (distrito+barrio)
+    let code = String(p.coddistbar);
+    const times = seenCodes.get(code) ?? 0;
+    seenCodes.set(code, times + 1);
+    if (times > 0) code = `${code}-${times + 1}`;
     lines.push(`
 INSERT INTO neighborhoods (city_id, district_code, district_name, code, name_es, boundary, centroid)
 SELECT c.id, ${q(districtCode)}, ${q(districtNames[districtCode] ?? 'DESCONOCIDO')}, ${q(code)}, ${q(p.nombre)},

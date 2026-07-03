@@ -46,9 +46,12 @@ CREATE TABLE IF NOT EXISTS neighborhood_signals (
     value FLOAT NOT NULL,
     source TEXT NOT NULL,
     period TEXT,
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (neighborhood_id, signal, COALESCE(period, ''))
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- expression uniqueness must be an index, not a table constraint
+CREATE UNIQUE INDEX IF NOT EXISTS uq_neighborhood_signals
+    ON neighborhood_signals (neighborhood_id, signal, COALESCE(period, ''));
 
 ALTER TABLE neighborhood_signals ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Authenticated read signals" ON neighborhood_signals;

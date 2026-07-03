@@ -163,13 +163,18 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- Dashboard (authority) users may only mutate rows of their city —
 -- enforced here in RLS, never in the client.
 -- ============================================
+-- Grant UPDATE to authority users only, scoped to their city (production
+-- has no UPDATE policy on danger_zones — app behaviour is unchanged).
 DROP POLICY IF EXISTS "Dashboard users update own city zones" ON danger_zones;
 CREATE POLICY "Dashboard users update own city zones" ON danger_zones
     FOR UPDATE TO authenticated
-    USING (dash_role() IS NULL OR can_access_city(city_id))
-    WITH CHECK (dash_role() IS NULL OR can_access_city(city_id));
+    USING (dash_role() IS NOT NULL AND can_access_city(city_id))
+    WITH CHECK (can_access_city(city_id));
 
+-- RESTRICTIVE: ANDs with the existing permissive delete policy, so an
+-- authority user can never delete zones outside their city. App users
+-- (no dashboard role) pass through unchanged.
 DROP POLICY IF EXISTS "Dashboard users delete own city zones" ON danger_zones;
 CREATE POLICY "Dashboard users delete own city zones" ON danger_zones
-    FOR DELETE TO authenticated
-    USING (dash_role() = 'city_admin' AND can_access_city(city_id) OR is_superadmin());
+    AS RESTRICTIVE FOR DELETE TO authenticated
+    USING (dash_role() IS NULL OR can_access_city(city_id));
