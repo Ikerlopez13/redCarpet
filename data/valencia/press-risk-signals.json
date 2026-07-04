@@ -1,0 +1,28 @@
+{
+  "_description": "Índice de riesgo por consenso de prensa — señal granular (Layer 2.3) para el motor de scoring. Valor 0-1 por barrio construido a partir de la frecuencia de mención y posición en rankings de barrios inseguros publicados por 4 fuentes independientes (2025-2026). Es un proxy cualitativo: se sustituirá/complementará con las actuaciones por distrito del Anuario Estadístico del Ayuntamiento cuando se ingiera. Los barrios no listados no reciben señal y permanecen cerca de la base municipal.",
+  "signal": "press_risk_index",
+  "period": "2026-S1",
+  "method": "value = f(menciones/4 fuentes, posición en ranking). 4/4 menciones y top-3 → 0.85-1.0; 2-3/4 → 0.45-0.70; 1/4 → 0.25-0.35.",
+  "sources": [
+    "https://www.idealista.com/en/news/lifestyle-in-spain/2026/02/24/881238-the-most-dangerous-neighbourhoods-in-valencia",
+    "https://noticiasciudadanas.com/zonas-mas-peligrosas-de-valencia/",
+    "https://www.securitasdirect.es/blog/barrios-mas-peligrosos-de-valencia/",
+    "https://yoigoalarmas.es/blog/barrios-mas-peligrosos-conflictivos-valencia/"
+  ],
+  "excluded_out_of_city": ["La Coma (Paterna)", "Barrio del Cristo (Aldaia/Quart)", "Tavernes Blanques (municipio propio)"],
+  "values": {
+    "112": { "name": "CABANYAL-CANYAMELAR", "value": 1.0,  "mentions": 4 },
+    "151": { "name": "ELS ORRIOLS",         "value": 0.95, "mentions": 4 },
+    "115": { "name": "NATZARET",            "value": 0.9,  "mentions": 4 },
+    "161": { "name": "BENICALAP",           "value": 0.85, "mentions": 4 },
+    "113": { "name": "LA MALVA-ROSA",       "value": 0.7,  "mentions": 3 },
+    "041": { "name": "CAMPANAR",            "value": 0.55, "mentions": 2 },
+    "014": { "name": "EL PILAR (Velluters)","value": 0.5,  "mentions": 2 },
+    "081": { "name": "PATRAIX",             "value": 0.45, "mentions": 2 },
+    "152": { "name": "TORREFIEL",           "value": 0.35, "mentions": 1 },
+    "013": { "name": "EL CARME",            "value": 0.3,  "mentions": 1 },
+    "103": { "name": "MALILLA",             "value": 0.3,  "mentions": 1 },
+    "022": { "name": "EL PLA DEL REMEI",    "value": 0.25, "mentions": 1 },
+    "132": { "name": "CIUTAT JARDI",        "value": 0.25, "mentions": 1 }
+  }
+}

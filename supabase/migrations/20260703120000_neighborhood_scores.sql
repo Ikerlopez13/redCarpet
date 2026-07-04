@@ -201,9 +201,9 @@ BEGIN
         v_score := v_conf * v_score + (1 - v_conf) * v_baseline;
 
         v_sources := ARRAY['ministerio_interior:' || COALESCE(v_source_period, 'default')];
-        IF v_incident_load > 0 THEN v_sources := v_sources || 'redcarpet_incidents'; END IF;
+        IF v_incident_load > 0 THEN v_sources := array_append(v_sources, 'redcarpet_incidents'); END IF;
         IF v_signal_count > 0 THEN
-            v_sources := v_sources || ('granular_signals:' || v_signal_count::text);
+            v_sources := array_append(v_sources, 'granular_signals:' || v_signal_count::text);
         END IF;
 
         INSERT INTO neighborhood_scores (neighborhood_id, city_id, score, confidence, components, data_sources)
