@@ -104,7 +104,7 @@ export default function OverviewMap() {
                 mapboxAccessToken={MAPBOX_TOKEN}
                 initialViewState={{ bounds: [[bounds[0], bounds[1]], [bounds[2], bounds[3]]], fitBoundsOptions: { padding: 20 } }}
                 maxBounds={[[bounds[0] - 0.05, bounds[1] - 0.05], [bounds[2] + 0.05, bounds[3] + 0.05]]}
-                mapStyle="mapbox://styles/mapbox/light-v11"
+                mapStyle="mapbox://styles/mapbox/dark-v11"
                 interactiveLayerIds={['choropleth']}
                 onClick={onMapClick}
                 cursor={createMode ? 'crosshair' : 'grab'}
@@ -114,7 +114,7 @@ export default function OverviewMap() {
                     <Source id="scores" type="geojson" data={scores}>
                         <Layer id="choropleth" type="fill" paint={CHOROPLETH_PAINT} />
                         <Layer id="choropleth-line" type="line"
-                            paint={{ 'line-color': '#475569', 'line-width': 0.5 }} />
+                            paint={{ 'line-color': '#71717a', 'line-width': 0.5 }} />
                     </Source>
                 )}
 
@@ -141,7 +141,7 @@ export default function OverviewMap() {
             </Map>
 
             {/* layer toggles */}
-            <div className="absolute top-4 left-4 bg-white rounded-lg shadow p-3 text-sm space-y-2 w-56">
+            <div className="absolute top-4 left-4 bg-[#0d0d0d]/95 backdrop-blur border border-white/10 rounded-2xl shadow-xl p-4 text-sm space-y-2.5 w-60 text-zinc-200">
                 {([
                     ['alerts', dt('layer_alerts')],
                     ['violeta', dt('layer_violeta')],
@@ -159,7 +159,7 @@ export default function OverviewMap() {
                     <div className="flex gap-2 pl-6">
                         {[7, 30].map(d => (
                             <button key={d}
-                                className={`text-xs px-2 py-0.5 rounded ${incidentDays === d ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}
+                                className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${incidentDays === d ? 'bg-red-600 text-white' : 'bg-white/10 text-zinc-400'}`}
                                 onClick={() => setIncidentDays(d as 7 | 30)}>{d}d</button>
                         ))}
                     </div>
@@ -169,8 +169,8 @@ export default function OverviewMap() {
             {/* create alert */}
             <button
                 onClick={() => setCreateMode(m => !m)}
-                className={`absolute bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg font-medium
-                    ${createMode ? 'bg-slate-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                className={`absolute bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg font-black uppercase tracking-wider text-sm
+                    ${createMode ? 'bg-zinc-800 text-white border border-white/20' : 'bg-red-600 hover:bg-red-500 text-white shadow-[0_6px_25px_rgba(220,38,38,0.45)]'}`}
             >
                 <Plus className="w-5 h-5" /> {createMode ? dt('click_map_hint') : dt('alert_create')}
             </button>
@@ -185,21 +185,21 @@ export default function OverviewMap() {
 
             {/* barrio detail panel */}
             {barrio && (
-                <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-xl p-5 overflow-y-auto">
+                <div className="absolute top-0 right-0 h-full w-80 bg-[#0d0d0d]/95 backdrop-blur border-l border-white/10 shadow-2xl p-5 overflow-y-auto text-zinc-200">
                     <div className="flex justify-between items-start mb-3">
                         <div>
-                            <h2 className="font-semibold text-slate-900">{barrio.name}</h2>
-                            <p className="text-xs text-slate-500">{barrio.district}</p>
+                            <h2 className="font-black italic uppercase text-white">{barrio.name}</h2>
+                            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{barrio.district}</p>
                         </div>
-                        <button onClick={() => setBarrio(null)}><X className="w-5 h-5 text-slate-400" /></button>
+                        <button onClick={() => setBarrio(null)}><X className="w-5 h-5 text-zinc-500 hover:text-white" /></button>
                     </div>
 
                     <div className="mb-4">
-                        <p className="text-sm text-slate-600">{dt('score')}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{dt('score')}</p>
                         <p className="text-3xl font-bold" style={{
-                            color: (barrio.score ?? 0) > 60 ? '#dc2626' : (barrio.score ?? 0) > 30 ? '#f97316' : '#16a34a'
-                        }}>{barrio.score?.toFixed(0) ?? '—'}<span className="text-base text-slate-400">/100</span></p>
-                        <p className="text-xs text-slate-500">
+                            color: (barrio.score ?? 0) > 60 ? '#ef4444' : (barrio.score ?? 0) > 30 ? '#f97316' : '#22c55e'
+                        }}>{barrio.score?.toFixed(0) ?? '—'}<span className="text-base text-zinc-600">/100</span></p>
+                        <p className="text-xs text-zinc-500">
                             {dt('confidence')}: {barrio.confidence != null ? `${Math.round(barrio.confidence * 100)}%` : '—'}
                         </p>
                         {(barrio.confidence ?? 1) < 0.5 && (
@@ -208,22 +208,22 @@ export default function OverviewMap() {
                     </div>
 
                     <div className="mb-4">
-                        <p className="text-sm text-slate-600 mb-1">{dt('score_trend')}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{dt('score_trend')}</p>
                         {barrio.history.length > 1 ? (
                             <div className="flex items-end gap-1 h-16">
                                 {barrio.history.map((h: any, i: number) => (
                                     <div key={i}
-                                        className="flex-1 bg-red-400 rounded-t"
+                                        className="flex-1 bg-red-600/80 rounded-t"
                                         style={{ height: `${Math.max(4, h.score)}%` }}
                                         title={`${h.score} — ${new Date(h.computed_at).toLocaleDateString()}`} />
                                 ))}
                             </div>
-                        ) : <p className="text-xs text-slate-400">{dt('empty')}</p>}
+                        ) : <p className="text-xs text-zinc-600">{dt('empty')}</p>}
                     </div>
 
                     <div>
-                        <p className="text-sm text-slate-600 mb-1">{dt('data_sources')}</p>
-                        <ul className="text-xs text-slate-500 list-disc pl-4">
+                        <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{dt('data_sources')}</p>
+                        <ul className="text-xs text-zinc-500 list-disc pl-4">
                             {barrio.sources.length ? barrio.sources.map(s => <li key={s}>{s}</li>)
                                 : <li>{dt('empty')}</li>}
                         </ul>
