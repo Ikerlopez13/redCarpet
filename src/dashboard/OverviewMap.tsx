@@ -12,15 +12,27 @@ import { Plus, X } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// score 0 (green) → 100 (red) choropleth ramp
+// Choropleth ramp calibrated around the municipal baseline (~50), not the
+// absolute 0-100 scale: a barrio at baseline reads green (normality), only
+// barrios flagged well above it climb to yellow/orange, and red is reserved
+// for the extremes — the map must inform, not alarm.
 const CHOROPLETH_PAINT: any = {
     'fill-color': [
         'interpolate', ['linear'], ['coalesce', ['get', 'score'], 0],
-        0, '#22c55e', 25, '#eab308', 50, '#f97316', 75, '#dc2626', 100, '#7f1d1d'
+        0, '#16a34a', 50, '#84cc16', 55, '#facc15', 60, '#fb923c', 68, '#ef4444', 85, '#7f1d1d'
     ],
     // low-confidence barrios render washed out (visible flag, Task 3)
     'fill-opacity': ['interpolate', ['linear'], ['coalesce', ['get', 'confidence'], 0], 0, 0.15, 1, 0.55]
 };
+
+// same calibration for panel numbers and trend bars
+function scoreColor(score: number): string {
+    if (score >= 68) return '#ef4444';
+    if (score >= 60) return '#fb923c';
+    if (score >= 55) return '#facc15';
+    if (score >= 50) return '#84cc16';
+    return '#16a34a';
+}
 
 const ALERT_COLORS: Record<string, string> = {
     street_closed: '#dc2626', danger_zone: '#f97316', punto_violeta: '#7c3aed',
@@ -199,6 +211,15 @@ export default function OverviewMap() {
                 )}
             </div>
 
+            {/* legend — calibrated scale, baseline reads as normality */}
+            <div className="absolute bottom-6 left-4 bg-[#0d0d0d]/95 backdrop-blur border border-white/10 rounded-2xl px-4 py-3 text-zinc-300">
+                <div className="h-2 w-48 rounded-full mb-1.5"
+                    style={{ background: 'linear-gradient(to right, #16a34a, #84cc16, #facc15, #fb923c, #ef4444)' }} />
+                <div className="flex justify-between text-[9px] uppercase tracking-widest font-bold text-zinc-500 w-48">
+                    <span>Normal</span><span>Atención</span><span>Riesgo</span>
+                </div>
+            </div>
+
             {/* create alert */}
             <button
                 onClick={() => setCreateMode(m => !m)}
@@ -230,8 +251,7 @@ export default function OverviewMap() {
                     <div className="mb-4">
                         <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{dt('score')}</p>
                         <p className="text-3xl font-bold" style={{
-                            color: (barrio.score ?? 0) > 60 ? '#ef4444' : (barrio.score ?? 0) > 30 ? '#f97316' : '#22c55e'
-                        }}>{barrio.score?.toFixed(0) ?? '—'}<span className="text-base text-zinc-600">/100</span></p>
+                            color: scoreColor(barrio.score ?? 0) }}>{barrio.score?.toFixed(0) ?? '—'}<span className="text-base text-zinc-600">/100</span></p>
                         <p className="text-xs text-zinc-500">
                             {dt('confidence')}: {barrio.confidence != null ? `${Math.round(barrio.confidence * 100)}%` : '—'}
                         </p>
@@ -246,8 +266,8 @@ export default function OverviewMap() {
                             <div className="flex items-end gap-1 h-16">
                                 {barrio.history.map((h: any, i: number) => (
                                     <div key={i}
-                                        className="flex-1 bg-red-600/80 rounded-t"
-                                        style={{ height: `${Math.max(4, h.score)}%` }}
+                                        className="flex-1 rounded-t"
+                                        style={{ height: `${Math.max(4, h.score)}%`, backgroundColor: scoreColor(h.score), opacity: 0.85 }}
                                         title={`${h.score} — ${new Date(h.computed_at).toLocaleDateString()}`} />
                                 ))}
                             </div>
