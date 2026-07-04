@@ -96,6 +96,29 @@ export default function OverviewMap() {
         return layers.alerts;
     }), [alerts, layers]);
 
+    // Geographic circle in meters — same construction the app uses in
+    // IncidenceZones, so the dashboard shows exactly what app users see.
+    const alertCirclesGeojson = useMemo(() => ({
+        type: 'FeatureCollection',
+        features: visibleAlerts.filter(a => a.lat != null).map(a => {
+            const lat = a.lat!, lng = a.lng!;
+            const radius = a.radius_m ?? 100;
+            const km = radius / 1000;
+            const dx = km / (111.320 * Math.cos((lat * Math.PI) / 180));
+            const dy = km / 110.574;
+            const ring: number[][] = [];
+            for (let i = 0; i <= 64; i++) {
+                const t = (i / 64) * 2 * Math.PI;
+                ring.push([lng + dx * Math.cos(t), lat + dy * Math.sin(t)]);
+            }
+            return {
+                type: 'Feature',
+                properties: { color: a.type === 'punto_violeta' ? '#7c3aed' : '#f59e0b' },
+                geometry: { type: 'Polygon', coordinates: [ring] }
+            };
+        })
+    }), [visibleAlerts]);
+
     const bounds = cityBounds ?? [-0.45, 39.27, -0.27, 39.57]; // València fallback
 
     return (
@@ -118,10 +141,20 @@ export default function OverviewMap() {
                     </Source>
                 )}
 
+                {/* radius circles — same geographic circle the app renders
+                    for these zones (amber like IncidenceZones; violet for
+                    puntos violeta) */}
+                <Source id="alert-radius" type="geojson" data={alertCirclesGeojson as any}>
+                    <Layer id="alert-radius-fill" type="fill"
+                        paint={{ 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 }} />
+                    <Layer id="alert-radius-line" type="line"
+                        paint={{ 'line-color': ['get', 'color'], 'line-width': 2, 'line-opacity': 0.4 }} />
+                </Source>
+
                 {visibleAlerts.map(a => a.lat != null && (
                     <Marker key={a.id} latitude={a.lat} longitude={a.lng!} anchor="center">
                         <div
-                            title={`${dt('type_' + a.type)} — ${a.title}`}
+                            title={`${dt('type_' + a.type)} — ${a.title} (${a.radius_m ?? 100}m)`}
                             className="rounded-full border-2 border-white shadow-lg"
                             style={{
                                 backgroundColor: ALERT_COLORS[a.type],

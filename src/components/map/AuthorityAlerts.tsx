@@ -59,7 +59,12 @@ export const AuthorityAlerts: React.FC<Props> = ({ bounds: rawBounds, onAlertCli
             const { data } = await supabase.rpc('get_live_alerts_in_bbox', {
                 min_lon: bounds[0], min_lat: bounds[1], max_lon: bounds[2], max_lat: bounds[3]
             });
-            if (!cancelled && data) setAlerts(data as AuthorityAlert[]);
+            // danger-type alerts are mirrored into danger_zones by the DB and
+            // render through the app's standard incident circles — here we
+            // only draw puntos violeta (safe points, violet icon)
+            if (!cancelled && data) {
+                setAlerts((data as AuthorityAlert[]).filter(a => a.type === 'punto_violeta'));
+            }
         };
 
         load();

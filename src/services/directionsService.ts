@@ -354,7 +354,10 @@ export async function getAlternativeRoutes(
             directRoutes,
             ...waypointRouteSets
         ] = await Promise.all([
-            isWalking ? supabase.from('danger_zones').select('*').or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`) : Promise.resolve({ data: [] }),
+            // mirrored authority alerts (authority_alert_id set) are already
+            // penalised via authorityPenalty — exclude them here to avoid
+            // counting the same alert twice
+            isWalking ? supabase.from('danger_zones').select('*').is('authority_alert_id', null).or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`) : Promise.resolve({ data: [] }),
             isWalking ? getLiveAuthorityAlerts(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat) : Promise.resolve([]),
             isWalking ? loadNeighborhoodScores() : Promise.resolve([]),
             fetchWithWaypoint(null),
