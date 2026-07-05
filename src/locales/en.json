@@ -323,7 +323,7 @@
     },
     "buttons": {
       "start": "Start",
-      "continue": "Continue and Allow",
+      "continue": "Continue",
       "finish": "Finish Setup"
     }
   },

@@ -36,7 +36,8 @@
     "login_btn": "Iniciar Sesión",
     "register_btn": "Registrarme",
     "reset_btn": "Recuperar Cuenta",
-    "continue_with": "O continúa con", "continue_with_apple": "Continuar con Apple",
+    "continue_with": "O continúa con",
+    "continue_with_apple": "Continuar con Apple",
     "google": "Google",
     "apple": "Apple",
     "app_subtitle": "Tu experiencia urbana, guiada y segura",
@@ -322,7 +323,7 @@
     },
     "buttons": {
       "start": "Comenzar",
-      "continue": "Continuar y Permitir",
+      "continue": "Continuar",
       "finish": "Finalizar Configuración"
     }
   },
@@ -565,13 +566,35 @@
     "section3_content": "REDCARPET trata los datos personales respetando los principios de licitud, limitación de la finalidad, minimización, exactitud, integridad y responsabilidad proactiva.",
     "section4_title": "4. Categorías de Datos Tratados",
     "section4_1_title": "4.1 Datos Identificativos",
-    "section4_1_list": ["Nombre y apellidos.", "Dirección postal.", "Correo electrónico.", "Número de teléfono."],
+    "section4_1_list": [
+      "Nombre y apellidos.",
+      "Dirección postal.",
+      "Correo electrónico.",
+      "Número de teléfono."
+    ],
     "section4_2_title": "4.2 Datos Técnicos",
-    "section4_2_list": ["Dirección IP.", "Identificador único de usuario.", "Identificadores de dispositivo.", "Registros de acceso.", "Metadatos técnicos."],
+    "section4_2_list": [
+      "Dirección IP.",
+      "Identificador único de usuario.",
+      "Identificadores de dispositivo.",
+      "Registros de acceso.",
+      "Metadatos técnicos."
+    ],
     "section4_3_title": "4.3 Datos de Localización y Movilidad",
-    "section4_3_list": ["Ubicación GPS en tiempo real.", "Historial de ubicaciones.", "Frecuencia de visitas.", "Tiempo de permanencia.", "Horarios habituales.", "Patrones de desplazamiento."],
+    "section4_3_list": [
+      "Ubicación GPS en tiempo real.",
+      "Historial de ubicaciones.",
+      "Frecuencia de visitas.",
+      "Tiempo de permanencia.",
+      "Horarios habituales.",
+      "Patrones de desplazamiento."
+    ],
     "section4_4_title": "4.4 Datos Económicos",
-    "section4_4_list": ["Datos de facturación.", "Historial de pagos.", "Información contable."],
+    "section4_4_list": [
+      "Datos de facturación.",
+      "Historial de pagos.",
+      "Información contable."
+    ],
     "section4_footer": "REDCARPET declara expresamente que no trata categorías especiales de datos personales (Art. 9 RGPD).",
     "section5_title": "5. Finalidades del Tratamiento",
     "section5_list": [
