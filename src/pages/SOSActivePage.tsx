@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldAlert, X, Delete, Loader2, Phone, Mic, Video } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
