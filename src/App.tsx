@@ -67,6 +67,7 @@ const PageLoader = () => {
 };
 
 import { ForceUpdateGate } from './components/ForceUpdateGate';
+import { PermissionsPrimer } from './components/PermissionsPrimer';
 import { useAuth } from './contexts/AuthContext';
 
 /**
@@ -154,6 +155,7 @@ function App() {
                     <SOSProvider>
                         <DeepLinkHandler />
                         <GlobalModals />
+                        <PermissionsPrimer />
                         <Suspense fallback={<PageLoader />}>
                             <Routes>
                                 {/* Authorities dashboard — outside the mobile shell */}
