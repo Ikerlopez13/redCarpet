@@ -12,16 +12,59 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>es</string>
+		<string>ca</string>
+		<string>en</string>
+		<string>fr</string>
+		<string>pt</string>
+		<string>de</string>
+		<string>it</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.2.2</string>
+	<string>3.2.3</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.vibecode.redcarpet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.vibecode.redcarpet</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
-	<string>15</string>
+	<string>18</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to stream your journey to your trusted contacts.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>RedCarpet necesita acceder a tus contactos para que puedas seleccionar a tus contactos de confianza rápidamente.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location to follow your journey in the background for your safety.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show you on the map and recommend comfortable routes.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need microphone access to record audio during your journey stream.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need permission to save photos and videos from your journey to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to save journey captures.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,48 +88,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to show you on the map and recommend comfortable routes.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We need your location to follow your journey in the background for your safety.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to stream your journey to your trusted contacts.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>We need microphone access to record audio during your journey stream.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.vibecode.redcarpet</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.vibecode.redcarpet</string>
-			</array>
-		</dict>
-	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to save journey captures.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>We need permission to save photos and videos from your journey to your library.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>RedCarpet necesita acceder a tus contactos para que puedas seleccionar a tus contactos de confianza rápidamente.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
-	<key>CFBundleLocalizations</key>
-	<array>
-		<string>es</string>
-		<string>ca</string>
-		<string>en</string>
-		<string>fr</string>
-		<string>pt</string>
-		<string>de</string>
-		<string>it</string>
-	</array>
 </dict>
 </plist>
