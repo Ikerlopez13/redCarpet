@@ -19,9 +19,20 @@ interface SOSConfig {
 let mediaRecorder: MediaRecorder | null = null;
 let recordedChunks: Blob[] = [];
 
-export async function startSOSPreview(options: { position?: 'front' | 'rear' } = { position: 'rear' }) {
-    if (!Capacitor.isNativePlatform()) return;
+export async function startSOSPreview(options: { position?: 'front' | 'rear' } = { position: 'rear' }): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false;
     try {
+        // Sin permiso de cámara la preview falla en silencio y la pantalla se ve
+        // negra (el body ya es transparente): comprobar/pedir antes de arrancar.
+        const { Camera } = await import('@capacitor/camera');
+        let camStatus = await Camera.checkPermissions();
+        if (camStatus.camera !== 'granted') {
+            camStatus = await Camera.requestPermissions({ permissions: ['camera'] });
+        }
+        if (camStatus.camera !== 'granted') {
+            console.warn('[SOS-Service] Cámara sin permiso — se continúa solo con audio');
+            return false;
+        }
         const { CameraPreview } = await import('@capacitor-community/camera-preview');
         await CameraPreview.start({
             parent: "sos-native-preview",
@@ -30,8 +41,10 @@ export async function startSOSPreview(options: { position?: 'front' | 'rear' } =
             storeToFile: false,
             className: "sos-native-preview"
         });
+        return true;
     } catch (err) {
         console.error('[SOS-Service] Native Preview fail:', err);
+        return false;
     }
 }
 

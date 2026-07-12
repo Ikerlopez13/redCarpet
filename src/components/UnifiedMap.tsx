@@ -29,26 +29,6 @@ const DEFAULT_VIEW = {
     zoom: 16
 };
 
-// Barcelona visibility points
-const barcelonaIncidencePoints = [
-    {
-        id: 'zone-bcn-1',
-        lat: 41.4070,
-        lng: 2.1850,
-        radius: 80,
-        titleKey: 'map.light_notice',
-        descriptionKey: 'map.improve_light'
-    },
-    {
-        id: 'zone-bcn-2',
-        lat: 41.4100,
-        lng: 2.1920,
-        radius: 60,
-        titleKey: 'map.attention_zone',
-        descriptionKey: 'map.incident_road'
-    }
-];
-
 export interface MapMember {
     id: string; // Changed from string | number to string to match FamilyMember
     name: string;
@@ -165,12 +145,11 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     });
                     setIncidenceZones(mappedZones);
                 } else {
-                    // Force demo zones if DB is empty
-                    setIncidenceZones(barcelonaIncidencePoints);
+                    setIncidenceZones([]);
                 }
             } catch (err) {
                 console.error("Error fetching incidence zones:", err);
-                setIncidenceZones(barcelonaIncidencePoints);
+                setIncidenceZones([]);
             }
         };
 

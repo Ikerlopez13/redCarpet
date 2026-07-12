@@ -142,17 +142,21 @@ export const SOSActivePage: React.FC = () => {
             // 2. Start Native Preview (Mirroring handled in Plugin.swift now)
             if (Capacitor.isNativePlatform()) {
                 isCameraStartingRef.current = true;
+                let previewOk = false;
                 try {
-                    await startSOSPreview();
+                    previewOk = await startSOSPreview();
                 } finally {
                     isCameraStartingRef.current = false;
                 }
-                // Ensure state updates AFTER preview start to trigger transparency
-                const timer = setTimeout(() => {
-                    setIsCameraStarted(true);
-                    document.body.classList.add('sos-mode-active');
-                }, 300);
-                return () => clearTimeout(timer);
+                // Solo hacer el fondo transparente si la cámara arrancó de verdad:
+                // si falla, dejar el fondo de la UI (evita la pantalla negra) y
+                // seguir con audio.
+                if (previewOk) {
+                    setTimeout(() => {
+                        setIsCameraStarted(true);
+                        document.body.classList.add('sos-mode-active');
+                    }, 300);
+                }
             }
 
             // 3. Start Recording (Resilient with it's own timeouts)
@@ -194,7 +198,8 @@ export const SOSActivePage: React.FC = () => {
                                 if (isCameraStartingRef.current) return;
                                 isCameraStartingRef.current = true;
                                 try {
-                                    await startSOSPreview();
+                                    const ok = await startSOSPreview();
+                                    if (!ok) document.body.classList.remove('sos-mode-active');
                                 } finally {
                                     isCameraStartingRef.current = false;
                                 }
