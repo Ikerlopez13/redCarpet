@@ -32,8 +32,7 @@ export const Feedback: React.FC = () => {
                 const storeUrl = 'https://apps.apple.com/es/app/redcarpet/id6755689618?action=write-review';
                 
                 try {
-                    const { App } = await import('@capacitor/app');
-                    await App.openUrl({ url: storeUrl });
+                    window.open(storeUrl, '_system');
                 } catch (e) {
                     window.open(storeUrl, '_system');
                 }

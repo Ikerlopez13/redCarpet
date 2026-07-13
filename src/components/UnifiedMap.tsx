@@ -379,11 +379,6 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 {showIncidenceZones && (
                     <IncidenceZones 
                         zones={[
-                            ...barcelonaIncidencePoints.map(p => ({
-                                ...p,
-                                title: t(p.titleKey),
-                                description: t(p.descriptionKey)
-                            })),
                             ...incidenceZones,
                             ...externalIncidenceZones
                         ].map(z => ({

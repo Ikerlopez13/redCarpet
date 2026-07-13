@@ -24,10 +24,10 @@ export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, on
             // Redirect to stores for 4 and 5 stars
             if (Capacitor.isNativePlatform()) {
                 const url = Capacitor.getPlatform() === 'ios'
-                    ? 'itms-apps://itunes.apple.com/app/idXXXXXXXXX'
+                    ? 'itms-apps://itunes.apple.com/app/id6755689618?action=write-review'
                     : 'market://details?id=com.vibecode.redcarpet';
                 try {
-                    await App.openUrl({ url });
+                    window.location.href = url;
                 } catch (e) {
                     console.error("Failed to open store link", e);
                 }

@@ -51,7 +51,7 @@ export const Settings: React.FC = () => {
     const handleNotificationActivation = async () => {
         try {
             if (Capacitor.getPlatform() === 'ios') {
-                await App.openUrl({ url: 'app-settings:' });
+                window.location.href = 'app-settings:';
             } else {
                 alert(t('settings.notifications.open_settings'));
             }
@@ -309,9 +309,9 @@ export const Settings: React.FC = () => {
                         onClick={async () => {
                             if (Capacitor.isNativePlatform()) {
                                 const url = Capacitor.getPlatform() === 'ios'
-                                    ? 'itms-apps://itunes.apple.com/app/idXXXXXXXXX'
+                                    ? 'itms-apps://itunes.apple.com/app/id6755689618'
                                     : 'market://details?id=com.vibecode.redcarpet';
-                                try { await App.openUrl({ url }); } catch (e) {}
+                                try { window.location.href = url; } catch (e) {}
                             }
                         }}
                         className="w-full h-14 bg-[#1c1c1e] rounded-xl flex items-center gap-4 px-4 hover:bg-white/5 active:bg-white/10 transition-colors"

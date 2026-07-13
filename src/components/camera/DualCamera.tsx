@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Check, X, RefreshCw, Loader2 } from 'lucide-react';
+import { Camera, Check, X, RefreshCw, Loader2, ShieldAlert } from 'lucide-react';
 import { captureBeRealDual } from '../../services/cameraService';
 import clsx from 'clsx';
 

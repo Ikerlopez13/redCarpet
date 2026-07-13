@@ -336,8 +336,8 @@ export function subscribeToSOSAlerts(groupId: string, onNewAlert: (alert: SOSAle
 export async function call112() {
     console.log('[SOS-Service] Initiating 112 call...');
     if (Capacitor.isNativePlatform()) {
-        const { App } = await import('@capacitor/app');
-        await App.openUrl({ url: 'tel:112' });
+        // App.openUrl no existe en Capacitor 6 — tel: vía location dispara el marcador
+        window.location.href = 'tel:112';
     } else {
         alert('Simulación de llamada al 112 (Solo disponible en dispositivos móviles)');
     }
