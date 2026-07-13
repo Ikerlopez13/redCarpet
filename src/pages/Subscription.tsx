@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { RevenueCatService } from '../services/revenueCatService';
 import type { PurchasesPackage } from '../services/revenueCatService';
 import { useAuth } from '../contexts/AuthContext';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import {
+    Globe,
     Crown,
     Check,
     Loader2,
@@ -30,7 +33,12 @@ import { TrustedContactsService } from '../services/trustedContactsService';
 export const Subscription: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { setIsPremium } = useAuth();
+    const { user, setIsPremium } = useAuth();
+
+    const openWebPaywall = async () => {
+        if (!user) return;
+        await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+    };
     const [packages, setPackages] = useState<PurchasesPackage[]>([]);
     const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
     const [processing, setProcessing] = useState(false);
@@ -190,6 +198,19 @@ export const Subscription: React.FC = () => {
                             {error}
                         </p>
                     </div>
+                )}
+
+                {/* Pago web (Stripe) — solo Android: evita la comisión de la store */}
+                {Capacitor.getPlatform() === 'android' && user && (
+                    <button
+                        onClick={openWebPaywall}
+                        className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/15 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+                    >
+                        <Globe size={18} className="text-primary" />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-white/80">
+                            Pagar con tarjeta en la web
+                        </span>
+                    </button>
                 )}
 
                 {/* 1. PREMIUM INDIVIDUAL */}

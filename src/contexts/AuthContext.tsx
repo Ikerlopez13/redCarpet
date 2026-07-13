@@ -43,7 +43,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsPremium(false);
             return false;
         }
-        const hasPremium = await RevenueCatService.checkEntitlement();
+        let hasPremium = await RevenueCatService.checkEntitlement();
+        // Las suscripciones pagadas por la web (Stripe) viven en la tabla
+        // subscriptions, no en RevenueCat.
+        if (!hasPremium) {
+            try {
+                const { data } = await supabase
+                    .from('subscriptions')
+                    .select('id')
+                    .eq('user_id', currentUser.id)
+                    .eq('status', 'active')
+                    .gt('expires_at', new Date().toISOString())
+                    .maybeSingle();
+                hasPremium = !!data;
+            } catch (err) {
+                console.warn('[AuthContext] Error comprobando suscripción web:', err);
+            }
+        }
         setIsPremium(hasPremium);
         return hasPremium;
     };
