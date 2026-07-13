@@ -34,7 +34,7 @@ export function SOSProvider({ children }: { children: ReactNode }) {
     const openSOSModal = async (mode?: 'discrete' | 'visible') => {
         setInitialMode(mode);
         const hasLocalConsent = await checkEmergencyConsent();
-        const hasDBConsent = user?.profile?.has_accepted_privacy_policy === true;
+        const hasDBConsent = user?.profile?.privacy_policy_accepted === true;
 
         if (!hasLocalConsent && !hasDBConsent) {
             setShowConsent(true);

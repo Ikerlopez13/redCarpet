@@ -41,7 +41,8 @@ export interface Database {
                     full_name: string | null;
                     avatar_url: string | null;
                     phone: string | null;
-                    has_accepted_privacy_policy: boolean | null;
+                    privacy_policy_accepted: boolean | null;
+                    onboarding_completed: boolean | null;
                     sos_pin: string | null;
                     dob: string | null;
                     habitual_city: string | null;
@@ -55,7 +56,8 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     phone?: string | null;
-                    has_accepted_privacy_policy?: boolean | null;
+                    privacy_policy_accepted?: boolean | null;
+                    onboarding_completed?: boolean | null;
                     sos_pin?: string | null;
                     dob?: string | null;
                     habitual_city?: string | null;
@@ -69,7 +71,8 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     phone?: string | null;
-                    has_accepted_privacy_policy?: boolean | null;
+                    privacy_policy_accepted?: boolean | null;
+                    onboarding_completed?: boolean | null;
                     sos_pin?: string | null;
                     dob?: string | null;
                     habitual_city?: string | null;

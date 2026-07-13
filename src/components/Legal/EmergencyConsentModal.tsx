@@ -32,7 +32,7 @@ export function EmergencyConsentModal({ isOpen, onConsent, onDecline }: Emergenc
             await supabase
                 .from('profiles')
                 // @ts-ignore
-                .update({ has_accepted_privacy_policy: true })
+                .update({ privacy_policy_accepted: true })
                 .eq('id', user.id);
 
             // Refresh profile context

@@ -304,7 +304,8 @@ export const Home: React.FC = () => {
         if (user && !user.profile) return;
 
         // 3. Profile is loaded — check if they already completed onboarding on another device
-        if (user?.profile?.has_accepted_privacy_policy || user?.profile?.dob) {
+        // (onboarding_completed vive en el perfil; las señales antiguas quedan de respaldo)
+        if (user?.profile?.onboarding_completed || user?.profile?.privacy_policy_accepted || user?.profile?.dob) {
             localStorage.setItem('onboarding_complete', 'true');
             return;
         }

@@ -87,7 +87,8 @@ export const Onboarding: React.FC = () => {
                         walking_alone_frequency: walkingAlone,
                         risk_exposure_level: riskExposure,
                         habitual_zones: habitualZones ? [habitualZones] : [],
-                        has_accepted_privacy_policy: true
+                        privacy_policy_accepted: true,
+                        onboarding_completed: true
                     }).eq('id', user.id);
                     await refreshProfile();
                 } catch (e) {
