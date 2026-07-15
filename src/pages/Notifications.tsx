@@ -28,6 +28,11 @@ interface NotificationItem {
   action?: string;
   alertId?: string;
   createdAt: string;
+  mediaAudio?: string | null;
+  mediaVideo?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  fromUserId?: string;
 }
 
 export const Notifications: React.FC = () => {
@@ -92,15 +97,20 @@ export const Notifications: React.FC = () => {
                     title: isOwn 
                         ? t('notifications.own_sos_title', 'SOS enviado correctamente') 
                         : (a.status === 'active' 
-                            ? t('notifications.journey_alert_title', { name }) 
-                            : t('notifications.journey_finished_title', { name })),
+                            ? `🚨 ${name} ha activado un SOS` 
+                            : `SOS de ${name} finalizado`),
                     message: isOwn 
                         ? t('notifications.own_alert_message', 'Se ha alertado correctamente y se ha avisado a tus contactos.') 
                         : (a.message || t('notifications.update_processed')),
                     time: formatTime(a.created_at),
                     isRead: a.status !== 'active',
                     action: a.status === 'active' ? t('notifications.open_map') : undefined,
-                    createdAt: a.created_at
+                    createdAt: a.created_at,
+                    mediaAudio: a.media_audio_url || (a.media_url && !a.media_url.includes('.mp4') && !a.media_url.includes('.webm') ? a.media_url : null),
+                    mediaVideo: a.media_video_url || (a.media_url && (a.media_url.includes('.mp4') || a.media_url.includes('.webm')) ? a.media_url : null),
+                    lat: a.lat,
+                    lng: a.lng,
+                    fromUserId: a.user_id
                 };
             });
 
@@ -152,7 +162,7 @@ export const Notifications: React.FC = () => {
 
   const handleAction = (notif: NotificationItem) => {
     if (notif.action === t('notifications.open_map')) {
-        navigate('/');
+        navigate(notif.fromUserId && notif.fromUserId !== user?.id ? `/?focusUser=${notif.fromUserId}` : '/');
     } else if (notif.action === t('notifications.view_history')) {
         navigate('/history');
     }
@@ -223,6 +233,24 @@ export const Notifications: React.FC = () => {
                   <p className="text-xs text-white/50 leading-relaxed mb-3">
                     {notif.message}
                   </p>
+
+                  {/* Directo del SOS: audio / vídeo grabado por el contacto */}
+                  {notif.mediaVideo && (
+                    <video controls playsInline preload="metadata" src={notif.mediaVideo}
+                      className="w-full rounded-xl mb-3 border border-white/10 bg-black max-h-48" />
+                  )}
+                  {!notif.mediaVideo && notif.mediaAudio && (
+                    <audio controls preload="metadata" src={notif.mediaAudio} className="w-full mb-3" />
+                  )}
+                  {notif.type === 'emergency' && notif.lat != null && notif.lng != null && (
+                    <button
+                      onClick={() => window.open(`https://maps.google.com/?q=${notif.lat},${notif.lng}`, '_blank')}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white transition-colors mb-2"
+                    >
+                      📍 Ver ubicación exacta
+                      <ArrowRight size={12} />
+                    </button>
+                  )}
 
                   {/* Action Button */}
                   {notif.action && (

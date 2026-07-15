@@ -363,7 +363,7 @@ export async function executeSOSProtocol(userId: string, groupId: string, type: 
 
     // 2. Trigger Database Alert & Notifications to Trusted Contacts
     const { alert, error } = await activateSOS(userId, groupId, {
-        message: `⚠️ AVISO DE TRAYECTO. \nHe activado una nota de trayecto. Mi ubicación y cámara han sido compartidas con mis contactos seleccionados. Por favor, revisa mi progreso.`,
+        message: `🚨 SOS ACTIVADO. Mi ubicación y la cámara se están compartiendo en tiempo real. Por favor, comprueba que estoy bien.`,
         highPriority: false,
         notifyContacts: true,
         shareLocation: true,

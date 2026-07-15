@@ -317,10 +317,12 @@ export async function checkGeofence(
             // OR better, just log it as the user specifically asked for "Avisos automáticos"
             const { error } = await supabase.functions.invoke('send-sos-notifications', {
                 body: {
-                    alertId: 'safe-zone-' + Date.now(), // Dummy ID
+                    alertId: 'safe-zone-' + Date.now(),
                     groupId: zone.family_id,
+                    userId,
+                    notificationType: 'safe_arrival',
                     config: {
-                        message: `📍 ${zone.name}: Un familiar ha llegado a salvo.`,
+                        message: `Ha llegado a "${zone.name}" — está a salvo.`,
                         notifyContacts: true
                     }
                 }
@@ -338,8 +340,10 @@ export async function checkGeofence(
                 body: {
                     alertId: 'safe-zone-leave-' + Date.now(),
                     groupId: zone.family_id,
+                    userId,
+                    notificationType: 'safe_departure',
                     config: {
-                        message: `🚶 ${zone.name}: Un familiar ha salido de esta zona segura.`,
+                        message: `Ha salido de "${zone.name}".`,
                         notifyContacts: true
                     }
                 }
@@ -417,17 +421,33 @@ export async function checkIncidenceZones(
             if (membership) {
                 await updateFamilyStats(membership.group_id, 'risk_alert');
 
-                // Send Notification to Family
+                // Aviso al círculo: un contacto está pasando por una zona alertada
                 await supabase.functions.invoke('send-sos-notifications', {
                     body: {
-                        alertId: 'incidence-' + Date.now(),
+                        alertId: zone.id,
                         groupId: membership.group_id,
+                        userId,
+                        notificationType: 'contact_in_zone',
                         config: {
-                            message: `📍 NOTA DE TRAYECTO: Un familiar ha entrado en una zona de interés (${zone.type}).`,
+                            message: `Está pasando por una zona con un aviso activo${zone.description ? `: ${zone.description}` : ''}.`,
                             notifyContacts: true
                         }
                     }
                 });
+            }
+
+            // Aviso al propio usuario: estás entrando en una zona con aviso activo
+            await supabase.functions.invoke('send-sos-notifications', {
+                body: {
+                    alertId: zone.id,
+                    targetUserId: userId,
+                    notificationType: 'zone_proximity',
+                    config: {
+                        message: `Estás pasando por una zona con un aviso de seguridad activo${zone.description ? `: ${zone.description}` : ''}. Mantén la atención.`
+                    }
+                }
+            }).catch(() => {});
+            {
             }
 
             // RE-CONFIRMATION LOGIC: If zone is older than 12 hours, ask the user if it's still there

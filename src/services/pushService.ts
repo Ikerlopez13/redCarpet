@@ -109,10 +109,14 @@ function handleNotificationAction(event: any): void {
     const { notification } = event;
     const data = notification.data;
 
-    if (data?.type === 'sos' && data?.alertId) {
-        window.location.href = `/emergency?alertId=${data.alertId}`;
+    if (data?.type === 'sos') {
+        window.location.href = `/notifications${data?.alertId ? `?alertId=${data.alertId}` : ''}`;
     } else if (data?.type === 'friend_request') {
         window.location.href = '/contacts';
+    } else if (data?.type === 'danger_zone' || data?.type === 'zone_proximity') {
+        window.location.href = '/';
+    } else if (data?.type === 'safe_zone') {
+        window.location.href = '/notifications';
     } else if (data?.type === 'location' && data?.userId) {
         window.location.href = `/?focusUser=${data.userId}`;
     }
