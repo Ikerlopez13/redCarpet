@@ -1,0 +1,522 @@
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/69713d00fe47f4c39a56757006421ff3/results.bin b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/69713d00fe47f4c39a56757006421ff3/results.bin
+new file mode 100644
+index 0000000..0d259dd
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/69713d00fe47f4c39a56757006421ff3/results.bin
+@@ -0,0 +1 @@
++o/classes
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/69713d00fe47f4c39a56757006421ff3/transformed/classes/classes_dex/classes.dex b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/69713d00fe47f4c39a56757006421ff3/transformed/classes/classes_dex/classes.dex
+new file mode 100644
+index 0000000..5b32db5
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/69713d00fe47f4c39a56757006421ff3/transformed/classes/classes_dex/classes.dex differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/77f67372c77df99d373f051607d984d5/results.bin b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/77f67372c77df99d373f051607d984d5/results.bin
+new file mode 100644
+index 0000000..e3f0ff0
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/77f67372c77df99d373f051607d984d5/results.bin
+@@ -0,0 +1 @@
++i/classes_global-synthetics
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f1ebdf16e4b73cd691ca9193f80c16fd/results.bin b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f1ebdf16e4b73cd691ca9193f80c16fd/results.bin
+new file mode 100644
+index 0000000..61a58fa
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f1ebdf16e4b73cd691ca9193f80c16fd/results.bin
+@@ -0,0 +1 @@
++i/classes_dex
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/AndroidManifest.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/AndroidManifest.xml
+new file mode 100644
+index 0000000..e11133c
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/AndroidManifest.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.ahm.capacitor.camera.preview.capacitorcamerapreview" >
++
++    <uses-sdk android:minSdkVersion="23" />
++
++</manifest>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/output-metadata.json b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/output-metadata.json
+new file mode 100644
+index 0000000..161f69f
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/output-metadata.json
+@@ -0,0 +1,18 @@
++{
++  "version": 3,
++  "artifactType": {
++    "type": "AAPT_FRIENDLY_MERGED_MANIFESTS",
++    "kind": "Directory"
++  },
++  "applicationId": "com.ahm.capacitor.camera.preview.capacitorcamerapreview",
++  "variantName": "release",
++  "elements": [
++    {
++      "type": "SINGLE",
++      "filters": [],
++      "attributes": [],
++      "outputFile": "AndroidManifest.xml"
++    }
++  ],
++  "elementType": "File"
++}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aar_metadata/release/aar-metadata.properties b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aar_metadata/release/aar-metadata.properties
+new file mode 100644
+index 0000000..1211b1e
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/aar_metadata/release/aar-metadata.properties
+@@ -0,0 +1,6 @@
++aarFormatVersion=1.0
++aarMetadataVersion=1.0
++minCompileSdk=1
++minCompileSdkExtension=0
++minAndroidGradlePluginVersion=1.0.0
++coreLibraryDesugaringEnabled=false
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/annotation_processor_list/release/annotationProcessors.json b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/annotation_processor_list/release/annotationProcessors.json
+new file mode 100644
+index 0000000..9e26dfe
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/annotation_processor_list/release/annotationProcessors.json
+@@ -0,0 +1 @@
++{}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/classes.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/classes.jar
+new file mode 100644
+index 0000000..2d9e2b3
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/classes.jar differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/R.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/R.jar
+new file mode 100644
+index 0000000..0ddcacc
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/R.jar differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_symbol_list/release/R.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_symbol_list/release/R.txt
+new file mode 100644
+index 0000000..3544914
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_symbol_list/release/R.txt
+@@ -0,0 +1,13 @@
++int id camera_container 0x0
++int id camera_loader 0x0
++int id camera_loader_spinner 0x0
++int id frame_camera_cont 0x0
++int id frame_container 0x0
++int id frame_view 0x0
++int id picture_view 0x0
++int id video_view 0x0
++int id webview 0x0
++int layout bridge_layout_main 0x0
++int layout camera_activity 0x0
++int string my_string 0x0
++int style CameraPreviewTheme 0x0
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_bridge_layout_main.xml.flat b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_bridge_layout_main.xml.flat
+new file mode 100644
+index 0000000..7079f44
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_bridge_layout_main.xml.flat differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_camera_activity.xml.flat b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_camera_activity.xml.flat
+new file mode 100644
+index 0000000..3f8beb9
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_camera_activity.xml.flat differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml
+new file mode 100644
+index 0000000..a7b087c
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/jniLibs"/></dataSet><dataSet config="release" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/release/jniLibs"/></dataSet></merger>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseShaders/merger.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseShaders/merger.xml
+new file mode 100644
+index 0000000..6f7e41e
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseShaders/merger.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/shaders"/></dataSet><dataSet config="release" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/release/shaders"/></dataSet></merger>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/packageReleaseAssets/merger.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/packageReleaseAssets/merger.xml
+new file mode 100644
+index 0000000..83d1ce5
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/packageReleaseAssets/merger.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/assets"/></dataSet><dataSet config="release" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/release/assets"/></dataSet><dataSet config="generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/build/intermediates/shader_assets/release/out"/></dataSet></merger>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties
+new file mode 100644
+index 0000000..55b090a
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties
+@@ -0,0 +1,3 @@
++#Fri Jul 17 11:01:43 CEST 2026
++com.ahm.capacitor.camera.preview.capacitorcamerapreview.capacitor-community-camera-preview-main-5\:/layout/bridge_layout_main.xml=/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/bridge_layout_main.xml
++com.ahm.capacitor.camera.preview.capacitorcamerapreview.capacitor-community-camera-preview-main-5\:/layout/camera_activity.xml=/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/camera_activity.xml
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/merged.dir/values/values.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/merged.dir/values/values.xml
+new file mode 100644
+index 0000000..2bdbdbc
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/merged.dir/values/values.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <item name="camera_container" type="id"/>
++    <string name="my_string">Just a simple string</string>
++    <style name="CameraPreviewTheme" parent="android:Theme.Light">
++    <item name="android:windowIsFloating">true</item>  
++    <item name="android:windowCloseOnTouchOutside">false</item>  
++    <item name="android:colorBackgroundCacheHint">@null</item>  
++    <item name="android:backgroundDimEnabled">false</item>  
++  </style>
++</resources>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml
+new file mode 100644
+index 0000000..6000b16
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res"><file name="camera_activity" path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/layout/camera_activity.xml" qualifiers="" type="layout"/><file name="bridge_layout_main" path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/layout/bridge_layout_main.xml" qualifiers="" type="layout"/><file path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/values/colors.xml" qualifiers=""/><file path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/values/camera_theme.xml" qualifiers=""><style name="CameraPreviewTheme" parent="android:Theme.Light">
++    <item name="android:windowIsFloating">true</item>  
++    <item name="android:windowCloseOnTouchOutside">false</item>  
++    <item name="android:colorBackgroundCacheHint">@null</item>  
++    <item name="android:backgroundDimEnabled">false</item>  
++  </style></file><file path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/values/styles.xml" qualifiers=""/><file path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/values/strings.xml" qualifiers=""><string name="my_string">Just a simple string</string></file><file path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/res/values/camera_ids.xml" qualifiers=""><item name="camera_container" type="id"/></file></source></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="release$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/release/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="release" generated-set="release$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/release/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/build/generated/res/resValues/release"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/build/generated/res/resValues/release"/></dataSet><mergedItems/></merger>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class
+new file mode 100644
+index 0000000..e0e7f23
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class
+new file mode 100644
+index 0000000..d001b82
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class
+new file mode 100644
+index 0000000..5580776
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class
+new file mode 100644
+index 0000000..d0a3ef0
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class
+new file mode 100644
+index 0000000..8182edc
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class
+new file mode 100644
+index 0000000..661a81c
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class
+new file mode 100644
+index 0000000..4d8f83a
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class
+new file mode 100644
+index 0000000..70f555c
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class
+new file mode 100644
+index 0000000..c37971d
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class
+new file mode 100644
+index 0000000..8a7c357
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class
+new file mode 100644
+index 0000000..4f7ad8e
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class
+new file mode 100644
+index 0000000..43f4900
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity.class
+new file mode 100644
+index 0000000..5382b74
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class
+new file mode 100644
+index 0000000..3a104d9
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class
+new file mode 100644
+index 0000000..138b3db
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class
+new file mode 100644
+index 0000000..c3f2b00
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class
+new file mode 100644
+index 0000000..8461d8e
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview.class
+new file mode 100644
+index 0000000..9c619f3
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class
+new file mode 100644
+index 0000000..af8dfce
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class
+new file mode 100644
+index 0000000..7be1222
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/Preview.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/Preview.class
+new file mode 100644
+index 0000000..e83a382
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/Preview.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class
+new file mode 100644
+index 0000000..b078051
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/local_only_symbol_list/release/R-def.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/local_only_symbol_list/release/R-def.txt
+new file mode 100644
+index 0000000..b73bd59
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/local_only_symbol_list/release/R-def.txt
+@@ -0,0 +1,15 @@
++R_DEF: Internal format may change without notice
++local
++id camera_container
++id camera_loader
++id camera_loader_spinner
++id frame_camera_cont
++id frame_container
++id frame_view
++id picture_view
++id video_view
++id webview
++layout bridge_layout_main
++layout camera_activity
++string my_string
++style CameraPreviewTheme
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/manifest_merge_blame_file/release/manifest-merger-blame-release-report.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/manifest_merge_blame_file/release/manifest-merger-blame-release-report.txt
+new file mode 100644
+index 0000000..fe5ee84
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/manifest_merge_blame_file/release/manifest-merger-blame-release-report.txt
+@@ -0,0 +1,7 @@
++1<?xml version="1.0" encoding="utf-8"?>
++2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++3    package="com.ahm.capacitor.camera.preview.capacitorcamerapreview" >
++4
++5    <uses-sdk android:minSdkVersion="23" />
++6
++7</manifest>
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/merged_manifest/release/AndroidManifest.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/merged_manifest/release/AndroidManifest.xml
+new file mode 100644
+index 0000000..e11133c
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/merged_manifest/release/AndroidManifest.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.ahm.capacitor.camera.preview.capacitorcamerapreview" >
++
++    <uses-sdk android:minSdkVersion="23" />
++
++</manifest>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/navigation_json/release/navigation.json b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/navigation_json/release/navigation.json
+new file mode 100644
+index 0000000..0637a08
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/navigation_json/release/navigation.json
+@@ -0,0 +1 @@
++[]
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/bridge_layout_main.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/bridge_layout_main.xml
+new file mode 100644
+index 0000000..56fec15
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/bridge_layout_main.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="utf-8"?>
++<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    tools:context="com.getcapacitor.BridgeActivity"
++    >
++
++    <WebView
++        android:id="@+id/webview"
++        android:layout_width="fill_parent"
++        android:layout_height="fill_parent" />
++
++</androidx.coordinatorlayout.widget.CoordinatorLayout>
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/camera_activity.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/camera_activity.xml
+new file mode 100644
+index 0000000..f02734c
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/layout/camera_activity.xml
+@@ -0,0 +1,68 @@
++<?xml version="1.0" encoding="utf-8"?>
++<FrameLayout
++  android:layout_width="match_parent"
++  android:layout_height="match_parent"
++  tools:context="com.ahm.capacitor.camera.preview.CameraActivity"
++  android:id="@+id/frame_container"
++  xmlns:android="http://schemas.android.com/apk/res/android"
++  xmlns:tools="http://schemas.android.com/tools"
++  android:layout_gravity="center_horizontal|top"
++  android:layout_weight=".7">
++
++  <RelativeLayout
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:gravity="center_horizontal|top"
++    android:id="@+id/frame_camera_cont"
++    android:layout_gravity="center_horizontal|top">
++
++    <FrameLayout
++      android:layout_width="match_parent"
++      android:layout_height="match_parent"
++      android:id="@+id/video_view"
++
++      android:scaleType="fitXY"
++      android:layout_gravity="top" />
++
++    <ImageView
++      android:layout_width="match_parent"
++      android:layout_height="match_parent"
++      android:id="@+id/picture_view"
++      android:layout_gravity="center|bottom"
++      android:adjustViewBounds="true"
++      android:scaleType="fitXY" />
++
++    <ImageView
++      android:layout_width="match_parent"
++      android:layout_height="match_parent"
++      android:id="@+id/frame_view"
++      android:layout_gravity="center_horizontal|bottom"
++      android:adjustViewBounds="true"
++      android:scaleType="centerInside" />
++
++  </RelativeLayout>
++
++  <FrameLayout
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:id="@+id/camera_loader"
++    android:scaleType="fitXY"
++    android:layout_gravity="top"
++    android:layout_alignWithParentIfMissing="false"
++    android:layout_alignParentTop="false"
++    android:layout_alignParentLeft="false"
++    android:layout_alignParentBottom="false"
++    android:layout_alignParentRight="false"
++    android:visibility="invisible"
++    android:background="#ff000000">
++
++    <ProgressBar
++      android:layout_width="wrap_content"
++      android:layout_height="wrap_content"
++      android:id="@+id/camera_loader_spinner"
++      android:layout_gravity="center"
++      android:indeterminate="false"
++      android:indeterminateBehavior="cycle"
++      android:indeterminateOnly="true"/>
++  </FrameLayout>
++</FrameLayout>
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/values/values.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/values/values.xml
+new file mode 100644
+index 0000000..2bdbdbc
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/packaged_res/release/values/values.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <item name="camera_container" type="id"/>
++    <string name="my_string">Just a simple string</string>
++    <style name="CameraPreviewTheme" parent="android:Theme.Light">
++    <item name="android:windowIsFloating">true</item>  
++    <item name="android:windowCloseOnTouchOutside">false</item>  
++    <item name="android:colorBackgroundCacheHint">@null</item>  
++    <item name="android:backgroundDimEnabled">false</item>  
++  </style>
++</resources>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/classes.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/classes.jar
+new file mode 100644
+index 0000000..df6c474
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/classes.jar differ
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/symbol_list_with_package_name/release/package-aware-r.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/symbol_list_with_package_name/release/package-aware-r.txt
+new file mode 100644
+index 0000000..9a2fbbc
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/symbol_list_with_package_name/release/package-aware-r.txt
+@@ -0,0 +1,14 @@
++com.ahm.capacitor.camera.preview.capacitorcamerapreview
++id camera_container
++id camera_loader
++id camera_loader_spinner
++id frame_camera_cont
++id frame_container
++id frame_view
++id picture_view
++id video_view
++id webview
++layout bridge_layout_main
++layout camera_activity
++string my_string
++style CameraPreviewTheme
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/outputs/logs/manifest-merger-release-report.txt b/node_modules/@capacitor-community/camera-preview/android/build/outputs/logs/manifest-merger-release-report.txt
+new file mode 100644
+index 0000000..94461c7
+--- /dev/null
++++ b/node_modules/@capacitor-community/camera-preview/android/build/outputs/logs/manifest-merger-release-report.txt
+@@ -0,0 +1,16 @@
++-- Merging decision tree log ---
++manifest
++ADDED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml:2:3-4:14
++INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml:2:3-4:14
++	package
++		INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml
++	xmlns:android
++		ADDED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml:2:13-71
++uses-sdk
++INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
++INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml
++INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml
++	android:targetSdkVersion
++		INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml
++	android:minSdkVersion
++		INJECTED from /private/tmp/claude-501/-Users-ikerlopezalegre/dda7bd05-6109-4c78-a869-144c81b4c69e/scratchpad/rc-build/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml
+diff --git a/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin b/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin
+new file mode 100644
+index 0000000..897e573
+Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin differ
+diff --git a/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
+index 7fca23c..2ed03bf 100644
+--- a/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
++++ b/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
+@@ -89,6 +89,13 @@ public class CameraPreview: CAPPlugin {
+                         self.webView?.isOpaque = false
+                         self.webView?.backgroundColor = UIColor.clear
+                         self.webView?.scrollView.backgroundColor = UIColor.clear
++                        if #available(iOS 15.0, *) {
++                            // En iOS 18/26 esta capa pinta blanco sobre la preview
++                            // nativa aunque el webview sea transparente.
++                            self.webView?.underPageBackgroundColor = UIColor.clear
++                            self.webView?.scrollView.subviews.forEach { $0.backgroundColor = UIColor.clear }
++                        }
++                        self.webView?.superview?.backgroundColor = UIColor.black
+                         self.webView?.superview?.addSubview(self.previewView)
+                         if self.toBack! {
+                             self.webView?.superview?.bringSubviewToFront(self.webView!)
+@@ -126,6 +133,9 @@ public class CameraPreview: CAPPlugin {
+                 self.cameraController.captureSession?.stopRunning()
+                 self.previewView.removeFromSuperview()
+                 self.webView?.isOpaque = true
++                if #available(iOS 15.0, *) {
++                    self.webView?.underPageBackgroundColor = nil
++                }
+                 call.resolve()
+             } else {
+                 call.reject("camera already stopped")
