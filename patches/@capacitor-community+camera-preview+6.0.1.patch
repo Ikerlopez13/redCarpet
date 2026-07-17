@@ -493,7 +493,7 @@ new file mode 100644
 index 0000000..897e573
 Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin differ
 diff --git a/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
-index 7fca23c..6cb8826 100644
+index 7fca23c..1709647 100644
 --- a/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
 +++ b/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
 @@ -75,10 +75,15 @@ public class CameraPreview: CAPPlugin {
@@ -516,7 +516,13 @@ index 7fca23c..6cb8826 100644
                          if let error = error {
                              print(error)
                              call.reject(error.localizedDescription)
-@@ -89,6 +94,13 @@ public class CameraPreview: CAPPlugin {
+@@ -86,9 +91,19 @@ public class CameraPreview: CAPPlugin {
+                         }
+                         let height = self.paddingBottom != nil ? self.height! - self.paddingBottom!: self.height!
+                         self.previewView = UIView(frame: CGRect(x: self.x ?? 0, y: self.y ?? 0, width: self.width!, height: height))
++                        // Negro, no transparente: si la sesión no entrega frames se
++                        // ve negro (y no el fondo del sistema), y sirve de diagnóstico.
++                        self.previewView.backgroundColor = UIColor.black
                          self.webView?.isOpaque = false
                          self.webView?.backgroundColor = UIColor.clear
                          self.webView?.scrollView.backgroundColor = UIColor.clear
@@ -530,7 +536,7 @@ index 7fca23c..6cb8826 100644
                          self.webView?.superview?.addSubview(self.previewView)
                          if self.toBack! {
                              self.webView?.superview?.bringSubviewToFront(self.webView!)
-@@ -105,7 +117,6 @@ public class CameraPreview: CAPPlugin {
+@@ -105,7 +120,6 @@ public class CameraPreview: CAPPlugin {
                          call.resolve()
  
                      }
@@ -538,7 +544,7 @@ index 7fca23c..6cb8826 100644
              }
          })
  
-@@ -122,14 +133,16 @@ public class CameraPreview: CAPPlugin {
+@@ -122,14 +136,16 @@ public class CameraPreview: CAPPlugin {
  
      @objc func stop(_ call: CAPPluginCall) {
          DispatchQueue.main.async {
