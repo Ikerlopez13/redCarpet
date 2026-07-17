@@ -39,6 +39,10 @@ export async function startSOSPreview(options: { position?: 'front' | 'rear' } =
             position: options.position || "rear",
             toBack: true,
             storeToFile: false,
+            // Sin audio: el VoiceRecorder graba el sonido, y si la preview también
+            // abre el micro, en iOS 18/26 el sistema interrumpe TODA la sesión de
+            // captura (vídeo incluido) al arrancar la grabación → cámara en blanco.
+            disableAudio: true,
             className: "sos-native-preview"
         });
         return true;

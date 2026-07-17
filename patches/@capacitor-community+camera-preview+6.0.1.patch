@@ -493,10 +493,30 @@ new file mode 100644
 index 0000000..897e573
 Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin differ
 diff --git a/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
-index 7fca23c..2ed03bf 100644
+index 7fca23c..6cb8826 100644
 --- a/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
 +++ b/node_modules/@capacitor-community/camera-preview/ios/Plugin/Plugin.swift
-@@ -89,6 +89,13 @@ public class CameraPreview: CAPPlugin {
+@@ -75,10 +75,15 @@ public class CameraPreview: CAPPlugin {
+             }
+ 
+             DispatchQueue.main.async {
+-                if self.cameraController.captureSession?.isRunning ?? false {
+-                    call.reject("camera already started")
+-                } else {
+-                    self.cameraController.prepare(cameraPosition: self.cameraPosition, disableAudio: self.disableAudio) {error in
++                // Si hay una sesión previa (viva o interrumpida), desmontarla y
++                // arrancar de cero en vez de rechazar con "camera already started":
++                // tras una interrupción (llamada, otro cliente de audio) isRunning
++                // queda en un estado que impedía reiniciar la preview.
++                if self.cameraController.captureSession != nil {
++                    self.cameraController.captureSession?.stopRunning()
++                    self.previewView?.removeFromSuperview()
++                }
++                self.cameraController.prepare(cameraPosition: self.cameraPosition, disableAudio: self.disableAudio) {error in
+                         if let error = error {
+                             print(error)
+                             call.reject(error.localizedDescription)
+@@ -89,6 +94,13 @@ public class CameraPreview: CAPPlugin {
                          self.webView?.isOpaque = false
                          self.webView?.backgroundColor = UIColor.clear
                          self.webView?.scrollView.backgroundColor = UIColor.clear
@@ -510,13 +530,35 @@ index 7fca23c..2ed03bf 100644
                          self.webView?.superview?.addSubview(self.previewView)
                          if self.toBack! {
                              self.webView?.superview?.bringSubviewToFront(self.webView!)
-@@ -126,6 +133,9 @@ public class CameraPreview: CAPPlugin {
-                 self.cameraController.captureSession?.stopRunning()
-                 self.previewView.removeFromSuperview()
-                 self.webView?.isOpaque = true
-+                if #available(iOS 15.0, *) {
-+                    self.webView?.underPageBackgroundColor = nil
-+                }
-                 call.resolve()
-             } else {
-                 call.reject("camera already stopped")
+@@ -105,7 +117,6 @@ public class CameraPreview: CAPPlugin {
+                         call.resolve()
+ 
+                     }
+-                }
+             }
+         })
+ 
+@@ -122,14 +133,16 @@ public class CameraPreview: CAPPlugin {
+ 
+     @objc func stop(_ call: CAPPluginCall) {
+         DispatchQueue.main.async {
+-            if self.cameraController.captureSession?.isRunning ?? false {
+-                self.cameraController.captureSession?.stopRunning()
+-                self.previewView.removeFromSuperview()
+-                self.webView?.isOpaque = true
+-                call.resolve()
+-            } else {
+-                call.reject("camera already stopped")
++            // Limpiar SIEMPRE, aunque la sesión ya no esté corriendo (p. ej. tras
++            // una interrupción del sistema): antes se rechazaba sin desmontar nada
++            // y el siguiente start() se encontraba la sesión zombi.
++            self.cameraController.captureSession?.stopRunning()
++            self.previewView?.removeFromSuperview()
++            self.webView?.isOpaque = true
++            if #available(iOS 15.0, *) {
++                self.webView?.underPageBackgroundColor = nil
+             }
++            call.resolve()
+         }
+     }
+     // Get user's cache directory path
