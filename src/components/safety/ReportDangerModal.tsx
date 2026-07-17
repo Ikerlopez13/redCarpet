@@ -21,15 +21,16 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
 
     if (!isOpen) return null;
 
+    // Cada tipo tiene su color propio (se usa con estilos inline para que Tailwind no purgue las clases)
     const types = [
-        { id: 'dark_light', dbType: 'dark', icon: 'lightbulb', label: 'Poca luz', subtitle: 'BAJA VISIBILIDAD' },
-        { id: 'unsafe_env', dbType: 'incident', icon: 'warning', label: 'Ambiente Inseguro', subtitle: 'PELIGRO' },
-        { id: 'limited_mobility', dbType: 'incident', icon: 'accessible', label: 'Acceso limitado', subtitle: 'MOVILIDAD REDUCIDA' },
-        { id: 'safe_mobility', dbType: 'incident', icon: 'wheelchair_pickup', label: 'Acceso seguro', subtitle: 'MOVILIDAD REDUCIDA' },
-        { id: 'inclusive_zone', dbType: 'incident', icon: 'diversity_3', label: 'Zona inclusiva', subtitle: 'INCLUSIVIDAD' },
-        { id: 'street_closed', dbType: 'incident', icon: 'block', label: 'Calle cortada', subtitle: 'VIALIDAD' },
-        { id: 'street_damaged', dbType: 'incident', icon: 'construction', label: 'Calle en mal estado', subtitle: 'VIALIDAD' },
-        { id: 'security', dbType: 'incident', icon: 'shield', label: 'Autoridades presentes', subtitle: 'SEGURIDAD' }
+        { id: 'dark_light', dbType: 'dark', icon: 'lightbulb', label: 'Poca luz', subtitle: 'BAJA VISIBILIDAD', color: '#eab308' },
+        { id: 'unsafe_env', dbType: 'incident', icon: 'warning', label: 'Ambiente Inseguro', subtitle: 'PELIGRO', color: '#ef4444' },
+        { id: 'limited_mobility', dbType: 'incident', icon: 'accessible', label: 'Acceso limitado', subtitle: 'MOVILIDAD REDUCIDA', color: '#a855f7' },
+        { id: 'safe_mobility', dbType: 'incident', icon: 'wheelchair_pickup', label: 'Acceso seguro', subtitle: 'MOVILIDAD REDUCIDA', color: '#22c55e' },
+        { id: 'inclusive_zone', dbType: 'incident', icon: 'diversity_3', label: 'Zona inclusiva', subtitle: 'INCLUSIVIDAD', color: '#ec4899' },
+        { id: 'street_closed', dbType: 'incident', icon: 'block', label: 'Calle cortada', subtitle: 'VIALIDAD', color: '#f97316' },
+        { id: 'street_damaged', dbType: 'incident', icon: 'construction', label: 'Calle en mal estado', subtitle: 'VIALIDAD', color: '#14b8a6' },
+        { id: 'security', dbType: 'incident', icon: 'shield', label: 'Autoridades presentes', subtitle: 'SEGURIDAD', color: '#3b82f6' }
     ] as const;
 
     const handleSubmit = async () => {
@@ -133,18 +134,19 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
                         <button
                             key={type.id}
                             onClick={() => setSelectedType(type.id)}
+                            style={selectedType === type.id ? { borderColor: type.color, boxShadow: `0 0 20px ${type.color}26` } : undefined}
                             className={clsx(
                                 "flex flex-col items-center justify-center p-4 rounded-[1.8rem] border transition-all h-[135px]",
-                                selectedType === type.id 
-                                    ? "bg-white/10 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.15)] scale-[1.02]" 
+                                selectedType === type.id
+                                    ? "bg-white/10 text-white scale-[1.02]"
                                     : "bg-[#18181f]/80 border-white/[0.04] text-white/80 hover:bg-white/5"
                             )}
                         >
                             {/* Circular Icon Container */}
-                            <div className={clsx(
-                                "size-10 rounded-full flex items-center justify-center mb-3",
-                                selectedType === type.id ? "bg-red-500/20 text-red-500" : "bg-red-500/10 text-red-400"
-                            )}>
+                            <div
+                                className="size-10 rounded-full flex items-center justify-center mb-3"
+                                style={{ backgroundColor: `${type.color}${selectedType === type.id ? '33' : '1f'}`, color: type.color }}
+                            >
                                 <span className="material-symbols-outlined text-lg font-bold">{type.icon}</span>
                             </div>
                             
