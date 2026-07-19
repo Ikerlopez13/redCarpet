@@ -19,8 +19,10 @@ interface IncidenceZonesProps {
     zones: IncidenceZoneProps[];
 }
 
+import { getIncidentColor } from '../../utils/incidentColors';
+
 // Función para generar un círculo geográfico preciso en metros (Polygon)
-const createGeoJSONCircle = (lat: number, lng: number, radiusInMeters: number) => {
+const createGeoJSONCircle = (lat: number, lng: number, radiusInMeters: number, color: string) => {
     const points = 64; 
     const km = radiusInMeters / 1000;
 
@@ -38,7 +40,7 @@ const createGeoJSONCircle = (lat: number, lng: number, radiusInMeters: number) =
 
     return {
         type: 'Feature',
-        properties: {},
+        properties: { color },
         geometry: {
             type: 'Polygon',
             coordinates: [coordinates]
@@ -53,21 +55,21 @@ export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
     const geojson = useMemo(() => {
         return {
             type: 'FeatureCollection',
-            features: zones.map(zone => 
-                createGeoJSONCircle(zone.lat, zone.lng, zone.radius || 20)
+            features: zones.map(zone =>
+                createGeoJSONCircle(zone.lat, zone.lng, zone.radius || 20, getIncidentColor(zone.title || zone.label))
             )
         };
     }, [zones]);
 
     return (
         <>
-            {/* Área de incidencia - ESCALA REAL (Meters) */}
+            {/* Área de incidencia - ESCALA REAL (Meters), color según tipo de incidencia */}
             <Source id="incidence-zones-source" type="geojson" data={geojson as any}>
                 <Layer
                     id="incidence-zones-fill"
                     type="fill"
                     paint={{
-                        'fill-color': '#f59e0b',
+                        'fill-color': ['get', 'color'],
                         'fill-opacity': 0.2
                     }}
                 />
@@ -75,32 +77,37 @@ export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
                     id="incidence-zones-line"
                     type="line"
                     paint={{
-                        'line-color': '#f59e0b',
+                        'line-color': ['get', 'color'],
                         'line-width': 2,
                         'line-opacity': 0.4
                     }}
                 />
             </Source>
 
-            {/* Marcadores Estilizados (Referencia Visual) */}
-            {zones.map(zone => (
+            {/* Marcadores Estilizados (Referencia Visual), color según tipo de incidencia */}
+            {zones.map(zone => {
+                const color = getIncidentColor(zone.title || zone.label);
+                return (
                 <Marker
                     key={zone.id}
                     latitude={zone.lat}
                     longitude={zone.lng}
                     anchor="center"
                 >
-                    <div 
-                        className="flex flex-col items-center gap-2 pointer-events-auto cursor-pointer group" 
+                    <div
+                        className="flex flex-col items-center gap-2 pointer-events-auto cursor-pointer group"
                         onClick={(e) => {
                             e.stopPropagation();
                             zone.onClick?.(zone.id);
                         }}
                     >
                         {/* Círculo Central con Icono */}
-                        <div className="relative size-12 rounded-full bg-zinc-900 border-[2px] border-amber-500 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-transform group-hover:scale-110">
-                            <Info size={20} className="text-amber-500 fill-amber-500/10" />
-                            <div className="absolute inset-0 rounded-full border border-amber-500 animate-pulse opacity-20 pointer-events-none" />
+                        <div
+                            className="relative size-12 rounded-full bg-zinc-900 border-[2px] flex items-center justify-center transition-transform group-hover:scale-110"
+                            style={{ borderColor: color, boxShadow: `0 0 15px ${color}4d` }}
+                        >
+                            <Info size={20} style={{ color }} />
+                            <div className="absolute inset-0 rounded-full border animate-pulse opacity-20 pointer-events-none" style={{ borderColor: color }} />
                         </div>
 
                         {/* Etiqueta Pill Inferior */}
@@ -111,7 +118,8 @@ export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
                         </div>
                     </div>
                 </Marker>
-            ))}
+                );
+            })}
         </>
     );
 };
