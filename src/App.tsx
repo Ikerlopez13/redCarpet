@@ -36,6 +36,7 @@ const Emergency = lazy(() => import('./pages/Emergency').then(m => ({ default: m
 const SOSActivePage = lazy(() => import('./pages/SOSActivePage').then(m => ({ default: m.SOSActivePage })));
 const Security = lazy(() => import('./pages/Security').then(m => ({ default: m.Security })));
 const WidgetsPage = lazy(() => import('./pages/WidgetsPage').then(m => ({ default: m.WidgetsPage })));
+const BusinessSpotlight = lazy(() => import('./pages/BusinessSpotlight').then(m => ({ default: m.BusinessSpotlight })));
 
 // Authorities dashboard (València sandbox) — web-only, own layout/auth guard
 const DashboardLayout = lazy(() => import('./dashboard/DashboardLayout'));
@@ -194,6 +195,7 @@ function App() {
                                         <Route path="/emergency-live" element={<SOSActivePage />} />
                                         <Route path="/security" element={<Security />} />
                                         <Route path="/widgets" element={<WidgetsPage />} />
+                                        <Route path="/business-spotlight" element={<BusinessSpotlight />} />
                                     </Route>
                                 </Route>
                             </Routes>

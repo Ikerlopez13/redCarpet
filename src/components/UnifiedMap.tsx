@@ -11,6 +11,7 @@ import { TransitLayer } from './map/TransitMarkers';
 import { POILayer } from './map/POIMarker';
 import { SafeZones } from './map/SafeZone';
 import { AuthorityAlerts } from './map/AuthorityAlerts';
+import { BusinessMarkers } from './map/BusinessMarkers';
 import { LOCATIONS } from '../services/directionsService';
 import { getNearbyBusStops, getNearbyMetroStations, type BusStop, type MetroStation } from '../services/tmbService';
 import { getNearbyPOIs, type POI } from '../services/poiService';
@@ -415,6 +416,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 {showPOIs && pois.length > 0 && onPOIClick && (
                     <POILayer pois={pois} onPOIClick={onPOIClick} />
                 )}
+
+                {/* Negocios destacados — pin dorado */}
+                <BusinessMarkers />
 
                 {/* Route Lines from Directions API */}
                 {showRoutes && routeGeometry && (

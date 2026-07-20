@@ -182,6 +182,18 @@ export const Settings: React.FC = () => {
             ]
         },
         {
+            title: 'Para negocios',
+            items: [
+                {
+                    icon: "store",
+                    label: "Destaca tu negocio en el mapa",
+                    subLabel: "Pin dorado visible para todos los usuarios · 50€/mes",
+                    path: "/business-spotlight",
+                    iconColor: "text-amber-400"
+                },
+            ]
+        },
+        {
             title: t('settings.groups.support_legal'),
             items: [
                 { icon: "mail", label: t('settings.items.contact'), subLabel: "soporte.redcarpet@gmail.com", email: "soporte.redcarpet@gmail.com" },

@@ -340,7 +340,18 @@ export function subscribeToSOSAlerts(groupId: string, onNewAlert: (alert: SOSAle
 export async function call112() {
     console.log('[SOS-Service] Initiating 112 call...');
     if (Capacitor.isNativePlatform()) {
-        // App.openUrl no existe en Capacitor 6 — tel: vía location dispara el marcador
+        if (Capacitor.getPlatform() === 'android') {
+            try {
+                // ACTION_CALL: inicia la llamada directamente sin abrir la app de teléfono,
+                // la app permanece activa en background (el SOS sigue grabando).
+                const { registerPlugin } = await import('@capacitor/core');
+                const CallPhone = registerPlugin<{ call: (opts: { number: string }) => Promise<void> }>('CallPhone');
+                await CallPhone.call({ number: '112' });
+                return;
+            } catch (err) {
+                console.warn('[SOS-Service] CallPhone plugin no disponible, fallback a tel:', err);
+            }
+        }
         window.location.href = 'tel:112';
     } else {
         alert('Simulación de llamada al 112 (Solo disponible en dispositivos móviles)');
@@ -361,11 +372,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 export async function executeSOSProtocol(userId: string, groupId: string, type: string = 'security') {
     console.log('[SOS-Service] EXECUTING ROUTE NOTICE PROTOCOL');
-    
-    // 1. Trigger 112 Call Immediately (Dialer)
-    call112();
 
-    // 2. Trigger Database Alert & Notifications to Trusted Contacts
+    // La llamada al 112 la gestiona SOSActivePage (timer de 10s configurable),
+    // NO aquí: llamar inmediatamente sacaría al usuario de la app antes de que
+    // el protocolo de grabación y notificaciones se establezca.
+
+    // 1. Trigger Database Alert & Notifications to Trusted Contacts
     const { alert, error } = await activateSOS(userId, groupId, {
         message: `🚨 SOS ACTIVADO. Mi ubicación y la cámara se están compartiendo en tiempo real. Por favor, comprueba que estoy bien.`,
         highPriority: false,

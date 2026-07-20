@@ -34,11 +34,58 @@ export const Subscription: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { user, setIsPremium } = useAuth();
+    const isAndroid = Capacitor.getPlatform() === 'android';
 
-    const openWebPaywall = async () => {
+    const openWebPaywall = async (planId: string = 'monthly') => {
         if (!user) return;
-        await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+        // POST a create-checkout para obtener la URL de Stripe y abrirla en browser
+        try {
+            const r = await fetch('https://tryredcarpet.com/api/create-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, planId })
+            });
+            const data = await r.json();
+            if (data.url) {
+                await Browser.open({ url: data.url });
+                // Cuando el usuario vuelve a la app, comprobar si pagó
+                import('@capacitor/app').then(({ App }) => {
+                    const listener = App.addListener('appStateChange', async ({ isActive }) => {
+                        if (isActive) {
+                            listener.then(l => l.remove());
+                            // Esperar un poco para que el webhook actualice Supabase
+                            await new Promise(r => setTimeout(r, 2000));
+                            const { supabase } = await import('../services/supabaseClient');
+                            const { data: sub } = await supabase
+                                .from('subscriptions').select('id')
+                                .eq('user_id', user.id).eq('status', 'active')
+                                .gt('expires_at', new Date().toISOString()).maybeSingle();
+                            if (sub) { setIsPremium(true); setShowSuccess(true); }
+                        }
+                    });
+                });
+            } else {
+                // Fallback: abrir directamente la web del paywall
+                await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+            }
+        } catch {
+            await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+        }
     };
+
+    const verifyWebPurchase = async () => {
+        if (!user) return;
+        setProcessing(true);
+        const { supabase } = await import('../services/supabaseClient');
+        const { data } = await supabase
+            .from('subscriptions').select('id')
+            .eq('user_id', user.id).eq('status', 'active')
+            .gt('expires_at', new Date().toISOString()).maybeSingle();
+        if (data) { setIsPremium(true); setShowSuccess(true); }
+        else setError('No se encontró ninguna suscripción activa. Comprueba tu correo de confirmación.');
+        setProcessing(false);
+    };
+
     const [packages, setPackages] = useState<PurchasesPackage[]>([]);
     const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
     const [processing, setProcessing] = useState(false);
@@ -200,17 +247,40 @@ export const Subscription: React.FC = () => {
                     </div>
                 )}
 
-                {/* Pago web (Stripe) — solo Android: evita la comisión de la store */}
-                {Capacitor.getPlatform() === 'android' && user && (
-                    <button
-                        onClick={openWebPaywall}
-                        className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/15 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
-                    >
-                        <Globe size={18} className="text-primary" />
-                        <span className="text-[11px] font-black uppercase tracking-widest text-white/80">
-                            Pagar con tarjeta en la web
-                        </span>
-                    </button>
+                {/* Android: pago web como opción principal (sin comisión de Play Store) */}
+                {isAndroid && user && (
+                    <div className="bg-gradient-to-b from-blue-950/60 to-zinc-950 border-2 border-blue-500/40 rounded-[2rem] p-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                                <Globe size={20} className="text-blue-400" />
+                            </div>
+                            <div>
+                                <h3 className="font-black uppercase tracking-tight text-white text-sm">Paga con tarjeta en la web</h3>
+                                <p className="text-[10px] text-white/40 uppercase tracking-widest">Precio directo · Sin intermediarios</p>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => openWebPaywall('monthly')}
+                                className="w-full h-12 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Globe size={14} /> Mensual · 9,99 €/mes
+                            </button>
+                            <button
+                                onClick={() => openWebPaywall('annual')}
+                                className="w-full h-12 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Globe size={14} /> Anual · 79,99 €/año
+                            </button>
+                        </div>
+                        <button
+                            onClick={verifyWebPurchase}
+                            disabled={processing}
+                            className="w-full h-10 bg-white/5 border border-white/10 rounded-xl text-white/50 font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2"
+                        >
+                            {processing ? <Loader2 size={14} className="animate-spin" /> : '✓ Ya pagué · Verificar acceso'}
+                        </button>
+                    </div>
                 )}
 
                 {/* 1. PREMIUM INDIVIDUAL */}

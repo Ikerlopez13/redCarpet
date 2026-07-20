@@ -44,6 +44,8 @@ export const Notifications: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
     const fetchNotifs = async () => {
         if (!user) return;
         try {
@@ -158,6 +160,26 @@ export const Notifications: React.FC = () => {
         }
     };
     fetchNotifs();
+
+    // Suscripción realtime: cuando un contacto sube el audio/vídeo del SOS
+    // (updateSOSAlertMedia en handleFinalStop) los contactos de confianza lo ven al instante
+    realtimeChannel = supabase
+      .channel('notifications-sos-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'sos_alerts',
+      }, () => { fetchNotifs(); })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'sos_alerts',
+      }, () => { fetchNotifs(); })
+      .subscribe();
+
+    return () => {
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
   }, [user]);
 
   const handleAction = (notif: NotificationItem) => {
@@ -234,13 +256,20 @@ export const Notifications: React.FC = () => {
                     {notif.message}
                   </p>
 
-                  {/* Directo del SOS: audio / vídeo grabado por el contacto */}
+                  {/* Grabación SOS: vídeo o audio del contacto */}
                   {notif.mediaVideo && (
-                    <video controls playsInline preload="metadata" src={notif.mediaVideo}
-                      className="w-full rounded-xl mb-3 border border-white/10 bg-black max-h-48" />
+                    <div className="mb-3">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">🎥 Grabación de vídeo</p>
+                      <video controls playsInline preload="metadata" src={notif.mediaVideo}
+                        className="w-full rounded-xl border border-white/10 bg-black max-h-48" />
+                    </div>
                   )}
                   {!notif.mediaVideo && notif.mediaAudio && (
-                    <audio controls preload="metadata" src={notif.mediaAudio} className="w-full mb-3" />
+                    <div className="mb-3">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">🎙 Audio del SOS</p>
+                      <audio controls preload="metadata" src={notif.mediaAudio}
+                        className="w-full rounded-lg" style={{ colorScheme: 'dark' }} />
+                    </div>
                   )}
                   {notif.type === 'emergency' && notif.lat != null && notif.lng != null && (
                     <button
