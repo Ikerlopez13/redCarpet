@@ -36,41 +36,26 @@ export const Subscription: React.FC = () => {
     const { user, setIsPremium } = useAuth();
     const isAndroid = Capacitor.getPlatform() === 'android';
 
-    const openWebPaywall = async (planId: string = 'monthly') => {
+    const openWebPaywall = async () => {
         if (!user) return;
-        // POST a create-checkout para obtener la URL de Stripe y abrirla en browser
-        try {
-            const r = await fetch('https://tryredcarpet.com/api/create-checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id, planId })
+        // Abre la web de pago existente con el uid vinculado.
+        // premium.html ya muestra todos los planes y gestiona el checkout de Stripe.
+        await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+        // Cuando el usuario vuelve a la app, comprobar si el pago se confirmó
+        import('@capacitor/app').then(({ App }) => {
+            const listenerPromise = App.addListener('appStateChange', async ({ isActive }) => {
+                if (isActive) {
+                    listenerPromise.then(l => l.remove());
+                    await new Promise(r => setTimeout(r, 2000));
+                    const { supabase } = await import('../services/supabaseClient');
+                    const { data: sub } = await supabase
+                        .from('subscriptions').select('id')
+                        .eq('user_id', user.id).eq('status', 'active')
+                        .gt('expires_at', new Date().toISOString()).maybeSingle();
+                    if (sub) { setIsPremium(true); setShowSuccess(true); }
+                }
             });
-            const data = await r.json();
-            if (data.url) {
-                await Browser.open({ url: data.url });
-                // Cuando el usuario vuelve a la app, comprobar si pagó
-                import('@capacitor/app').then(({ App }) => {
-                    const listener = App.addListener('appStateChange', async ({ isActive }) => {
-                        if (isActive) {
-                            listener.then(l => l.remove());
-                            // Esperar un poco para que el webhook actualice Supabase
-                            await new Promise(r => setTimeout(r, 2000));
-                            const { supabase } = await import('../services/supabaseClient');
-                            const { data: sub } = await supabase
-                                .from('subscriptions').select('id')
-                                .eq('user_id', user.id).eq('status', 'active')
-                                .gt('expires_at', new Date().toISOString()).maybeSingle();
-                            if (sub) { setIsPremium(true); setShowSuccess(true); }
-                        }
-                    });
-                });
-            } else {
-                // Fallback: abrir directamente la web del paywall
-                await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
-            }
-        } catch {
-            await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
-        }
+        });
     };
 
     const verifyWebPurchase = async () => {
@@ -247,7 +232,7 @@ export const Subscription: React.FC = () => {
                     </div>
                 )}
 
-                {/* Android: pago web como opción principal (sin comisión de Play Store) */}
+                {/* Android: pago web como opción principal (la web tiene selección de planes) */}
                 {isAndroid && user && (
                     <div className="bg-gradient-to-b from-blue-950/60 to-zinc-950 border-2 border-blue-500/40 rounded-[2rem] p-6 space-y-4">
                         <div className="flex items-center gap-3">
@@ -256,23 +241,15 @@ export const Subscription: React.FC = () => {
                             </div>
                             <div>
                                 <h3 className="font-black uppercase tracking-tight text-white text-sm">Paga con tarjeta en la web</h3>
-                                <p className="text-[10px] text-white/40 uppercase tracking-widest">Precio directo · Sin intermediarios</p>
+                                <p className="text-[10px] text-white/40 uppercase tracking-widest">Elige tu plan · Precio directo</p>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => openWebPaywall('monthly')}
-                                className="w-full h-12 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <Globe size={14} /> Mensual · 9,99 €/mes
-                            </button>
-                            <button
-                                onClick={() => openWebPaywall('annual')}
-                                className="w-full h-12 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <Globe size={14} /> Anual · 79,99 €/año
-                            </button>
-                        </div>
+                        <button
+                            onClick={openWebPaywall}
+                            className="w-full h-14 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                        >
+                            <Globe size={18} /> Ver planes y suscribirme
+                        </button>
                         <button
                             onClick={verifyWebPurchase}
                             disabled={processing}
