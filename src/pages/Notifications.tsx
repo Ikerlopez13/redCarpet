@@ -1,22 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronLeft, 
-  Bell, 
-  ShieldAlert, 
-  Users, 
-  Info, 
-  CheckCircle2, 
+import {
+  ChevronLeft,
+  Bell,
+  ShieldAlert,
+  Users,
+  Info,
+  CheckCircle2,
   Clock,
-  ArrowRight
+  ArrowRight,
+  BookmarkCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { useAuth } from '../contexts/AuthContext';
-import { getFamilyData } from '../services/familyService';
-import { getSOSHistory } from '../services/sosService';
 import { supabase } from '../services/supabaseClient';
 import { TrustedContactsService } from '../services/trustedContactsService';
+import { getSignedVideoUrl, preserveSOSRecording } from '../services/sosService';
+
+interface SOSRecording {
+  id: string;
+  storage_path: string;
+  chunk_index: number;
+  media_type: string;
+  thumbnail_url: string | null;
+  created_at: string;
+  preserved: boolean;
+}
 
 interface NotificationItem {
   id: string;
@@ -27,7 +37,79 @@ interface NotificationItem {
   isRead: boolean;
   action?: string;
   alertId?: string;
+  mediaUrl?: string;     // legacy public URL from sos_alerts
+  isVideo?: boolean;
+  recordings?: SOSRecording[];  // new chunked recordings
   createdAt: string;
+}
+
+// Sub-component: loads a signed URL on mount and renders the player
+function SOSRecordingPlayer({ rec }: { rec: SOSRecording }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [preserved, setPreserved] = useState(rec.preserved);
+
+  useEffect(() => {
+    getSignedVideoUrl(rec.storage_path, 3600).then(setUrl);
+  }, [rec.storage_path]);
+
+  const handlePreserve = async () => {
+    await preserveSOSRecording(rec.id);
+    setPreserved(true);
+  };
+
+  const isVideo = rec.media_type.startsWith('video');
+
+  return (
+    <div className="w-full rounded-2xl overflow-hidden border border-white/10 bg-black mb-2">
+      {/* Chunk label */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5">
+        <div className="flex items-center gap-1.5">
+          <div className="size-1.5 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">
+            {isVideo ? 'Vídeo SOS' : 'Audio SOS'} · Seg. {rec.chunk_index + 1}
+          </span>
+        </div>
+        {!preserved && (
+          <button
+            onClick={handlePreserve}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+          >
+            <BookmarkCheck size={10} />
+            CONSERVAR
+          </button>
+        )}
+        {preserved && (
+          <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1">
+            <BookmarkCheck size={10} /> Conservado
+          </span>
+        )}
+      </div>
+
+      {url ? (
+        isVideo ? (
+          <video
+            src={url}
+            controls
+            playsInline
+            preload="metadata"
+            className="w-full max-h-64 object-cover bg-black"
+            style={{ display: 'block' }}
+          />
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/5">
+            <div className="size-8 rounded-full bg-red-600/30 border border-red-500/40 flex items-center justify-center shrink-0">
+              <span className="text-xs">🎙️</span>
+            </div>
+            <audio src={url} controls preload="metadata" className="w-full h-8" style={{ colorScheme: 'dark' }} />
+          </div>
+        )
+      ) : (
+        <div className="flex items-center justify-center h-16 text-white/20 text-[10px] font-bold uppercase tracking-widest">
+          Cargando...
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const Notifications: React.FC = () => {
@@ -62,6 +144,21 @@ export const Notifications: React.FC = () => {
                 .order('created_at', { ascending: false })
                 .limit(20);
 
+            // Fetch chunked recordings for each alert (new private bucket)
+            const alertIds = (alertsData || []).map((a: any) => a.id);
+            const { data: recordingsData } = alertIds.length > 0
+                ? await (supabase.from('sos_recordings') as any)
+                    .select('id, sos_alert_id, storage_path, chunk_index, media_type, thumbnail_url, created_at, preserved')
+                    .in('sos_alert_id', alertIds)
+                    .order('chunk_index', { ascending: true })
+                : { data: [] };
+
+            const recordingsByAlert: Record<string, SOSRecording[]> = {};
+            for (const r of (recordingsData || [])) {
+                if (!recordingsByAlert[r.sos_alert_id]) recordingsByAlert[r.sos_alert_id] = [];
+                recordingsByAlert[r.sos_alert_id].push(r as SOSRecording);
+            }
+
             // Fetch danger zones (street danger reports)
             const { data: dangerData } = await supabase
                 .from('danger_zones')
@@ -80,27 +177,34 @@ export const Notifications: React.FC = () => {
                 return t('notifications.days_ago', { count: Math.floor(diffMins / 1440) });
             };
 
-            const mappedSOS: NotificationItem[] = (alertsData || []).map(a => {
+            const mappedSOS: NotificationItem[] = (alertsData || []).map((a: any) => {
                 const isOwn = a.user_id === user.id;
-                const profile = profiles?.find(p => p.id === a.user_id);
+                const profile = profiles?.find((p: any) => p.id === a.user_id);
                 const name = isOwn ? t('notifications.me', 'Yo') : (profile?.full_name?.split(' ')[0] || t('notifications.unknown_contact'));
-                
+
+                // Legacy media URL (public bucket, older recordings)
+                const mediaUrl = a.media_video_url || a.media_audio_url || null;
+                const isVideo = !!(a.media_video_url);
+
                 return {
                     id: a.id,
                     alertId: a.id,
                     type: a.status === 'active' ? 'emergency' : 'family',
-                    title: isOwn 
-                        ? t('notifications.own_sos_title', 'SOS enviado correctamente') 
-                        : (a.status === 'active' 
-                            ? t('notifications.journey_alert_title', { name }) 
+                    title: isOwn
+                        ? t('notifications.own_sos_title', 'SOS enviado correctamente')
+                        : (a.status === 'active'
+                            ? t('notifications.journey_alert_title', { name })
                             : t('notifications.journey_finished_title', { name })),
-                    message: isOwn 
-                        ? t('notifications.own_alert_message', 'Se ha alertado correctamente y se ha avisado a tus contactos.') 
+                    message: isOwn
+                        ? t('notifications.own_alert_message', 'Se ha alertado correctamente y se ha avisado a tus contactos.')
                         : (a.message || t('notifications.update_processed')),
                     time: formatTime(a.created_at),
                     isRead: a.status !== 'active',
                     action: a.status === 'active' ? t('notifications.open_map') : undefined,
-                    createdAt: a.created_at
+                    mediaUrl: mediaUrl || undefined,
+                    isVideo,
+                    recordings: recordingsByAlert[a.id] || [],
+                    createdAt: a.created_at,
                 };
             });
 
@@ -224,9 +328,43 @@ export const Notifications: React.FC = () => {
                     {notif.message}
                   </p>
 
+                  {/* Chunked recordings (new private bucket with signed URLs) */}
+                  {notif.recordings && notif.recordings.length > 0 && (
+                    <div className="mt-3 space-y-0">
+                      {notif.recordings.map(rec => (
+                        <SOSRecordingPlayer key={rec.id} rec={rec} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Legacy media (old public-bucket recordings, backwards compat) */}
+                  {notif.mediaUrl && (!notif.recordings || notif.recordings.length === 0) && (
+                    <div className="w-full mt-3 mb-2 rounded-2xl overflow-hidden border border-white/10 bg-black">
+                      {notif.isVideo ? (
+                        <div className="relative">
+                          <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-red-600/80 backdrop-blur-sm rounded-lg">
+                            <div className="size-1.5 rounded-full bg-white animate-pulse" />
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Video SOS</span>
+                          </div>
+                          <video src={notif.mediaUrl} controls playsInline preload="metadata" className="w-full max-h-64 object-cover bg-black" style={{ display: 'block' }} />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 px-4 py-3 bg-white/5">
+                          <div className="size-8 rounded-full bg-red-600/30 border border-red-500/40 flex items-center justify-center shrink-0">
+                            <span className="text-xs">🎙️</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Audio SOS</p>
+                            <audio src={notif.mediaUrl} controls preload="metadata" className="w-full h-8" style={{ colorScheme: 'dark' }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Action Button */}
                   {notif.action && (
-                    <button 
+                    <button
                       onClick={() => handleAction(notif)}
                       className={clsx(
                         "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors",

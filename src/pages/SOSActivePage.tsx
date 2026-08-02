@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldAlert, X, Delete, Loader2, Phone, Mic, Video } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -6,13 +6,14 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Preferences } from '@capacitor/preferences';
 import clsx from 'clsx';
 
-import { 
-    startSOSPreview, 
-    stopSOSPreview, 
-    startRecording, 
-    stopAndUploadRecording, 
-    updateSOSAlertMedia,
-    resolveSOS
+import {
+    startSOSPreview,
+    stopSOSPreview,
+    startChunkedRecording,
+    stopChunkedRecording,
+    resolveSOS,
+    requestSOSPermissions,
+    call112
 } from '../services/sosService';
 import { useAuth } from '../contexts/AuthContext';
 import { ReviewPromptModal } from '../components/ReviewPromptModal';
@@ -34,6 +35,10 @@ export const SOSActivePage: React.FC = () => {
 
     const [isCameraStarted, setIsCameraStarted] = useState(false);
     const [step, setStep] = useState<'active' | 'pin'>('active');
+    // Ref para leer el paso actual dentro de timers (el closure del efecto
+    // captura el valor inicial y siempre vería 'active')
+    const stepRef = useRef(step);
+    stepRef.current = step;
     const [showReview, setShowReview] = useState(false);
     
     // PIN State
@@ -123,24 +128,44 @@ export const SOSActivePage: React.FC = () => {
             // 1. Initial delay to ensure the route Transition is smooth
             await new Promise(r => setTimeout(r, 500));
 
-            // 2. Start Native Preview (Mirroring handled in Plugin.swift now)
+            // 2. Request permissions and Start Native Preview
             if (Capacitor.isNativePlatform()) {
-                await startSOSPreview();
-                // Ensure state updates AFTER preview start to trigger transparency
-                setTimeout(() => {
-                    setIsCameraStarted(true);
+                const hasPermissions = await requestSOSPermissions();
+                if (hasPermissions) {
+                    // Apply CSS transparency FIRST so the WebView is ready when the
+                    // native camera layer mounts behind it.
+                    document.documentElement.classList.add('sos-mode-active');
                     document.body.classList.add('sos-mode-active');
-                }, 300);
+                    // Yield for DOM paint flush before native layer starts
+                    await new Promise(r => setTimeout(r, 200));
+                    const cameraOk = await startSOSPreview();
+                    if (cameraOk) {
+                        // Camera is running — mark so the outer div stays transparent
+                        setIsCameraStarted(true);
+                    } else {
+                        // Camera failed — remove transparency so the dark gradient shows
+                        // instead of a white/blank screen
+                        document.documentElement.classList.remove('sos-mode-active');
+                        document.body.classList.remove('sos-mode-active');
+                        console.warn('[SOSActivePage] Camera did not start — using dark fallback.');
+                    }
+                } else {
+                    console.warn('[SOSActivePage] Missing native permissions for SOS protocol.');
+                }
             }
 
-            // 3. Start Recording (Resilient with it's own timeouts)
-            await startRecording(isPremium);
+            // 3. Start chunked recording loop — uploads a 45s clip every 45s
+            //    so data is preserved even if the phone dies or loses signal.
+            if (user && alertId) {
+                startChunkedRecording(user.id, alertId, isPremium).catch(console.error);
+            }
 
             // 4. Auto-call 112 if not cancelled within 10 seconds
+            // (call112 ya evita el doble marcado si el protocolo lo lanzó antes)
             const timer = setTimeout(() => {
-                if (step === 'active') {
+                if (stepRef.current === 'active') {
                     console.log('🚨 Auto-calling 112 after 10s timeout');
-                    window.location.href = 'tel:112';
+                    call112();
                 }
             }, 10000);
 
@@ -148,35 +173,12 @@ export const SOSActivePage: React.FC = () => {
             (window as any)._sos112Timer = timer;
         };
 
-        let appStateListener: any = null;
-        if (Capacitor.isNativePlatform()) {
-            import('@capacitor/app').then(({ App }) => {
-                App.addListener('appStateChange', async ({ isActive }) => {
-                    if (isActive) {
-                        console.log('[SOS-Active-Page] App resumed, ensuring camera is running');
-                        // Restart camera preview to fix freeze on some iPhones after system alert
-                        try {
-                            await stopSOSPreview();
-                            setTimeout(async () => {
-                                await startSOSPreview();
-                            }, 300);
-                        } catch (e) {
-                            console.error('Error restarting camera preview', e);
-                        }
-                    }
-                }).then(listener => {
-                    appStateListener = listener;
-                });
-            });
-        }
-
         initSOS();
 
         return () => {
             console.log('[SOS-Active-Page] Unmounting. Cleaning up...');
-            if (appStateListener) {
-                appStateListener.remove();
-            }
+            // Cancel the auto-call timer but NOT the auto-upload timer —
+            // the upload may still be running in background after PIN deactivation
             if ((window as any)._sos112Timer) {
                 clearTimeout((window as any)._sos112Timer);
             }
@@ -189,10 +191,9 @@ export const SOSActivePage: React.FC = () => {
             clearTimeout((window as any)._sos112Timer);
             delete (window as any)._sos112Timer;
         }
+        document.documentElement.classList.remove('sos-mode-active');
         document.body.classList.remove('sos-mode-active');
-        if (Capacitor.isNativePlatform()) {
-            await stopSOSPreview();
-        }
+        if (Capacitor.isNativePlatform()) await stopSOSPreview();
     };
 
     const handlePinKeyPress = async (key: string) => {
@@ -229,27 +230,21 @@ export const SOSActivePage: React.FC = () => {
 
     const handleFinalStop = async () => {
         console.log('[SOS-Active-Page] Final STOP triggered.');
-        // 1. Resolve alert in DB
-        if (alertId) {
-            await resolveSOS(alertId);
+
+        // Stop chunk loop and upload the final partial segment (runs in background)
+        if (user && alertId) {
+            stopChunkedRecording(user.id, alertId).catch(console.error);
         }
 
-        // 2. Stop and upload recording
-        if (user) {
-            const url = await stopAndUploadRecording(user.id);
-            if (url && alertId) {
-                await updateSOSAlertMedia(alertId, url);
-            }
-        }
-        
+        // Brief pause so stopRecordVideo fires before the native session closes
+        await new Promise(r => setTimeout(r, 150));
+
+        if (alertId) resolveSOS(alertId).catch(console.error);
         await cleanAll();
-        
+
         const { value } = await Preferences.get({ key: 'HAS_RATED_APP' });
-        if (!value) {
-            setShowReview(true);
-        } else {
-            navigate('/');
-        }
+        if (!value) setShowReview(true);
+        else navigate('/');
     };
 
     const handleReviewClose = () => {
@@ -407,8 +402,8 @@ export const SOSActivePage: React.FC = () => {
                             <div
                                 className="inline-flex items-center gap-3 px-6 py-2.5 bg-red-600 rounded-2xl text-white font-black text-xs tracking-widest uppercase shadow-[0_0_30px_rgba(220,38,38,0.5)] border border-white/20 animate-pulse"
                             >
-                                <div className="size-2.5 rounded-full bg-white" />
-                                REC • EN VIVO
+                                <div className="size-2.5 rounded-full bg-white animate-ping" />
+                                {isCameraStarted ? '● GRABANDO VÍDEO' : '● GRABANDO AUDIO'}
                             </div>
                             
                             <div className="space-y-4">

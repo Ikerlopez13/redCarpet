@@ -2,157 +2,197 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import admin from "npm:firebase-admin";
 
-console.log("Starting send-sos-notifications edge function...")
-
-// Initialize Firebase Admin (only once per instance)
 let firebaseInitialized = false;
 
-serve(async (req) => {
-    const { alertId, userId, groupId, config } = await req.json()
+function initFirebase() {
+    if (firebaseInitialized) return;
+    const sa = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+    if (!sa) throw new Error("FIREBASE_SERVICE_ACCOUNT secret missing");
+    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(sa)) });
+    firebaseInitialized = true;
+}
 
-    // Initialize Supabase Client with Service Role Key for admin access
-    const supabaseClient = createClient(
+serve(async (req) => {
+    const {
+        alertId, userId, groupId, config,
+        action, mediaUrl, thumbnailUrl, chunkIndex,
+    } = await req.json();
+
+    const db = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
     try {
-        if (!firebaseInitialized) {
-            const serviceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
-            if (!serviceAccountStr) {
-                console.error("FIREBASE_SERVICE_ACCOUNT is missing!");
-                throw new Error("Server configuration error: Firebase credentials missing.");
-            }
-            const serviceAccount = JSON.parse(serviceAccountStr);
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
-            });
-            firebaseInitialized = true;
-        }
+        initFirebase();
 
-        // 1. Get family members and accepted trusted contacts to notify
+        // ── Collect recipient user IDs ──────────────────────────────────────
         let userIds: string[] = [];
 
         if (groupId) {
-            const { data: members, error: membersError } = await supabaseClient
+            const { data: members } = await db
                 .from('family_members')
                 .select('user_id')
                 .eq('group_id', groupId)
                 .neq('user_id', userId);
-
-            if (!membersError && members) {
-                userIds = [...userIds, ...members.map((m: any) => m.user_id)];
-            }
+            if (members) userIds.push(...members.map((m: any) => m.user_id));
         }
 
-        const { data: contacts, error: contactsError } = await supabaseClient
+        const { data: outbound } = await db
             .from('trusted_contacts')
             .select('associated_user_id')
             .eq('user_id', userId)
             .eq('status', 'accepted');
+        if (outbound) userIds.push(...outbound.filter((c: any) => c.associated_user_id).map((c: any) => c.associated_user_id as string));
 
-        if (!contactsError && contacts) {
-            userIds = [
-                ...userIds, 
-                ...contacts
-                    .filter((c: any) => c.associated_user_id)
-                    .map((c: any) => c.associated_user_id as string)
-            ];
-        }
+        const { data: inbound } = await db
+            .from('trusted_contacts')
+            .select('user_id')
+            .eq('associated_user_id', userId)
+            .eq('status', 'accepted');
+        if (inbound) userIds.push(...inbound.map((c: any) => c.user_id as string));
 
-        // De-duplicate userIds and filter out the sender itself
         userIds = Array.from(new Set(userIds)).filter(id => id !== userId);
-
         if (userIds.length === 0) {
-            return new Response(JSON.stringify({ message: "No members to notify" }), {
+            return new Response(JSON.stringify({ message: "No contacts to notify" }), {
                 headers: { "Content-Type": "application/json" },
             });
         }
 
-        // 3. Get push tokens for these users
-        const { data: tokens, error: tokensError } = await supabaseClient
+        // ── Push tokens ────────────────────────────────────────────────────
+        const { data: tokenRows, error: tokensError } = await db
             .from('push_tokens')
-            .select('token, platform')
+            .select('token, user_id, platform')
             .in('user_id', userIds);
-
         if (tokensError) throw tokensError;
-
-        if (!tokens || tokens.length === 0) {
-            return new Response(JSON.stringify({ message: "No tokens found for members" }), {
+        if (!tokenRows?.length) {
+            return new Response(JSON.stringify({ message: "No push tokens found" }), {
                 headers: { "Content-Type": "application/json" },
             });
         }
 
-        // Fetch sender's name for personalized alert
+        // ── Sender name ────────────────────────────────────────────────────
         let senderName = 'Un contacto';
-        const { data: profile } = await supabaseClient
-            .from('profiles')
-            .select('full_name')
-            .eq('id', userId)
-            .single();
-        if (profile?.full_name) {
-            senderName = profile.full_name.split(' ')[0];
+        const { data: profile } = await db.from('profiles').select('full_name').eq('id', userId).single();
+        if (profile?.full_name) senderName = profile.full_name.split(' ')[0];
+
+        // ── Notification payload ───────────────────────────────────────────
+        const isDangerZone = config?.isDangerZone || false;
+        const isRouteStart = config?.isRouteStart || false;
+
+        let title: string;
+        let body: string;
+        let imageUrl: string | undefined = thumbnailUrl ?? undefined;
+
+        if (action === 'chunk_uploaded') {
+            // A new video chunk arrived — try to get thumbnail from sos_recordings
+            if (!imageUrl && alertId) {
+                const { data: rec } = await db
+                    .from('sos_recordings')
+                    .select('thumbnail_url')
+                    .eq('sos_alert_id', alertId)
+                    .not('thumbnail_url', 'is', null)
+                    .order('created_at', { ascending: true })
+                    .limit(1)
+                    .single();
+                imageUrl = rec?.thumbnail_url ?? undefined;
+            }
+            const isVideo = chunkIndex !== undefined
+                ? !/\.m4a$/.test(mediaUrl || '')
+                : /\.(webm|mp4|mov)/i.test(mediaUrl || '');
+            title = isVideo
+                ? `🎥 Vídeo SOS de ${senderName}`
+                : `🎙️ Audio SOS de ${senderName}`;
+            body = isVideo
+                ? `${senderName} está grabando. Abre la app para ver el vídeo en directo.`
+                : `${senderName} está grabando audio. Ábrelo en la app.`;
+        } else if (action === 'thumbnail_ready') {
+            // Silent data push — just update badge/notification, no sound
+            title = `🎥 ${senderName} ha activado SOS`;
+            body = `Grabando vídeo. Ábre la app para ver.`;
+            imageUrl = thumbnailUrl ?? undefined;
+        } else if (action === 'media_uploaded' && mediaUrl) {
+            const isVideo = /\.(webm|mp4|mov)(\?|$)/i.test(mediaUrl);
+            title = isVideo ? `🎥 Vídeo SOS de ${senderName}` : `🎙️ Audio SOS de ${senderName}`;
+            body = isVideo
+                ? `${senderName} grabó un vídeo durante el SOS. Ábrelo en la app.`
+                : `${senderName} grabó un audio durante el SOS. Ábrelo en la app.`;
+        } else {
+            title = isRouteStart
+                ? '🚶 Ruta Iniciada'
+                : isDangerZone ? '⚠️ Peligro Reportado' : '🚨 Alerta SOS';
+            body = config?.message || (isDangerZone
+                ? `${senderName} ha avisado de un peligro cercano.`
+                : `¡SOS de ${senderName}! Necesita ayuda urgente.`);
         }
 
-        // 4. Send Notifications via Firebase Admin
-        console.log(`[SOS] Sending notification to ${tokens.length} devices`);
-
-        const isDangerZone = config?.isDangerZone || false;
-        const payload = {
-            notification: {
-                title: isDangerZone ? '⚠️ Peligro Reportado' : '🚨 Alerta SOS',
-                body: config?.message || (isDangerZone 
-                    ? `${senderName} ha avisado de un peligro cercano.` 
-                    : `¡SOS de ${senderName}! Necesita ayuda.`)
-            },
+        // ── FCM multicast ──────────────────────────────────────────────────
+        const fcmTokens = tokenRows.map((t: any) => t.token);
+        const message: any = {
+            tokens: fcmTokens,
+            notification: { title, body, ...(imageUrl ? { imageUrl } : {}) },
             data: {
-                type: isDangerZone ? 'danger_zone' : 'sos',
-                alertId: alertId || ''
-            }
+                type: isRouteStart ? 'route_start' : isDangerZone ? 'danger_zone' : 'sos',
+                alertId: alertId || '',
+                action: action || '',
+                mediaUrl: mediaUrl || '',
+                userId: userId || '',
+                ...(thumbnailUrl ? { thumbnailUrl } : {}),
+                ...(chunkIndex !== undefined ? { chunkIndex: String(chunkIndex) } : {}),
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: action === 'thumbnail_ready' ? undefined : 'default',
+                        badge: 1,
+                        'content-available': 1,
+                        'mutable-content': imageUrl ? 1 : undefined,
+                    },
+                },
+                ...(imageUrl ? { fcm_options: { image: imageUrl } } : {}),
+                headers: {
+                    'apns-priority': action === 'thumbnail_ready' ? '5' : '10',
+                    'apns-push-type': action === 'thumbnail_ready' ? 'background' : 'alert',
+                },
+            },
+            android: {
+                priority: 'high' as const,
+                notification: {
+                    sound: action === 'thumbnail_ready' ? undefined : 'default',
+                    ...(imageUrl ? { imageUrl } : {}),
+                },
+            },
         };
 
-        const fcmTokens = tokens.map((t: any) => t.token);
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log(`[SOS] ✅ sent=${response.successCount} ❌ failed=${response.failureCount}`);
 
-        try {
-            const response = await admin.messaging().sendEachForMulticast({
-                tokens: fcmTokens,
-                notification: payload.notification,
-                data: payload.data,
-                apns: {
-                    payload: {
-                        aps: {
-                            sound: 'default',
-                            badge: 1
-                        }
-                    }
+        // Remove stale tokens
+        const staleTokens: string[] = [];
+        response.responses.forEach((r: any, i: number) => {
+            if (!r.success) {
+                const code = r.error?.code || '';
+                console.error(`[SOS] Token failed: ${fcmTokens[i]} — ${code}`);
+                if (code === 'messaging/registration-token-not-registered' ||
+                    code === 'messaging/invalid-registration-token') {
+                    staleTokens.push(fcmTokens[i]);
                 }
-            });
-            console.log(`[SOS] Successfully sent ${response.successCount} messages; Failed: ${response.failureCount}`);
-            if (response.failureCount > 0) {
-                response.responses.forEach((resp: any, idx: number) => {
-                    if (!resp.success) {
-                        console.error(`Token failed: ${fcmTokens[idx]} - Error: ${resp.error}`);
-                    }
-                });
             }
-        } catch (fcmError) {
-            console.error("[SOS] Error sending FCM:", fcmError);
+        });
+        if (staleTokens.length > 0) {
+            await db.from('push_tokens').delete().in('token', staleTokens);
         }
 
-        return new Response(
-            JSON.stringify({
-                success: true,
-                message: `Processed SOS for ${tokens.length} devices`,
-                debug_tokens_count: tokens.length
-            }),
-            { headers: { "Content-Type": "application/json" } },
-        )
+        return new Response(JSON.stringify({
+            success: true,
+            sent: response.successCount,
+            failed: response.failureCount,
+        }), { headers: { "Content-Type": "application/json" } });
 
     } catch (error: any) {
-        console.error(error)
+        console.error('[SOS] Fatal error:', error);
         return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-        })
+            status: 500, headers: { "Content-Type": "application/json" },
+        });
     }
-})
+});
