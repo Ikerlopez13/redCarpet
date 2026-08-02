@@ -1,6 +1,8 @@
 // Mapbox Search Box API Service for premium place autocomplete and POI searching
 // Searches for places, addresses, and establishments (such as colleges/universities)
 
+import { isBlocked, track } from './mapboxBudget';
+
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export interface GeocodingResult {
@@ -33,9 +35,13 @@ export async function searchPlaces(
         return [];
     }
 
+    // Budget guard
+    if (isBlocked()) return [];
+
     // Refresh session token if a new search interaction starts (2 chars)
     if (query.trim().length === 2) {
         activeSessionToken = generateSessionToken();
+        track('searchbox'); // one session = one session token lifetime
     }
 
     const suggestUrl = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');

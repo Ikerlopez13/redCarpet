@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -7,19 +7,33 @@ import { TrustedContactsService, getShortId, findUserByShortId } from '../servic
 import type { TrustedContact, PendingRequest } from '../services/trustedContactsService';
 import { supabase } from '../services/supabaseClient';
 import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
+import { UnifiedMap, type MapMember } from '../components/UnifiedMap';
+import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
+
 interface DeviceContact {
     displayName?: string;
     phoneNumbers?: { number: string; type?: string }[];
+}
+
+interface ContactWithLocation extends TrustedContact {
+    avatarUrl?: string | null;
+    lat?: number;
+    lng?: number;
+    battery?: number;
+    lastUpdate?: string;
+    address?: string;
+    isEmergency?: boolean;
 }
 
 export const TrustedContacts: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
-    const { user } = useAuth();
+    const { user, refreshProfile } = useAuth();
     
     // Core state
-    const [contacts, setContacts] = useState<TrustedContact[]>([]);
+    const [contacts, setContacts] = useState<ContactWithLocation[]>([]);
     const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -47,8 +61,85 @@ export const TrustedContacts: React.FC = () => {
     const [manualLoading, setManualLoading] = useState(false);
     const [manualError, setManualError] = useState<string | null>(null);
 
+    // Life360 UI / Location Drawer state
+    const [selectedContact, setSelectedContact] = useState<ContactWithLocation | null>(null);
+    const [centerCoordinate, setCenterCoordinate] = useState<{ lat: number; lng: number } | null>(null);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [showLocationPrePrompt, setShowLocationPrePrompt] = useState(false);
+    const recenterRef = useRef<(() => void) | null>(null);
+
     // Derived short ID for this user
     const myShortId = user ? getShortId(user.id) : '';
+
+    useEffect(() => {
+        const checkLocationPermission = async () => {
+            if (!Capacitor.isNativePlatform()) return;
+            try {
+                const { Geolocation } = await import('@capacitor/geolocation');
+                const status = await Geolocation.checkPermissions();
+                const { value: hasSeenPrompt } = await Preferences.get({ key: 'HAS_SEEN_LOCATION_PRE_PROMPT' });
+                if (status.location !== 'granted' && !hasSeenPrompt) {
+                    setShowLocationPrePrompt(true);
+                }
+            } catch (err) {
+                console.error('Error checking location permission for pre-prompt:', err);
+            }
+        };
+        checkLocationPermission();
+    }, []);
+
+    const handleAcceptLocationPrePrompt = async () => {
+        setShowLocationPrePrompt(false);
+        await Preferences.set({ key: 'HAS_SEEN_LOCATION_PRE_PROMPT', value: 'true' });
+        try {
+            const { Geolocation } = await import('@capacitor/geolocation');
+            await Geolocation.requestPermissions();
+        } catch (err) {
+            console.error('Error requesting location permission:', err);
+        }
+    };
+
+    const handleContactClick = (contact: ContactWithLocation) => {
+        if (contact.lat && contact.lng) {
+            setCenterCoordinate({ lat: contact.lat, lng: contact.lng });
+        }
+        setSelectedContact(contact);
+    };
+
+    const handleNavigate = async (lat: number, lng: number) => {
+        const iosUrl = `maps://?q=${lat},${lng}`;
+        const androidUrl = `geo:${lat},${lng}?q=${lat},${lng}`;
+        const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        
+        try {
+            if (Capacitor.isNativePlatform()) {
+                const { App } = await import('@capacitor/app');
+                const platform = Capacitor.getPlatform();
+                const targetUrl = platform === 'ios' ? iosUrl : androidUrl;
+                await App.openUrl({ url: targetUrl });
+            } else {
+                window.open(webUrl, '_blank');
+            }
+        } catch (err) {
+            window.open(webUrl, '_blank');
+        }
+    };
+
+    const handleCall = async (phone: string) => {
+        if (!phone) return;
+        const cleanPhone = phone.replace(/\s+/g, '');
+        const url = `tel:${cleanPhone}`;
+        try {
+            if (Capacitor.isNativePlatform()) {
+                const { App } = await import('@capacitor/app');
+                await App.openUrl({ url });
+            } else {
+                window.location.href = url;
+            }
+        } catch (err) {
+            window.location.href = url;
+        }
+    };
 
     useEffect(() => {
         if (!user) {
@@ -56,16 +147,132 @@ export const TrustedContacts: React.FC = () => {
             return;
         }
 
-        const fetchContacts = async () => {
-            setLoading(true);
+        const fetchContacts = async (showSpinner = false) => {
+            if (showSpinner) setLoading(true);
             const data = await TrustedContactsService.getContacts(user.id);
             const requests = await TrustedContactsService.getPendingRequests(user.id);
-            setContacts(data);
+            
+            // Fetch locations & profiles in parallel
+            const contactIds = data.map(c => c.associated_user_id as string).filter(Boolean);
+            let locations: any[] = [];
+            let profilesMap: Record<string, string> = {};
+            
+            if (contactIds.length > 0) {
+                const locPromises = contactIds.map(id => 
+                    supabase.from('locations')
+                        .select('*')
+                        .eq('user_id', id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single()
+                );
+                
+                const [profRes, locResults] = await Promise.all([
+                    supabase.from('profiles').select('id, avatar_url').in('id', contactIds),
+                    Promise.allSettled(locPromises)
+                ]);
+                
+                locations = locResults
+                    .filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<any>).value.data)
+                    .map((r: any) => (r as PromiseFulfilledResult<any>).value.data);
+                
+                const profiles = profRes.data || [];
+                profilesMap = profiles.reduce((acc: any, p: any) => {
+                    if (p.avatar_url) acc[p.id] = p.avatar_url;
+                    return acc;
+                }, {});
+            }
+
+            const { data: activeAlerts } = await supabase
+                .from('sos_alerts')
+                .select('user_id')
+                .eq('status', 'active');
+            const activeAlertsSet = new Set(activeAlerts?.map(a => a.user_id) || []);
+
+            const contactsWithLoc: ContactWithLocation[] = await Promise.all(data.map(async (c) => {
+                const isPending = c.status === 'pending';
+                const loc = isPending ? null : locations.find((l: any) => l.user_id === c.associated_user_id);
+                const hasActiveAlert = !isPending && activeAlertsSet.has(c.associated_user_id || '');
+
+                let timeString = '';
+                if (isPending) {
+                    timeString = 'Pendiente';
+                } else if (loc?.created_at) {
+                    const date = new Date(loc.created_at);
+                    const now = new Date();
+                    const diff = (now.getTime() - date.getTime()) / 1000 / 60;
+                    if (diff < 1) timeString = 'Ahora';
+                    else if (diff < 60) timeString = `Hace ${Math.floor(diff)} min`;
+                    else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    timeString = 'Sin datos';
+                }
+
+                let address = 'Sin ubicación';
+                if (isPending) {
+                    address = 'Invitación pendiente...';
+                } else if (loc) {
+                    address = await TrustedContactsService.reverseGeocode(loc.lat, loc.lng);
+                } else {
+                    address = 'Esperando señal GPS...';
+                }
+
+                return {
+                    ...c,
+                    avatarUrl: !isPending && c.associated_user_id ? (profilesMap[c.associated_user_id] || null) : null,
+                    lat: loc?.lat,
+                    lng: loc?.lng,
+                    battery: loc?.battery_level,
+                    lastUpdate: timeString,
+                    address: address,
+                    isEmergency: hasActiveAlert
+                };
+            }));
+
+            setContacts(contactsWithLoc);
             setPendingRequests(requests);
-            setLoading(false);
+            if (showSpinner) setLoading(false);
         };
 
-        fetchContacts();
+        fetchContacts(true);
+
+        // Subscribe to real-time changes
+        const channelContacts = supabase
+            .channel('contacts-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'trusted_contacts'
+                },
+                () => {
+                    console.log('[TrustedContacts] Contacts change detected. Refreshing...');
+                    fetchContacts(false);
+                }
+            )
+            .subscribe();
+
+        const channelLocations = supabase
+            .channel('locations-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'locations'
+                },
+                () => {
+                    console.log('[TrustedContacts] Location update detected. Refreshing...');
+                    fetchContacts(false);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channelContacts);
+            supabase.removeChannel(channelLocations);
+        };
     }, [user]);
 
     // Add contact by short ID
@@ -111,6 +318,8 @@ export const TrustedContacts: React.FC = () => {
             setAddByIdError('Error al añadir el contacto. Inténtalo de nuevo.');
         } else {
             setContacts(prev => [...prev, data as TrustedContact]);
+            // Send push notification to target user
+            TrustedContactsService.sendNotification(found.id, user.id, 'request_received');
             setAddByIdInput('');
             setAddByIdName('');
             setShowIdForm(false);
@@ -146,6 +355,9 @@ export const TrustedContacts: React.FC = () => {
             setShowManualForm(false);
             setShowAddContactSelector(false);
             if (isPendingRequest) {
+                if (contact.associated_user_id) {
+                    TrustedContactsService.sendNotification(contact.associated_user_id, user.id, 'request_received');
+                }
                 alert(t('contacts.sync_alert', { name }));
             } else {
                 alert(`✅ Contacto ${name} añadido con éxito.`);
@@ -176,7 +388,7 @@ export const TrustedContacts: React.FC = () => {
                 
                 const formatted = nativeList.map((c: any) => ({
                     displayName: c.displayName || c.name?.display || `${c.name?.given || ''} ${c.name?.family || ''}`.trim() || 'Contacto sin nombre',
-                    phoneNumbers: (c.phones || []).map((p: any) => ({
+                    phoneNumbers: (c.phoneNumbers || c.phones || []).map((p: any) => ({
                         number: p.number || p.value || '',
                         type: p.type || 'móvil'
                     })).filter((p: any) => p.number.trim() !== '')
@@ -233,6 +445,9 @@ export const TrustedContacts: React.FC = () => {
         if (contact) {
             setContacts(prev => prev.map(c => c.id === tempId ? contact : c));
             if (isPendingRequest) {
+                if (contact.associated_user_id) {
+                    TrustedContactsService.sendNotification(contact.associated_user_id, user.id, 'request_received');
+                }
                 alert(t('contacts.sync_alert', { name }));
             } else {
                 alert(`✅ Solicitud enviada a ${name}. Cuando acepte aparecerá en tu lista.`);
@@ -248,20 +463,30 @@ export const TrustedContacts: React.FC = () => {
         try {
             if (Capacitor.isNativePlatform()) {
                 const { Contacts } = await import('@capacitor-community/contacts');
+
+                // Android exige el permiso READ_CONTACTS también para el picker
+                // (en iOS el picker no lo necesita). Sin esto, pickContact falla
+                // silenciosamente y parece que el botón "no hace nada".
                 const permissionState = await Contacts.requestPermissions();
                 if (permissionState.contacts !== 'granted') {
                     setIsPermissionsModalOpen(true);
                     return;
                 }
+
+                // Wrap pickContact in a race with a 60s timeout so the promise
+                // doesn't hang forever when the user cancels the native picker on Android
+                // (the plugin's Android ActivityCallback never calls reject on RESULT_CANCELED).
+                const contact = await Promise.race([
+                    Contacts.pickContact({ projection: { name: true, phones: true } }),
+                    new Promise<null>((_, reject) =>
+                        setTimeout(() => reject(new Error('cancelled')), 60000)
+                    )
+                ]) as Awaited<ReturnType<typeof Contacts.pickContact>> | null;
                 
-                const contact = await Contacts.pickContact({
-                    projection: { name: true, phones: true }
-                });
-                
-                if (contact && contact.contact) {
-                    const c = contact.contact;
+                if (contact && (contact as any).contact) {
+                    const c = (contact as any).contact;
                     const name = c.displayName || c.name?.display || `${c.name?.given || ''} ${c.name?.family || ''}`.trim() || 'Contacto';
-                    const phones = (c.phones || []).map((p: any) => p.number || p.value).filter(Boolean);
+                    const phones = (c.phoneNumbers || c.phones || []).map((p: any) => p.number || p.value).filter(Boolean);
                     
                     if (phones.length === 0) {
                         alert(t('contacts.contact_no_phone'));
@@ -279,8 +504,15 @@ export const TrustedContacts: React.FC = () => {
             } else {
                 setShowAddContactSelector(true);
             }
-        } catch (err) {
-            console.log('User cancelled picker or error', err);
+        } catch (err: any) {
+            // Cancelar el picker lanza excepción en Android: no mostrar error en ese caso
+            const msg = String(err?.message || err || '').toLowerCase();
+            if (msg.includes('cancel')) {
+                console.log('User cancelled picker');
+            } else {
+                console.error('Contact picker error', err);
+                alert(t('contacts.import_error'));
+            }
         }
     };
 
@@ -324,10 +556,35 @@ export const TrustedContacts: React.FC = () => {
         }
     };
 
-    const handleWhatsAppInvite = () => {
+    const handleWhatsAppInvite = async () => {
         const shortId = myShortId;
         const inviteText = `¡Únete a mi círculo de seguridad en RedCarpet! 🛡️🔴\n\nMi ID es: ${shortId}\n\n📥 Descárgate la app y añádeme con mi ID:\nhttps://apps.apple.com/app/id6755689618`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, '_blank');
+        const nativeUrl = `whatsapp://send?text=${encodeURIComponent(inviteText)}`;
+        const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
+
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const { App } = await import('@capacitor/app');
+                // canOpenUrl returns false when WhatsApp isn't installed — open web fallback instead
+                const { value: canOpen } = await App.canOpenUrl({ url: nativeUrl });
+                if (canOpen) {
+                    await App.openUrl({ url: nativeUrl });
+                } else {
+                    const { Browser } = await import('@capacitor/browser');
+                    await Browser.open({ url: fallbackUrl });
+                }
+            } catch (err) {
+                console.error('WhatsApp invite error:', err);
+                try {
+                    const { Browser } = await import('@capacitor/browser');
+                    await Browser.open({ url: fallbackUrl });
+                } catch {
+                    window.open(fallbackUrl, '_blank');
+                }
+            }
+        } else {
+            window.open(fallbackUrl, '_blank');
+        }
     };
 
     // Filter added contacts based on search query
@@ -335,6 +592,19 @@ export const TrustedContacts: React.FC = () => {
         (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.phone || '').includes(searchQuery)
     );
+
+    const mapMembers: MapMember[] = contacts
+        .filter(c => c.status === 'accepted' && c.lat && c.lng)
+        .map(c => ({
+            id: c.associated_user_id || c.id,
+            name: c.name,
+            avatar: '👤',
+            avatarUrl: c.avatarUrl || null,
+            lat: c.lat!,
+            lng: c.lng!,
+            lastUpdate: c.lastUpdate,
+            isEmergency: c.isEmergency
+        }));
 
     return (
         <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display">
@@ -346,6 +616,27 @@ export const TrustedContacts: React.FC = () => {
                 </button>
                 <h1 className="text-lg font-bold">{t('contacts.title')}</h1>
                 <div className="w-10" />
+            </div>
+
+            {/* Map Area */}
+            <div className="w-full h-[35vh] relative shrink-0 border-b border-white/10">
+                <UnifiedMap
+                    familyMembers={mapMembers}
+                    centerCoordinate={centerCoordinate}
+                    onMemberClick={(id) => {
+                        const contact = contacts.find(c => (c.associated_user_id || c.id) === id);
+                        if (contact) handleContactClick(contact);
+                    }}
+                    onRecenterInit={(recenter) => { recenterRef.current = recenter; }}
+                />
+                
+                {/* Float Recenter Button */}
+                <button 
+                    onClick={() => recenterRef.current?.()}
+                    className="absolute bottom-4 right-4 z-30 size-12 rounded-full bg-[#18181f]/90 border border-white/10 flex items-center justify-center text-white active:scale-95 transition-all shadow-xl pointer-events-auto"
+                >
+                    <span className="material-symbols-outlined text-xl">my_location</span>
+                </button>
             </div>
 
             {/* My ID Banner */}
@@ -365,6 +656,50 @@ export const TrustedContacts: React.FC = () => {
                         <span className="material-symbols-outlined text-base">content_copy</span>
                         Copiar
                     </button>
+                </div>
+            )}
+
+            {/* Phone Number Warning Banner */}
+            {user && !user.profile?.phone && (
+                <div className="mx-4 mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-amber-500 text-xl mt-0.5 animate-pulse">warning</span>
+                        <div className="flex-1">
+                            <h4 className="text-sm font-bold text-white">Configura tu teléfono</h4>
+                            <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                                Tus contactos no podrán añadirte usando tu número de teléfono hasta que lo configures.
+                            </p>
+                            
+                            <form onSubmit={async (e) => {
+                                e.preventDefault();
+                                const input = (e.target as any).elements.phoneInput.value.trim();
+                                if (!input) return;
+                                try {
+                                    const { error } = await supabase.from('profiles').update({ phone: input }).eq('id', user.id);
+                                    if (error) throw error;
+                                    alert('✅ Teléfono configurado con éxito.');
+                                    if (refreshProfile) await refreshProfile();
+                                } catch (err) {
+                                    console.error('Error updating phone:', err);
+                                    alert('Error al guardar el teléfono.');
+                                }
+                            }} className="flex gap-2 mt-3">
+                                <input
+                                    name="phoneInput"
+                                    type="tel"
+                                    placeholder="ej. +34 600 000 000"
+                                    className="h-9 px-3 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 flex-1"
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    className="h-9 px-4 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-xl active:scale-95 transition-all shrink-0"
+                                >
+                                    Guardar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -458,21 +793,67 @@ export const TrustedContacts: React.FC = () => {
                         </div>
                     ) : (
                         filteredAddedContacts.map((contact) => (
-                            <div key={contact.id} className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                            <div 
+                                key={contact.id} 
+                                onClick={() => handleContactClick(contact)}
+                                className={clsx(
+                                    "bg-white/5 rounded-2xl p-4 border transition-all cursor-pointer hover:bg-white/[0.08]",
+                                    contact.isEmergency ? "border-red-500 bg-red-950/20 shadow-lg shadow-red-950/10" : "border-white/5"
+                                )}
+                            >
 
                                 {/* Contact Header */}
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="flex flex-col">
-                                        <h4 className="font-bold text-lg">{contact.name}</h4>
-                                        <span className="text-sm text-white/60">{t('contacts.relation')}: {contact.relation} • {contact.phone}</span>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex gap-3 items-center">
+                                        <div 
+                                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-md text-sm bg-primary shrink-0"
+                                            style={{
+                                                backgroundColor: `hsl(${(contact.name.charCodeAt(0) * 15) % 360}, 60%, 45%)`
+                                            }}
+                                        >
+                                            {contact.avatarUrl ? (
+                                                <img src={contact.avatarUrl} alt={contact.name} className="w-full h-full rounded-full object-cover" />
+                                            ) : (
+                                                contact.name.charAt(0).toUpperCase()
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-base leading-snug">{contact.name}</h4>
+                                                {contact.isEmergency && (
+                                                    <span className="inline-flex size-2 rounded-full bg-red-500 animate-pulse" />
+                                                )}
+                                            </div>
+                                            <span className="text-xs text-white/60">{t('contacts.relation')}: {contact.relation} {contact.phone && `• ${contact.phone}`}</span>
+                                        </div>
                                     </div>
-                                    <button onClick={() => handleDelete(contact.id, contact.name)} className="text-white/40 hover:text-red-500 transition-colors mt-1">
-                                        <span className="material-symbols-outlined text-sm">delete</span>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(contact.id, contact.name);
+                                        }} 
+                                        className="text-white/40 hover:text-red-500 transition-colors mt-1 p-1"
+                                    >
+                                        <span className="material-symbols-outlined text-base">delete</span>
                                     </button>
                                 </div>
+                                
+                                {/* Last Location and update time */}
+                                <div className="mt-2 space-y-1">
+                                    <p className="text-xs text-white/80 font-medium truncate flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-xs text-primary">my_location</span>
+                                        {contact.address || 'Esperando señal GPS...'}
+                                    </p>
+                                    <div className="flex items-center text-[10px] text-white/40 pl-5">
+                                        <span>Actualizado: {contact.lastUpdate}</span>
+                                    </div>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="h-px bg-white/5 my-4"></div>
 
                                 {/* Toggles */}
-                                <div className="space-y-4">
+                                <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
                                     {/* Location Toggle */}
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 text-sm text-white/80">
@@ -656,7 +1037,7 @@ export const TrustedContacts: React.FC = () => {
 
             {/* Permissions Denied Info Modal */}
             {isPermissionsModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
                     <div className="w-full max-w-sm bg-[#18181f] border border-white/10 rounded-3xl p-6 shadow-2xl text-center animate-scale-up">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
                             <span className="material-symbols-outlined text-red-500 text-2xl">error</span>
@@ -858,6 +1239,150 @@ export const TrustedContacts: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Background Location Pre-Prompt Modal */}
+            {showLocationPrePrompt && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/85 backdrop-blur-sm animate-fade-in">
+                    <div className="w-full max-w-sm bg-[#121216] border border-white/10 rounded-[2.5rem] p-6 shadow-2xl text-center space-y-6 animate-scale-up">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
+                            <span className="material-symbols-outlined text-3xl">share_location</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-bold text-white">Localización permanente</h3>
+                            <p className="text-white/60 text-xs leading-relaxed">
+                                RedCarpet necesita acceder a tu localización en segundo plano ("Siempre") para poder mostrar tu ubicación a tus contactos de confianza en tiempo real en caso de emergencia y para la sincronización del mapa del círculo.
+                            </p>
+                        </div>
+                        
+                        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-left space-y-2">
+                            <h5 className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-sm text-green-400">shield</span>
+                                Privacidad garantizada
+                            </h5>
+                            <p className="text-[10px] text-white/40 leading-relaxed">
+                                Tu ubicación se comparte de forma segura y encriptada únicamente con los contactos que tú elijas. Puedes pausar o desactivar el compartido de ubicación en cualquier momento desde esta pantalla.
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={handleAcceptLocationPrePrompt}
+                                className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+                            >
+                                Permitir localización
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setShowLocationPrePrompt(false);
+                                    await Preferences.set({ key: 'HAS_SEEN_LOCATION_PRE_PROMPT', value: 'true' });
+                                }}
+                                className="w-full py-3 bg-transparent text-white/40 hover:text-white/60 rounded-xl text-xs font-semibold transition-colors"
+                            >
+                                Ahora no
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Contact Details Bottom Drawer (Life360 style) */}
+            {selectedContact && (
+                <div className="fixed inset-0 z-40 flex flex-col justify-end bg-black/50 backdrop-blur-sm transition-opacity duration-300 animate-fade-in">
+                    {/* Click backdrop to close */}
+                    <div className="absolute inset-0" onClick={() => setSelectedContact(null)} />
+                    
+                    <div className="relative bg-[#111115] border-t border-white/10 rounded-t-[2.5rem] p-6 shadow-2xl space-y-6 animate-slide-up z-10 select-none pb-safe-bottom">
+                        {/* Drag indicator */}
+                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-2 mb-2" />
+                        
+                        {/* Contact info */}
+                        <div className="flex items-center gap-4">
+                            <div 
+                                className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-white shadow-md text-xl bg-primary shrink-0"
+                                style={{
+                                    backgroundColor: `hsl(${(selectedContact.name.charCodeAt(0) * 15) % 360}, 60%, 45%)`
+                                }}
+                            >
+                                {selectedContact.avatarUrl ? (
+                                    <img src={selectedContact.avatarUrl} alt={selectedContact.name} className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    selectedContact.name.charAt(0).toUpperCase()
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-xl font-bold text-white truncate">{selectedContact.name}</h3>
+                                <p className="text-white/40 text-xs truncate mt-0.5">
+                                    {selectedContact.relation} • {selectedContact.phone || 'Sin número de teléfono'}
+                                </p>
+                            </div>
+                            
+                        </div>
+
+                        {/* Location Details */}
+                        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-2">
+                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+                                <span className="material-symbols-outlined text-sm">my_location</span>
+                                Ubicación actual
+                            </div>
+                            <p className="text-white text-sm font-semibold">{selectedContact.address || 'Esperando señal GPS...'}</p>
+                            {selectedContact.lastUpdate && (
+                                <p className="text-white/40 text-xs">Actualizado: {selectedContact.lastUpdate}</p>
+                            )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="grid grid-cols-3 gap-3">
+                            {/* Navigate */}
+                            <button
+                                onClick={() => selectedContact.lat && selectedContact.lng && handleNavigate(selectedContact.lat, selectedContact.lng)}
+                                disabled={!selectedContact.lat || !selectedContact.lng}
+                                className="flex flex-col items-center justify-center gap-2 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl text-white disabled:opacity-40 transition-all active:scale-95"
+                            >
+                                <span className="material-symbols-outlined text-2xl text-primary">directions</span>
+                                <span className="text-xs font-bold">IR</span>
+                            </button>
+
+                            {/* History */}
+                            <button
+                                onClick={() => setShowHistoryModal(true)}
+                                className="flex flex-col items-center justify-center gap-2 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl text-white transition-all active:scale-95"
+                            >
+                                <span className="material-symbols-outlined text-2xl text-primary">history</span>
+                                <span className="text-xs font-bold">Historial</span>
+                            </button>
+
+                            {/* Call */}
+                            <button
+                                onClick={() => handleCall(selectedContact.phone)}
+                                disabled={!selectedContact.phone}
+                                className="flex flex-col items-center justify-center gap-2 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl text-white disabled:opacity-40 transition-all active:scale-95"
+                            >
+                                <span className="material-symbols-outlined text-2xl text-primary">call</span>
+                                <span className="text-xs font-bold">Llamar</span>
+                            </button>
+                        </div>
+
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setSelectedContact(null)}
+                            className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-sm font-black uppercase tracking-wider text-white transition-colors"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Location History Modal */}
+            {showHistoryModal && selectedContact && (
+                <LocationHistoryModal
+                    isOpen={showHistoryModal}
+                    onClose={() => setShowHistoryModal(false)}
+                    memberId={selectedContact.associated_user_id || selectedContact.id}
+                    memberName={selectedContact.name}
+                />
             )}
 
         </div>

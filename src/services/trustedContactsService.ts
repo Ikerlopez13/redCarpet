@@ -91,6 +91,26 @@ export class TrustedContactsService {
         const associatedUserId = matchedId || null;
         const initialStatus = associatedUserId ? 'pending' : 'accepted';
 
+        // Check if contact already exists (by associated_user_id or phone)
+        const existingQuery = (supabase.from('trusted_contacts') as any).select('*').eq('user_id', userId);
+        const { data: existing } = associatedUserId
+            ? await existingQuery.eq('associated_user_id', associatedUserId).maybeSingle()
+            : await existingQuery.eq('phone', phone).maybeSingle();
+
+        if (existing) {
+            if (existing.status === 'pending') {
+                return { contact: existing as TrustedContact, error: 'Ya tienes una solicitud pendiente con este contacto.', isPendingRequest: true };
+            }
+            // Re-activate (rejected or old accepted contact being re-added)
+            const { data: updated, error: updateError } = await (supabase.from('trusted_contacts') as any)
+                .update({ status: initialStatus, name, phone, relation, associated_user_id: associatedUserId })
+                .eq('id', existing.id)
+                .select('*')
+                .single();
+            if (updateError) return { contact: null, error: updateError.message, isPendingRequest: false };
+            return { contact: updated as TrustedContact, error: null, isPendingRequest: initialStatus === 'pending' };
+        }
+
         const { data, error } = await (supabase.from('trusted_contacts') as any)
             .insert({
                 user_id: userId,
@@ -198,16 +218,28 @@ export class TrustedContactsService {
         // If accepted, add the original requester to the current user's contact list
         if (accept && requestInfo && currentUserId) {
             try {
-                await (supabase.from('trusted_contacts') as any).insert({
-                    user_id: currentUserId,
-                    name: requestInfo.requester_name || 'Amigo',
-                    phone: '', // Number hidden for privacy if we don't have it, but they are linked
-                    relation: 'Familiar',
-                    share_location: true,
-                    notify_emergency: true,
-                    associated_user_id: requestInfo.requester_id,
-                    status: 'accepted'
-                });
+                // Check if reciprocal contact already exists (e.g. created by trigger)
+                const { data: existing } = await supabase.from('trusted_contacts')
+                    .select('id')
+                    .eq('user_id', currentUserId)
+                    .eq('associated_user_id', requestInfo.requester_id)
+                    .maybeSingle();
+
+                if (!existing) {
+                    await (supabase.from('trusted_contacts') as any).insert({
+                        user_id: currentUserId,
+                        name: requestInfo.requester_name || 'Amigo',
+                        phone: '', // Number hidden for privacy if we don't have it, but they are linked
+                        relation: 'Familiar',
+                        share_location: true,
+                        notify_emergency: true,
+                        associated_user_id: requestInfo.requester_id,
+                        status: 'accepted'
+                    });
+                }
+                
+                // Trigger notification to the original requester
+                TrustedContactsService.sendNotification(requestInfo.requester_id, currentUserId, 'request_accepted');
             } catch (err) {
                 console.error('Error creating reciprocal contact', err);
             }
@@ -215,4 +247,91 @@ export class TrustedContactsService {
 
         return { error: null };
     }
+
+    /**
+     * Send a contact request push notification
+     */
+    static async sendNotification(recipientId: string, senderId: string, type: 'request_received' | 'request_accepted'): Promise<void> {
+        try {
+            await supabase.functions.invoke('send-contact-notifications', {
+                body: { recipientId, senderId, type }
+            });
+            console.log(`[Push] Notification request sent for ${type}`);
+        } catch (err) {
+            console.error('Error calling send-contact-notifications:', err);
+        }
+    }
+
+    /**
+     * Convert latitude/longitude to a readable street name via Mapbox search geocode
+     */
+    static async reverseGeocode(lat: number, lng: number): Promise<string> {
+        return reverseGeocode(lat, lng);
+    }
+}
+
+import { isBlocked, track } from './mapboxBudget';
+
+// L1: in-memory (current session, fine-grained key)
+const _memCache = new Map<string, string>();
+
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+    // 4 decimal places ≈ 11 m precision — good enough for street-level addresses
+    const latKey = lat.toFixed(4);
+    const lngKey = lng.toFixed(4);
+    const memKey = `${latKey},${lngKey}`;
+
+    // L1: in-memory hit
+    if (_memCache.has(memKey)) return _memCache.get(memKey)!;
+
+    // L2: DB cache (persistent across sessions)
+    try {
+        const { data } = await supabase
+            .from('mapbox_geocache')
+            .select('address')
+            .eq('lat_key', latKey)
+            .eq('lng_key', lngKey)
+            .maybeSingle();
+
+        if (data?.address) {
+            _memCache.set(memKey, data.address);
+            return data.address;
+        }
+    } catch { /* fall through to API */ }
+
+    // Budget guard
+    if (isBlocked()) return 'Ubicación no disponible';
+
+    // L3: Mapbox API
+    try {
+        const token = import.meta.env.VITE_MAPBOX_TOKEN;
+        if (!token) return 'Ubicación activa';
+
+        const url = `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=${token}&limit=1&types=address,street`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        track('geocode_v6');
+
+        if (data?.features?.length > 0) {
+            const address =
+                data.features[0].properties?.full_address ||
+                data.features[0].properties?.name ||
+                'Ubicación activa';
+
+            _memCache.set(memKey, address);
+
+            // Persist to DB cache (fire-and-forget)
+            supabase
+                .from('mapbox_geocache')
+                .upsert({ lat_key: latKey, lng_key: lngKey, address, cached_at: new Date().toISOString() })
+                .then(() => {})
+                .catch(() => {});
+
+            return address;
+        }
+    } catch (err) {
+        console.error('[Geocoding] Error reverse geocoding:', err);
+    }
+    return 'Ubicación activa';
 }

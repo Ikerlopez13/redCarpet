@@ -9,6 +9,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { DeepLinkHandler } from './components/auth/DeepLinkHandler';
 import { EmergencyConsentModal } from './components/Legal/EmergencyConsentModal';
 import { SOSConfigSheet } from './components/SOSConfigSheet';
+import { SOSRequestModal } from './components/SOS/SOSRequestModal';
 import { Preferences } from '@capacitor/preferences';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -36,13 +37,14 @@ const Emergency = lazy(() => import('./pages/Emergency').then(m => ({ default: m
 const SOSActivePage = lazy(() => import('./pages/SOSActivePage').then(m => ({ default: m.SOSActivePage })));
 const Security = lazy(() => import('./pages/Security').then(m => ({ default: m.Security })));
 const WidgetsPage = lazy(() => import('./pages/WidgetsPage').then(m => ({ default: m.WidgetsPage })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 
 // Generic Loading Screen
 const PageLoader = () => {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShow(true), 1000);
+        const timer = setTimeout(() => setShow(true), 150);
         return () => clearTimeout(timer);
     }, []);
 
@@ -59,6 +61,7 @@ const PageLoader = () => {
 };
 
 import { ForceUpdateGate } from './components/ForceUpdateGate';
+import { LocationPermissionGate } from './components/LocationPermissionGate';
 import { useAuth } from './contexts/AuthContext';
 
 /**
@@ -67,13 +70,21 @@ import { useAuth } from './contexts/AuthContext';
 const GlobalModals = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        const handler = (e: Event) => navigate((e as CustomEvent).detail);
+        window.addEventListener('rc:navigate', handler);
+        return () => window.removeEventListener('rc:navigate', handler);
+    }, [navigate]);
     const { user, refreshProfile } = useAuth();
-    const { 
-        showConsent, 
-        handleConsentGiven, 
+    const {
+        showConsent,
+        handleConsentGiven,
         setShowConsent,
         isConfigured,
-        setIsConfigured
+        setIsConfigured,
+        isSOSModalOpen,
+        closeSOSModal
     } = useSOS() as any;
 
     const isExcludedPage = ['/onboarding', '/login', '/privacy', '/terms', '/eula'].includes(location.pathname);
@@ -86,6 +97,12 @@ const GlobalModals = () => {
                 isOpen={showConsent && !isExcludedPage}
                 onConsent={handleConsentGiven}
                 onDecline={() => setShowConsent(false)}
+            />
+
+            <SOSRequestModal
+                isOpen={isSOSModalOpen}
+                onClose={closeSOSModal}
+                refreshProfile={refreshProfile}
             />
 
             <SOSConfigSheet
@@ -137,6 +154,31 @@ const GlobalModals = () => {
 function App() {
     useEffect(() => {
         // Deep Links are handled by src/components/auth/DeepLinkHandler.tsx
+        
+        const prewarmAndCache = async () => {
+            // Warm Mapbox spend cache so isBlocked() is ready before first API call
+            import('./services/mapboxBudget').then(({ initBudget }) => initBudget()).catch(() => {});
+
+            try {
+                // 1. Pre-warm location permission and cache
+                const { Geolocation } = await import('@capacitor/geolocation');
+                const perms = await Geolocation.checkPermissions();
+                if (perms.location === 'granted') {
+                    const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 3000 });
+                    if (position) {
+                        const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+                        const { Preferences } = await import('@capacitor/preferences');
+                        await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: JSON.stringify(loc) });
+                        console.log('[App Startup] Location cached:', loc);
+                    }
+                }
+            } catch (err) {
+                console.warn('[App Startup] Location cache failed:', err);
+            }
+
+        };
+
+        prewarmAndCache();
     }, []);
 
     return (
@@ -145,9 +187,11 @@ function App() {
                 <BrowserRouter>
                     <SOSProvider>
                         <DeepLinkHandler />
+                        <LocationPermissionGate />
                         <GlobalModals />
                         <Suspense fallback={<PageLoader />}>
                             <Routes>
+                                <Route path="/dashboard" element={<Dashboard />} />
                                 <Route element={<MobileShell />}>
                                     {/* Auth routes - accessible without login */}
                                     <Route path="/login" element={<Login />} />

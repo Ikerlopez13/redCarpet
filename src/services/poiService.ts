@@ -1,4 +1,9 @@
 // POI Service - Fetch nearby places using Mapbox Geocoding API
+import { isBlocked, track } from './mapboxBudget';
+
+// ── POI cache: coarse grid (2 decimal ≈ 1 km) + category, 30-min TTL ──
+const _poiCache = new Map<string, { data: POI[]; expiresAt: number }>();
+const POI_TTL_MS = 30 * 60 * 1000;
 
 export interface POI {
     id: string;
@@ -47,14 +52,30 @@ export async function getNearbyPOIs(
         return [];
     }
 
+    // ── Cache check ───────────────────────────────────────
+    const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${category ?? 'all'}`;
+    const cached = _poiCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return cached.data;
+
+    // ── Budget guard ──────────────────────────────────────
+    if (isBlocked()) {
+        console.warn('[POI] Mapbox calls blocked — budget limit reached.');
+        return cached?.data ?? [];
+    }
+
     try {
         // Broad search for POIs and landmarks - More aggressive to avoid empty results
         const queries = category
             ? [categoryConfig[category].types[0]]
             : ['landmark', 'park', 'university', 'museum', 'monument', 'square', 'market', 'church', 'school', 'hospital', 'restaurant', 'cafe', 'shop', 'pharmacy', 'poi'];
 
+        const batchedQueries = queries.slice(0, 8);
+
+        // Track before firing (we know how many calls we're about to make)
+        track('geocode_v5', batchedQueries.length);
+
         // We'll combine multiple queries to ensure landmark and POI richness
-        const responses = await Promise.all(queries.slice(0, 8).map(q =>
+        const responses = await Promise.all(batchedQueries.map(q =>
             fetch(
                 `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?` +
                 `proximity=${lng},${lat}&` +
@@ -112,9 +133,13 @@ export async function getNearbyPOIs(
         });
 
         // Filter and sort by distance
-        return pois
+        const result = pois
             .filter(p => p.distance! <= radiusMeters)
             .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+
+        // Store in cache
+        _poiCache.set(cacheKey, { data: result, expiresAt: Date.now() + POI_TTL_MS });
+        return result;
 
     } catch (e) {
         console.error('Error fetching nearby POIs:', e);
@@ -127,8 +152,10 @@ export async function getNearbyPOIs(
  */
 export async function searchPOIs(query: string, lat: number, lng: number): Promise<POI[]> {
     if (!query.trim() || !MAPBOX_TOKEN) return [];
+    if (isBlocked()) return [];
 
     try {
+        track('geocode_v5');
         const response = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
             `proximity=${lng},${lat}&` +
