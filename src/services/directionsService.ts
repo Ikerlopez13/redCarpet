@@ -4,6 +4,8 @@
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DIRECTIONS_API_BASE = 'https://api.mapbox.com/directions/v5/mapbox';
 import { supabase } from './supabaseClient';
+import { isBlocked, track } from './mapboxBudget';
+import { allow } from './rateLimiter';
 
 export interface Coordinate {
     lat: number;
@@ -16,6 +18,7 @@ export interface RouteManeuver {
     modifier?: string;
     bearing_after?: number;
     bearing_before?: number;
+    location?: [number, number]; // [lng, lat]
 }
 
 export interface RouteStep {
@@ -43,6 +46,28 @@ const PROFILE_MAP: Record<string, string> = {
     driving: 'driving-traffic'
 };
 
+export interface Neighborhood {
+    name: string;
+    lat: number;
+    lng: number;
+    radius: number; // in meters
+    dangerWeight: number; // positive for penalty, negative for bonus (safe zone)
+}
+
+export const NEIGHBORHOODS: Neighborhood[] = [
+    // High-conflict (avoid/penalize)
+    { name: 'El Raval', lat: 41.3788, lng: 2.1685, radius: 600, dangerWeight: 250 },
+    { name: 'El Gòtic', lat: 41.3825, lng: 2.1770, radius: 500, dangerWeight: 200 },
+    { name: 'La Barceloneta', lat: 41.3800, lng: 2.1890, radius: 500, dangerWeight: 150 },
+    { name: 'Nou Barris', lat: 41.4420, lng: 2.1800, radius: 700, dangerWeight: 150 },
+    
+    // Safe (favor/bonus)
+    { name: 'L\'Eixample', lat: 41.3930, lng: 2.1620, radius: 1200, dangerWeight: -100 },
+    { name: 'Les Corts', lat: 41.3875, lng: 2.1310, radius: 900, dangerWeight: -80 },
+    { name: 'Sarrià-Sant Gervasi', lat: 41.4000, lng: 2.1220, radius: 900, dangerWeight: -100 },
+    { name: 'Gràcia', lat: 41.4030, lng: 2.1570, radius: 700, dangerWeight: -80 }
+];
+
 /**
  * Get a route from Mapbox Directions API
  */
@@ -51,6 +76,8 @@ export async function getRoute(
     destination: Coordinate,
     mode: string = 'walking'
 ): Promise<RouteResult | null> {
+    if (isBlocked() || !allow('directions', 15)) return null;
+
     const profile = PROFILE_MAP[mode] || 'walking';
 
     const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
@@ -63,6 +90,7 @@ export async function getRoute(
         });
 
     try {
+        track('directions');
         const response = await fetch(url);
         const data = await response.json();
 
@@ -82,7 +110,8 @@ export async function getRoute(
                         instruction: step.maneuver.instruction || 'Continúa recto',
                         modifier: step.maneuver.modifier,
                         bearing_after: step.maneuver.bearing_after,
-                        bearing_before: step.maneuver.bearing_before
+                        bearing_before: step.maneuver.bearing_before,
+                        location: step.maneuver.location
                     }
                 }))
             };
@@ -134,6 +163,110 @@ export async function getSafeRouteFromSupabase(origin: Coordinate, destination: 
     }
 }
 
+export function isNightTime(): boolean {
+    const hour = new Date().getHours();
+    return hour >= 19 || hour < 7;
+}
+
+function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // meters
+    const phi1 = lat1 * Math.PI/180;
+    const phi2 = lat2 * Math.PI/180;
+    const deltaPhi = (lat2 - lat1) * Math.PI/180;
+    const deltaLambda = (lon2 - lon1) * Math.PI/180;
+
+    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+}
+
+function checkOverlap(routeA: RouteResult, routeB: RouteResult, threshold: number = 0.85): boolean {
+    if (!routeA.geometry || !routeB.geometry) return false;
+    const coordsA = routeA.geometry.coordinates;
+    const coordsB = routeB.geometry.coordinates;
+    let nearCount = 0;
+
+    coordsA.forEach((cA: any) => {
+        const near = coordsB.some((cB: any) => {
+            const dist = getHaversineDistance(cA[1], cA[0], cB[1], cB[0]);
+            return dist < 20; // tighter: 20m so parallel streets aren't considered identical
+        });
+        if (near) nearCount++;
+    });
+
+    return (nearCount / coordsA.length) >= threshold;
+}
+
+function isValidRoute(route: RouteResult, origin: Coordinate, destination: Coordinate): boolean {
+    if (!route.geometry?.coordinates || route.geometry.coordinates.length < 4) return false;
+    if (!route.steps || route.steps.length < 2) return false;
+
+    const directDist = getHaversineDistance(origin.lat, origin.lng, destination.lat, destination.lng);
+
+    // Must be at least 70% of direct distance (no teleporting shortcuts)
+    if (route.distance < directDist * 0.7) return false;
+
+    // Can't be an absurd detour: more than 3.5× the direct distance is impossible/wrong
+    if (directDist > 0 && route.distance > directDist * 3.5) return false;
+
+    // Route must actually end near destination (within 300m)
+    const coords = route.geometry.coordinates;
+    const last = coords[coords.length - 1];
+    const distToEnd = getHaversineDistance(last[1], last[0], destination.lat, destination.lng);
+    if (distToEnd > 300) return false;
+
+    return true;
+}
+
+async function fetchRouteWithWaypoint(
+    origin: Coordinate,
+    waypoint: Coordinate,
+    destination: Coordinate,
+    profile: string,
+    simulateWalkingSpeed: boolean = false
+): Promise<RouteResult | null> {
+    if (isBlocked()) return null;
+
+    const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${waypoint.lng},${waypoint.lat};${destination.lng},${destination.lat}?` +
+        new URLSearchParams({
+            access_token: MAPBOX_TOKEN,
+            geometries: 'geojson',
+            steps: 'true',
+            overview: 'full',
+            radiuses: 'unlimited;unlimited;unlimited',
+            language: 'es'
+        });
+
+    try {
+        track('directions');
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const calculatedDuration = simulateWalkingSpeed ? route.distance / 1.4 : route.duration;
+            return {
+                distance: route.distance,
+                duration: calculatedDuration,
+                geometry: route.geometry,
+                steps: route.legs.flatMap((leg: any) => leg.steps).map((step: any) => ({
+                    instruction: step.maneuver.instruction || 'Continúa',
+                    distance: step.distance,
+                    duration: simulateWalkingSpeed ? step.distance / 1.4 : step.duration,
+                    name: step.name || '',
+                    maneuver: step.maneuver
+                }))
+            };
+        }
+    } catch (err) {
+        console.error('Error fetching waypoint route:', err);
+    }
+    return null;
+}
+
 export async function getAlternativeRoutes(
     origin: Coordinate,
     destination: Coordinate,
@@ -143,7 +276,13 @@ export async function getAlternativeRoutes(
     balanced: RouteResult | null;
     fast: RouteResult | null;
 }> {
+    if (isBlocked() || !allow('directions', 15)) {
+        return { safe: null, balanced: null, fast: null };
+    }
+
     const fetchProfile = async (profile: string, simulateWalkingSpeed: boolean = false): Promise<RouteResult[]> => {
+        if (isBlocked()) return [];
+
         const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
             new URLSearchParams({
                 access_token: MAPBOX_TOKEN,
@@ -155,6 +294,7 @@ export async function getAlternativeRoutes(
             });
 
         try {
+            track('directions');
             const response = await fetch(url);
             const data = await response.json();
             if (!data.routes || data.routes.length === 0) return [];
@@ -182,90 +322,218 @@ export async function getAlternativeRoutes(
     try {
         const profile = PROFILE_MAP[baseMode] || 'walking';
         const isWalking = baseMode === 'walking';
-        
-        const [
-            { data: dangerZones },
-            apiRoutes,
-            dbSafeRoute
-        ] = await Promise.all([
-            isWalking ? supabase.from('danger_zones').select('*').or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`) : Promise.resolve({ data: [] }),
-            fetchProfile(profile, false),
-            isWalking ? getSafeRouteFromSupabase(origin, destination) : Promise.resolve(null)
-        ]);
 
-        const countDangerIntersections = (route: RouteResult | null) => {
-            if (!route || !route.geometry || !dangerZones) return 0;
-            let intersections = 0;
-            const coords = route.geometry.coordinates;
-            dangerZones.forEach((zone: any) => {
-                const hit = coords.some((c: any) => {
-                    const R = 6371e3;
-                    const lat1 = c[1] * Math.PI/180;
-                    const lat2 = zone.lat * Math.PI/180;
-                    const dLat = (zone.lat - c[1]) * Math.PI/180;
-                    const dLon = (zone.lng - c[0]) * Math.PI/180;
-                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                              Math.cos(lat1) * Math.cos(lat2) *
-                              Math.sin(dLon/2) * Math.sin(dLon/2);
-                    const cDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    return (R * cDist) < (zone.radius || 100);
-                });
-                if (hit) intersections++;
+        // 1. Fetch active danger zones
+        const { data: dangerZonesData } = isWalking 
+            ? await supabase.from('danger_zones').select('*').or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`)
+            : { data: [] };
+        const dangerZones = dangerZonesData || [];
+
+        // 2. Fetch default Mapbox routes
+        let defaultRoutes = await fetchProfile(profile, isWalking);
+
+        if (baseMode === 'cycling') {
+            return {
+                safe: null,
+                balanced: null,
+                fast: defaultRoutes[0] || null
+            };
+        }
+
+        // 3. Three independent strategies to force geometrically different paths.
+        //    Perpendicular offsets of 250-400m (0.0023–0.0037°) fit urban block sizes
+        //    and are small enough that Mapbox can snap to real streets.
+        const dLat = destination.lat - origin.lat;
+        const dLng = destination.lng - origin.lng;
+        const routeDist = Math.sqrt(dLat * dLat + dLng * dLng);
+
+        // Strategy B (balanced detour): LEFT side at 40% of route, offset ~280m
+        // Strategy C (safe detour):     RIGHT side at 60% of route, offset ~370m
+        //   + a second waypoint RIGHT at 35% with offset ~250m for more variety
+        const waypointPromises: Promise<RouteResult | null>[] = [];
+
+        if (routeDist > 0.0005) {
+            const perpLat = -dLng / routeDist;
+            const perpLng = dLat / routeDist;
+
+            // 6 candidates: 3 left-side offsets, 3 right-side, at different points along the route.
+            // Invalid ones (no road nearby) are filtered by isValidRoute() after fetching.
+            const waypoints = [
+                // Left side
+                { lat: origin.lat + dLat * 0.40 + perpLat * 0.0030, lng: origin.lng + dLng * 0.40 + perpLng * 0.0030 },
+                { lat: origin.lat + dLat * 0.60 + perpLat * 0.0040, lng: origin.lng + dLng * 0.60 + perpLng * 0.0040 },
+                { lat: origin.lat + dLat * 0.50 + perpLat * 0.0020, lng: origin.lng + dLng * 0.50 + perpLng * 0.0020 },
+                // Right side
+                { lat: origin.lat + dLat * 0.40 + perpLat * (-0.0030), lng: origin.lng + dLng * 0.40 + perpLng * (-0.0030) },
+                { lat: origin.lat + dLat * 0.60 + perpLat * (-0.0040), lng: origin.lng + dLng * 0.60 + perpLng * (-0.0040) },
+                { lat: origin.lat + dLat * 0.50 + perpLat * (-0.0020), lng: origin.lng + dLng * 0.50 + perpLng * (-0.0020) },
+            ];
+
+            waypoints.forEach(wp => {
+                waypointPromises.push(
+                    fetchRouteWithWaypoint(origin, wp, destination, profile, isWalking)
+                );
             });
-            return intersections;
+        }
+
+        const waypointRoutes = await Promise.all(waypointPromises);
+        const allRoutes = [
+            ...defaultRoutes,
+            ...waypointRoutes.filter(Boolean) as RouteResult[]
+        ].filter(r => isValidRoute(r, origin, destination));
+
+        // 4. Three distinct scoring algorithms — one per route type
+        const night = isNightTime();
+
+        // Shared helper: raw danger components extracted from a route
+        const extractComponents = (route: RouteResult) => {
+            const coords = route.geometry?.coordinates || [];
+
+            // A. Danger zone penalty
+            let dangerZonePenalty = 0;
+            let touchesDangerZone = false;
+            dangerZones.forEach((zone: any) => {
+                const hit = coords.some((c: any) =>
+                    getHaversineDistance(c[1], c[0], zone.lat, zone.lng) < (zone.radius || 100)
+                );
+                if (hit) {
+                    touchesDangerZone = true;
+                    const severity = zone.type === 'incident' ? 3.0 : zone.type === 'dark' ? 1.5 : 1.0;
+                    const hoursAgo = (Date.now() - new Date(zone.created_at).getTime()) / 3_600_000;
+                    const recency = hoursAgo <= 2 ? 2.0 : hoursAgo <= 12 ? 1.5 : hoursAgo > 24 ? 0.5 : 1.0;
+                    dangerZonePenalty += severity * recency * 100;
+                }
+            });
+
+            // B. Street quality score (minutes weighted by street type)
+            let streetScore = 0;
+            let unnamedMinutes = 0;
+            route.steps.forEach(step => {
+                const name = step.name.toLowerCase();
+                const mins = step.duration / 60;
+                const isMainAvenue =
+                    name.includes('diagonal') || name.includes('gran via') ||
+                    name.includes('aragó') || name.includes('meridiana') ||
+                    name.includes('mallorca') || name.includes('valència') ||
+                    name.includes('passeig') || name.includes('rambla') ||
+                    name.includes('avinguda') || name.includes('avenida') ||
+                    name.includes('via') || name.includes('felipe ii');
+                const isAlley =
+                    name.includes('passatge') || name.includes('carreró') ||
+                    name.includes('callejón') || name.includes('alley') ||
+                    name.includes('pasaje') || name.includes('camí') ||
+                    name.includes('sendero');
+                const isUnnamed = name === '' || name === 'sin nombre';
+
+                if (isMainAvenue) streetScore += mins * 0.7;       // safer
+                else if (isAlley) streetScore += mins * 2.0;        // dangerous
+                else if (isUnnamed) { streetScore += mins * 1.3; unnamedMinutes += mins; }
+                else streetScore += mins * 1.0;
+            });
+
+            // C. Neighborhood score
+            let neighborhoodScore = 0;
+            NEIGHBORHOODS.forEach(nb => {
+                const hit = coords.some((c: any) =>
+                    getHaversineDistance(c[1], c[0], nb.lat, nb.lng) < nb.radius
+                );
+                if (hit) neighborhoodScore += nb.dangerWeight;
+            });
+
+            return { dangerZonePenalty, touchesDangerZone, streetScore, neighborhoodScore, unnamedMinutes };
         };
 
-        const uniqueRoutesMap = new Map<number, any>();
-        apiRoutes.forEach(r => {
-            // Deduplicate by distance (allow a small delta if needed, but Mapbox distance is usually exact)
-            if (!uniqueRoutesMap.has(r.distance)) {
-                uniqueRoutesMap.set(r.distance, { ...r, dangerCount: countDangerIntersections(r) });
-            }
+        // ALGORITHM 1 — FASTEST: pure time, ignore safety entirely
+        const scoreFastest = (route: RouteResult): number => {
+            return route.duration; // lower = better
+        };
+
+        // ALGORITHM 2 — BALANCED: 50% time + 50% safety, moderate zone avoidance
+        const scoreBalanced = (route: RouteResult): number => {
+            if (!route.geometry) return 99999;
+            const { dangerZonePenalty, streetScore, neighborhoodScore } = extractComponents(route);
+            const nightMult = night ? 1.3 : 1.0;
+            const safetyScore = (streetScore + dangerZonePenalty * nightMult + neighborhoodScore) * 0.5;
+            const timeScore = (route.duration / 60) * 0.5;
+            return timeScore + safetyScore;
+        };
+
+        // ALGORITHM 3 — SAFEST: safety only, hard-exclude active danger zones at night,
+        //               penalize unnamed streets heavily, reward main avenues
+        const scoreSafest = (route: RouteResult): number => {
+            if (!route.geometry) return 99999;
+            const { dangerZonePenalty, touchesDangerZone, streetScore, neighborhoodScore, unnamedMinutes } = extractComponents(route);
+            const nightMult = night ? 2.5 : 1.0;
+
+            // Hard penalty: touching any active danger zone at night is almost disqualifying
+            const dangerPenalty = touchesDangerZone && night
+                ? dangerZonePenalty * nightMult * 3
+                : dangerZonePenalty * nightMult;
+
+            // Extra penalty for unnamed streets (likely unlit alleys)
+            const unnamedPenalty = unnamedMinutes * 8;
+
+            // Time barely matters — only a 10% weight
+            const timeScore = (route.duration / 60) * 0.1;
+
+            return timeScore + streetScore + dangerPenalty + neighborhoodScore + unnamedPenalty;
+        };
+
+        // Score all candidates with each algorithm
+        const withScores = allRoutes.filter(r => r && r.geometry).map(route => ({
+            ...route,
+            scoreFast: scoreFastest(route),
+            scoreBalanced: scoreBalanced(route),
+            scoreSafe: scoreSafest(route),
+            // dangerScore used by UI for badge count — use balanced algo as reference
+            dangerScore: scoreBalanced(route),
+            dangerCount: Math.floor(extractComponents(route).dangerZonePenalty / 100),
+        }));
+
+        // 5. Deduplicate — two routes are considered the same if >55% of coords overlap.
+        //    Lower threshold keeps routes that share some streets but differ enough visually.
+        const uniqueRoutes: typeof withScores = [];
+        withScores.forEach(candidate => {
+            const isDuplicate = uniqueRoutes.some(existing =>
+                checkOverlap(existing, candidate, 0.55)
+            );
+            if (!isDuplicate) uniqueRoutes.push(candidate);
         });
-        const uniqueRoutes = Array.from(uniqueRoutesMap.values());
-        const sortedRoutes = [...uniqueRoutes].sort((a, b) => a.distance - b.distance);
 
-        const fastestRoute = sortedRoutes[0] || null;
-        let balancedRoute = null;
-        let safeRoute = null;
+        if (uniqueRoutes.length === 0) return { safe: null, balanced: null, fast: null };
 
-        if (isWalking) {
-            if (dbSafeRoute) {
-                safeRoute = dbSafeRoute;
-                safeRoute.dangerCount = countDangerIntersections(safeRoute);
-            } else if (sortedRoutes.length > 2) {
-                safeRoute = sortedRoutes[sortedRoutes.length - 1];
-            } else if (sortedRoutes.length === 2) {
-                safeRoute = sortedRoutes[1];
-            }
+        // Each route type picks the best candidate by its own algorithm.
+        // To avoid showing 3 identical paths, we force each type to pick a DIFFERENT
+        // candidate where possible (greedy assignment: fast gets first pick, then safe, then balanced).
+        const sortedFast     = [...uniqueRoutes].sort((a, b) => a.scoreFast - b.scoreFast);
+        const sortedSafe     = [...uniqueRoutes].sort((a, b) => a.scoreSafe - b.scoreSafe);
+        const sortedBalanced = [...uniqueRoutes].sort((a, b) => a.scoreBalanced - b.scoreBalanced);
 
-            if (sortedRoutes.length > 2) {
-                balancedRoute = sortedRoutes[1]; // Middle route
-            }
-            
-            // Fix references if there are no alternatives
-            if (!safeRoute) safeRoute = fastestRoute;
-            if (!balancedRoute) balancedRoute = fastestRoute;
+        const fastestRoute = sortedFast[0];
 
-            // Nullify duplicates so the UI doesn't render 3 identical cards
-            if (balancedRoute && fastestRoute && balancedRoute.distance === fastestRoute.distance) {
-                balancedRoute = null;
-            }
-            if (safeRoute && fastestRoute && safeRoute.distance === fastestRoute.distance) {
-                safeRoute = null;
-            }
-            if (safeRoute && balancedRoute && safeRoute.distance === balancedRoute.distance) {
-                safeRoute = null;
-            }
+        // Balanced picks second — it needs the "middle" route, not the leftover
+        let balancedRoute =
+            sortedBalanced.find(r => r !== fastestRoute) ||
+            sortedBalanced[0];
 
-            return { fast: fastestRoute as any, balanced: balancedRoute as any, safe: safeRoute as any };
-        } else {
-            // For bikes, transit, cars: just return the distinct routes Mapbox gives us
-            safeRoute = sortedRoutes.length > 2 ? sortedRoutes[2] : null;
-            balancedRoute = sortedRoutes.length > 1 ? sortedRoutes[1] : null;
-            
-            return { fast: fastestRoute as any, balanced: balancedRoute as any, safe: safeRoute as any };
+        // Safest picks last from whatever remains
+        let safestRoute =
+            sortedSafe.find(r => r !== fastestRoute && r !== balancedRoute) ||
+            sortedSafe.find(r => r !== fastestRoute) ||
+            sortedSafe[0];
+
+        // Guarantee logical time ordering: balanced must be between fastest and safest.
+        // If balanced ended up slower than safest, swap them.
+        if (balancedRoute && safestRoute && balancedRoute.duration > safestRoute.duration) {
+            [balancedRoute, safestRoute] = [safestRoute, balancedRoute];
         }
+
+        return {
+            fast: fastestRoute,
+            balanced: balancedRoute,
+            safe: safestRoute,
+        };
+
     } catch (error) {
         console.error('Error fetching alternative routes:', error);
         return { safe: null, balanced: null, fast: null };

@@ -1,5 +1,6 @@
 // POI Service - Fetch nearby places using Mapbox Geocoding API
 import { isBlocked, track } from './mapboxBudget';
+import { allow, sanitizeQuery } from './rateLimiter';
 
 // ── POI cache: coarse grid (2 decimal ≈ 1 km) + category, 30-min TTL ──
 const _poiCache = new Map<string, { data: POI[]; expiresAt: number }>();
@@ -57,9 +58,9 @@ export async function getNearbyPOIs(
     const cached = _poiCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) return cached.data;
 
-    // ── Budget guard ──────────────────────────────────────
-    if (isBlocked()) {
-        console.warn('[POI] Mapbox calls blocked — budget limit reached.');
+    // ── Budget + rate guard ───────────────────────────────
+    if (isBlocked() || !allow('geocode_v5', 40)) {
+        console.warn('[POI] Mapbox calls blocked — budget or rate limit reached.');
         return cached?.data ?? [];
     }
 
@@ -151,13 +152,14 @@ export async function getNearbyPOIs(
  * Search POIs by query text using Mapbox Geocoding API
  */
 export async function searchPOIs(query: string, lat: number, lng: number): Promise<POI[]> {
-    if (!query.trim() || !MAPBOX_TOKEN) return [];
-    if (isBlocked()) return [];
+    const clean = sanitizeQuery(query);
+    if (!clean || !MAPBOX_TOKEN) return [];
+    if (isBlocked() || !allow('geocode_v5', 40)) return [];
 
     try {
         track('geocode_v5');
         const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(clean)}.json?` +
             `proximity=${lng},${lat}&` +
             `types=address,place,poi,neighborhood&` +
             `access_token=${MAPBOX_TOKEN}&` +

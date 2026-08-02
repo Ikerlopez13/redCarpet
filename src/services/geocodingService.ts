@@ -2,6 +2,7 @@
 // Searches for places, addresses, and establishments (such as colleges/universities)
 
 import { isBlocked, track } from './mapboxBudget';
+import { allow, sanitizeQuery } from './rateLimiter';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -31,21 +32,22 @@ export async function searchPlaces(
     query: string,
     proximity?: { lat: number; lng: number }
 ): Promise<GeocodingResult[]> {
-    if (!query || query.trim().length < 2) {
+    const clean = sanitizeQuery(query);
+    if (!clean || clean.length < 2) {
         return [];
     }
 
-    // Budget guard
-    if (isBlocked()) return [];
+    // Budget + rate guard
+    if (isBlocked() || !allow('searchbox', 10)) return [];
 
     // Refresh session token if a new search interaction starts (2 chars)
-    if (query.trim().length === 2) {
+    if (clean.length === 2) {
         activeSessionToken = generateSessionToken();
         track('searchbox'); // one session = one session token lifetime
     }
 
     const suggestUrl = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');
-    suggestUrl.searchParams.append('q', query);
+    suggestUrl.searchParams.append('q', clean);
     suggestUrl.searchParams.append('access_token', MAPBOX_TOKEN);
     suggestUrl.searchParams.append('session_token', activeSessionToken);
     suggestUrl.searchParams.append('limit', '8');
