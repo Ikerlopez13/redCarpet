@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabaseClient';
 import { RevenueCatService } from '../services/revenueCatService';
 import { BackgroundGeofenceService } from '../services/backgroundGeofenceService';
@@ -40,7 +41,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsPremium(false);
             return false;
         }
-        const hasPremium = await RevenueCatService.checkEntitlement();
+        
+        let hasPremium = false;
+        // Always check Supabase subscriptions (covers Stripe web purchases on all platforms)
+        try {
+            const now = new Date().toISOString();
+            const { data, error } = await supabase
+                .from('subscriptions')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .eq('status', 'active')
+                .or(`expires_at.is.null,expires_at.gt.${now}`)
+                .maybeSingle();
+            if (!error && data) {
+                hasPremium = true;
+            }
+        } catch (err) {
+            console.error('[AuthContext] Supabase subscription check error:', err);
+        }
+
+        // On native, also check RevenueCat (App Store / Google Play IAP)
+        if (!hasPremium && Capacitor.isNativePlatform()) {
+            hasPremium = await RevenueCatService.checkEntitlement();
+        }
+        
         setIsPremium(hasPremium);
         return hasPremium;
     };
@@ -105,12 +129,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         // Initialize RevenueCat for native platform (non-blocking)
                         RevenueCatService.initialize(loggedUser.id)
                             .then(() => updatePremiumStatus(loggedUser))
-                            .then(hasPremium => {
-                                if (hasPremium) {
-                                    BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
-                                }
-                            })
                             .catch(err => console.warn('[AuthContext] RevenueCat init error (non-fatal):', err));
+
+                        // Start tracking for all users (basic and premium)
+                        BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
                     }
                 } else {
                     if (mounted) setIsLoading(false);
@@ -131,6 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setIsLoading(false);
                     fetchAndSetProfile(loggedUser);
                     updatePremiumStatus(loggedUser);
+                    
+                    // Start tracking for all users (basic and premium) on login
+                    BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
                 } else {
                     setUser(null);
                     setIsLoading(false);

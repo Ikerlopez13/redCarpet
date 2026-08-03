@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { RevenueCatService } from '../services/revenueCatService';
 import type { PurchasesPackage } from '../services/revenueCatService';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabaseClient';
+import { Capacitor } from '@capacitor/core';
 import {
     Crown,
     Check,
@@ -30,7 +32,7 @@ import { TrustedContactsService } from '../services/trustedContactsService';
 export const Subscription: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { setIsPremium } = useAuth();
+    const { user, setIsPremium } = useAuth();
     const [packages, setPackages] = useState<PurchasesPackage[]>([]);
     const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
     const [processing, setProcessing] = useState(false);
@@ -40,6 +42,14 @@ export const Subscription: React.FC = () => {
     const [alertType, setAlertType] = useState<string>('emergency');
     const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        if (query.get('success') === 'true') {
+            setIsPremium(true);
+            setShowSuccess(true);
+        }
+    }, [setIsPremium]);
 
     const pass72hPkg = packages.find(p => p.identifier === 'rc_72h_pass' || p.product.identifier === 'rc_72h_pass');
     const monthlyPkg = packages.find(p => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly' || p.identifier === 'mes_premium' || p.product.identifier === 'mes_premium');
@@ -83,10 +93,41 @@ export const Subscription: React.FC = () => {
     }, [t]);
 
     const handlePurchase = async (planKey: string, packageId: string) => {
-        console.log(`[RevenueCat] 👉 Botón de compra pulsado para el paquete: ${packageId} (${planKey})`);
+        console.log(`[Subscription] Purchase triggered: ${packageId} (${planKey})`);
         setSelectedPlan(planKey);
         setProcessing(true);
         setError(null);
+
+        // Web checkout redirect via Stripe
+        if (!Capacitor.isNativePlatform()) {
+            console.log(`[Stripe Checkout] Creating web session for plan ${planKey}...`);
+            if (!user) {
+                setError("Inicia sesión para suscribirte.");
+                setProcessing(false);
+                return;
+            }
+            try {
+                const successUrl = `${window.location.origin}/subscription?success=true`;
+                const cancelUrl = `${window.location.origin}/subscription`;
+                const { data, error: invokeError } = await supabase.functions.invoke('create-stripe-checkout', {
+                    body: { userId: user.id, planId: planKey, successUrl, cancelUrl }
+                });
+                
+                if (invokeError || !data?.url) {
+                    throw new Error(invokeError?.message || "No se pudo generar el enlace de pago.");
+                }
+                
+                // Redirect user to Stripe Checkout page
+                window.location.href = data.url;
+            } catch (err: any) {
+                console.error('[Stripe Checkout] Redirect error:', err);
+                setError(err.message || "Error al conectar con Stripe.");
+                setProcessing(false);
+            }
+            return;
+        }
+
+        // Native checkout via RevenueCat
         try {
             if (!RevenueCatService.isConfigured) {
                 console.log(`[RevenueCat] RevenueCat no estaba configurado. Inicializando...`);
@@ -184,6 +225,24 @@ export const Subscription: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto pb-24 px-6 no-scrollbar z-10 space-y-8 animate-fade-in">
+                {/* Web payment fallback — Android only. Hidden on iOS per App Store guideline 3.1.1 */}
+                {Capacitor.getPlatform() === 'android' && (
+                    <button
+                        onClick={async () => {
+                            const url = `https://tryredcarpet.com/premium${user ? `?uid=${user.id}` : ''}`;
+                            try {
+                                const { Browser } = await import('@capacitor/browser');
+                                await Browser.open({ url, presentationStyle: 'fullscreen' });
+                            } catch {
+                                window.open(url, '_blank');
+                            }
+                        }}
+                        className="w-full py-3 bg-zinc-800/80 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest text-white/60 hover:text-white hover:border-white/20 transition-all"
+                    >
+                        🌐 Pagar en la web →
+                    </button>
+                )}
+
                 {error && (
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl animate-shake">
                         <p className="text-red-500 text-[10px] font-black uppercase text-center leading-tight">
