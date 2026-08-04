@@ -3,93 +3,15 @@ import { supabase } from '../../services/supabaseClient';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { Geolocation } from '@capacitor/geolocation';
-import {
-    Lightbulb, AlertTriangle, Accessibility, Users,
-    Ban, Wrench, Shield, Megaphone
-} from 'lucide-react';
+import clsx from 'clsx';
 
 interface ReportDangerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    userLat: number | null;
-    userLng: number | null;
+    userLat: number;
+    userLng: number;
     onSuccess?: () => void;
 }
-
-const TYPES = [
-    {
-        id: 'dark_light',
-        dbType: 'dark',
-        label: 'Poca luz',
-        subtitle: 'BAJA VISIBILIDAD',
-        Icon: Lightbulb,
-        iconColor: 'text-yellow-400',
-        circleBg: 'bg-yellow-900/70',
-    },
-    {
-        id: 'unsafe_env',
-        dbType: 'incident',
-        label: 'Ambiente Inseguro',
-        subtitle: 'PELIGRO',
-        Icon: AlertTriangle,
-        iconColor: 'text-red-500',
-        circleBg: 'bg-red-900/70',
-    },
-    {
-        id: 'limited_access',
-        dbType: 'incident',
-        label: 'Acceso limitado',
-        subtitle: 'MOVILIDAD REDUCIDA',
-        Icon: Accessibility,
-        iconColor: 'text-purple-400',
-        circleBg: 'bg-purple-900/70',
-    },
-    {
-        id: 'safe_access',
-        dbType: 'safe',
-        label: 'Acceso seguro',
-        subtitle: 'MOVILIDAD REDUCIDA',
-        Icon: Accessibility,
-        iconColor: 'text-green-400',
-        circleBg: 'bg-green-900/70',
-    },
-    {
-        id: 'inclusive_zone',
-        dbType: 'incident',
-        label: 'Zona inclusiva',
-        subtitle: 'INCLUSIVIDAD',
-        Icon: Users,
-        iconColor: 'text-pink-400',
-        circleBg: 'bg-purple-800/70',
-    },
-    {
-        id: 'road_closed',
-        dbType: 'incident',
-        label: 'Calle cortada',
-        subtitle: 'VIALIDAD',
-        Icon: Ban,
-        iconColor: 'text-orange-400',
-        circleBg: 'bg-orange-900/70',
-    },
-    {
-        id: 'bad_road',
-        dbType: 'incident',
-        label: 'Calle en mal estado',
-        subtitle: 'VIALIDAD',
-        Icon: Wrench,
-        iconColor: 'text-teal-400',
-        circleBg: 'bg-teal-900/70',
-    },
-    {
-        id: 'authorities',
-        dbType: 'safe',
-        label: 'Autoridades presentes',
-        subtitle: 'SEGURIDAD',
-        Icon: Shield,
-        iconColor: 'text-blue-400',
-        circleBg: 'bg-blue-900/70',
-    },
-] as const;
 
 export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, onClose, userLat, userLng, onSuccess }) => {
     const { t } = useTranslation();
@@ -99,48 +21,81 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
 
     if (!isOpen) return null;
 
+    const types = [
+        { id: 'dark_light', dbType: 'dark', icon: 'lightbulb', label: 'Poca luz', subtitle: 'BAJA VISIBILIDAD' },
+        { id: 'suspicious', dbType: 'incident', icon: 'visibility', label: 'Sospechoso', subtitle: 'ALERTA GENERAL' },
+        { id: 'fog', dbType: 'dark', icon: 'cloud', label: 'Niebla', subtitle: 'VISUAL' },
+        { id: 'unsafe_env', dbType: 'incident', icon: 'warning', label: 'Ambiente Inseguro', subtitle: 'PELIGRO' },
+        { id: 'harassment', dbType: 'incident', icon: 'priority_high', label: 'Acoso', subtitle: 'INSEGURIDAD' },
+        { id: 'security', dbType: 'incident', icon: 'shield', label: 'Seguridad', subtitle: 'AUTORIDADES' }
+    ] as const;
+
     const handleSubmit = async () => {
         if (!selectedType || !user) return;
 
-        const typeObj = TYPES.find(t => t.id === selectedType);
+        const typeObj = types.find(t => t.id === selectedType);
         if (!typeObj) return;
 
         setIsSubmitting(true);
         try {
-            let lat: number | null = userLat;
-            let lng: number | null = userLng;
-
+            // Get precise real-time location to place the marker
+            let lat = userLat;
+            let lng = userLng;
+            
             try {
-                const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 8000 });
+                const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
                 if (pos) {
                     lat = pos.coords.latitude;
                     lng = pos.coords.longitude;
                 }
             } catch (err) {
-                console.warn('Could not get high accuracy location for report, falling back to cached location', err);
+                console.warn("Could not get high accuracy location for report, falling back to cached location", err);
             }
 
-            if (lat == null || lng == null) {
-                alert('No se ha podido determinar tu ubicación. Activa el GPS e inténtalo de nuevo.');
+            if (!lat || !lng) {
+                alert(t('common.error') || 'No se ha podido determinar tu ubicación.');
                 setIsSubmitting(false);
                 return;
             }
 
+            // Expires in 4 hours
             const expiresAt = new Date();
-            expiresAt.setHours(expiresAt.getHours() + 2);
+            expiresAt.setHours(expiresAt.getHours() + 4);
 
-            const { IncidentQueueService } = await import('../../services/incidentQueueService');
-            await IncidentQueueService.enqueueIncident({
-                reporter_id: user.id,
-                lat,
-                lng,
-                radius: 100,
-                type: typeObj.dbType as any,
-                description: `${typeObj.label} - ${typeObj.subtitle}`,
-                expires_at: expiresAt.toISOString(),
-                votes_up: 0,
-                votes_down: 0,
-            });
+            const { data: newZone, error } = await supabase
+                .from('danger_zones')
+                .insert({
+                    reporter_id: user.id,
+                    lat: lat,
+                    lng: lng,
+                    radius: 100,
+                    type: typeObj.dbType,
+                    description: `${typeObj.label} - ${typeObj.subtitle}`, // Stores e.g. "Acoso - INSEGURIDAD"
+                    expires_at: expiresAt.toISOString(),
+                    votes_up: 0,
+                    votes_down: 0
+                })
+                .select()
+                .single();
+
+            if (error) {
+                console.error("Supabase insert error details:", error);
+                throw error;
+            }
+
+            // Trigger native push notifications to contacts/family members via edge function
+            if (newZone) {
+                supabase.functions.invoke('send-sos-notifications', {
+                    body: {
+                        alertId: newZone.id,
+                        userId: user.id,
+                        config: {
+                            message: `⚠️ Aviso de peligro: ${typeObj.label} (${typeObj.subtitle})`,
+                            isDangerZone: true
+                        }
+                    }
+                }).catch(err => console.error("Error triggering push for danger zone:", err));
+            }
 
             onSuccess?.();
             onClose();
@@ -153,69 +108,64 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center animate-fade-in">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-
-            <div className="relative w-full max-w-md bg-[#0e0e12] rounded-t-[2rem] flex flex-col max-h-[92vh] shadow-2xl">
-                {/* Drag handle */}
-                <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
-
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto no-scrollbar px-5 pt-4 pb-2">
-                    {/* Header */}
-                    <div className="flex flex-col items-center text-center mb-6">
-                        <div className="size-16 rounded-full bg-red-950 flex items-center justify-center mb-4">
-                            <Megaphone size={28} className="text-red-500" />
-                        </div>
-                        <h3 className="text-xl font-black italic uppercase tracking-tight text-white mb-2">
-                            REPORTAR INCIDENCIA
-                        </h3>
-                        <p className="text-sm text-white/60 font-normal leading-relaxed max-w-xs">
-                            Avisa a otros usuarios sobre peligros en tu ubicación actual.
-                        </p>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 animate-fade-in">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            
+            <div className="relative w-full max-w-sm bg-[#121216] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pb-10 sm:pb-6 shadow-2xl animate-slide-up sm:animate-scale-in border border-white/10">
+                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6 sm:hidden" />
+                
+                <div className="text-center mb-6">
+                    <div className="size-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="material-symbols-outlined text-3xl font-black">campaign</span>
                     </div>
-
-                    {/* Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                        {TYPES.map(({ id, label, subtitle, Icon, iconColor, circleBg }) => {
-                            const selected = selectedType === id;
-                            return (
-                                <button
-                                    key={id}
-                                    onClick={() => setSelectedType(id)}
-                                    className={`flex flex-col items-center justify-center gap-3 p-4 rounded-[1.4rem] border transition-all active:scale-95 ${
-                                        selected
-                                            ? 'bg-white/10 border-white/30'
-                                            : 'bg-[#18181f] border-white/[0.06] hover:bg-white/5'
-                                    }`}
-                                >
-                                    <div className={`size-12 rounded-full ${circleBg} flex items-center justify-center`}>
-                                        <Icon size={22} className={iconColor} />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-sm font-bold text-white leading-snug">{label}</p>
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-0.5">{subtitle}</p>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <h3 className="text-xl font-black italic uppercase tracking-tighter mb-2">
+                        {t('home.report_danger') || 'Reportar Peligro'}
+                    </h3>
+                    <p className="text-sm text-white/50 font-medium leading-relaxed">
+                        {t('home.report_danger_desc') || 'Avisa a otros usuarios sobre peligros en tu ubicación actual.'}
+                    </p>
                 </div>
 
-                {/* Bottom buttons */}
-                <div className="flex gap-3 px-5 pt-4 pb-8 shrink-0 bg-[#0e0e12]">
-                    <button
+                <div className="grid grid-cols-2 gap-3.5 mb-8">
+                    {types.map((type) => (
+                        <button
+                            key={type.id}
+                            onClick={() => setSelectedType(type.id)}
+                            className={clsx(
+                                "flex flex-col items-center justify-center p-4 rounded-[1.8rem] border transition-all h-[135px]",
+                                selectedType === type.id 
+                                    ? "bg-white/10 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.15)] scale-[1.02]" 
+                                    : "bg-[#18181f]/80 border-white/[0.04] text-white/80 hover:bg-white/5"
+                            )}
+                        >
+                            {/* Circular Icon Container */}
+                            <div className={clsx(
+                                "size-10 rounded-full flex items-center justify-center mb-3",
+                                selectedType === type.id ? "bg-red-500/20 text-red-500" : "bg-red-500/10 text-red-400"
+                            )}>
+                                <span className="material-symbols-outlined text-lg font-bold">{type.icon}</span>
+                            </div>
+                            
+                            {/* Text Group */}
+                            <span className="text-sm font-bold text-white mb-0.5">{type.label}</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/40">{type.subtitle}</span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex gap-3">
+                    <button 
                         onClick={onClose}
-                        className="flex-1 py-4 text-white font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+                        className="flex-1 py-4 bg-white/5 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-white/10 active:scale-95 transition-all"
                     >
-                        CANCELAR
+                        {t('common.cancel') || 'Cancelar'}
                     </button>
-                    <button
+                    <button 
                         onClick={handleSubmit}
                         disabled={!selectedType || isSubmitting}
-                        className="flex-[2.5] py-4 bg-red-900 text-white/70 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100"
+                        className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-red-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
                     >
-                        {isSubmitting ? '...' : 'REPORTAR'}
+                        {isSubmitting ? '...' : (t('common.report') || 'Reportar')}
                     </button>
                 </div>
             </div>

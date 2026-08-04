@@ -12,9 +12,9 @@ let _timeFallbackInterval: ReturnType<typeof setInterval> | null = null;
 let _lastUpdateMs = 0;
 
 // Minimum movement before writing a new location row.
-const DISTANCE_THRESHOLD_M = 10;
+const DISTANCE_THRESHOLD_M = 75;
 // Max time between forced updates even when stationary.
-const TIME_THRESHOLD_MS = 30_000;
+const TIME_THRESHOLD_MS = 45_000;
 
 /**
  * Update current user's location
