@@ -9,6 +9,8 @@ const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('Backg
 export class BackgroundGeofenceService {
     static isTracking = false;
     static watcherId: string | null = null;
+    private static _lastSavedMs = 0;
+    private static readonly HEARTBEAT_MS = 30_000;
 
     /**
      * Start background location tracking and geofencing.
@@ -32,11 +34,11 @@ export class BackgroundGeofenceService {
 
             this.watcherId = await BackgroundGeolocation.addWatcher(
                 {
-                    backgroundMessage: "Cancel para evitar que la app consuma batería.",
-                    backgroundTitle: "Rastreo de seguridad activo",
+                    backgroundMessage: "RedCarpet está rastreando tu ubicación para tu seguridad.",
+                    backgroundTitle: "RedCarpet activo",
                     requestPermissions: true,
                     stale: false,
-                    distanceFilter: 50 // Report every 50 meters
+                    distanceFilter: 10
                 },
                 async (location: any, error: any) => {
                     if (error) {
@@ -48,6 +50,7 @@ export class BackgroundGeofenceService {
                     }
 
                     if (!location) return;
+                    BackgroundGeofenceService._lastSavedMs = Date.now();
 
                     // 1. Save to Supabase
                     const position = {

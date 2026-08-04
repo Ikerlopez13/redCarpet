@@ -20,6 +20,21 @@ import type { DangerZone as IncidenceZone } from '../services/database.types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
+function getIncidentColor(title: string, type?: string): string {
+    const l = title.toLowerCase();
+    if (l.includes('poca luz') || l.includes('baja visibilidad')) return '#eab308';
+    if (l.includes('inseguro') || l.includes('peligro'))           return '#ef4444';
+    if (l.includes('acceso limitado'))                              return '#a855f7';
+    if (l.includes('acceso seguro'))                                return '#22c55e';
+    if (l.includes('inclusiva') || l.includes('inclusividad'))      return '#ec4899';
+    if (l.includes('cortada'))                                      return '#f97316';
+    if (l.includes('mal estado'))                                   return '#14b8a6';
+    if (l.includes('autoridades'))                                  return '#3b82f6';
+    if (type === 'dark')  return '#eab308';
+    if (type === 'safe')  return '#22c55e';
+    return '#ef4444';
+}
+
 // Default location: Sagrada Familia, Barcelona (as requested to avoid doxing)
 const DEFAULT_VIEW = {
     latitude: 41.4036,
@@ -82,6 +97,8 @@ interface UnifiedMapProps {
     origin?: { lat: number; lng: number };
     destination?: { lat: number; lng: number };
     onZoneClick?: (zoneId: string) => void;
+    onRecenterInit?: (recenterFn: () => void) => void;
+    centerCoordinate?: { lat: number; lng: number } | null;
 }
 
 export const UnifiedMap: React.FC<UnifiedMapProps> = ({
@@ -101,7 +118,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     routeGeometry,
     origin,
     destination,
-    onZoneClick
+    onZoneClick,
+    onRecenterInit,
+    centerCoordinate = null
 }) => {
     const { t } = useTranslation();
     const [showTraffic, setShowTraffic] = useState(true);
@@ -111,21 +130,102 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     const [metroStations, setMetroStations] = useState<MetroStation[]>([]);
     const [pois, setPois] = useState<POI[]>([]);
     const [incidenceZones, setIncidenceZones] = useState<any[]>([]);
+    const [localIncidents, setLocalIncidents] = useState<any[]>([]);
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
     const [is3D, setIs3D] = useState(false);
     const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
-    const [isTrackingUser, setIsTrackingUser] = useState(true);
+    const [hasCenteredLocally, setHasCenteredLocally] = useState(false);
     const geoControlRef = useRef<any>(null);
+    const mapRef = useRef<any>(null);
 
     useEffect(() => {
-        if (isTrackingUser && userLocation) {
+        const fetchLocalIncidents = async () => {
+            try {
+                const { IncidentQueueService } = await import('../services/incidentQueueService');
+                const queued = await IncidentQueueService.getQueuedIncidents();
+                setLocalIncidents(queued.map(item => {
+                    const title = item.description.split(' - ')[0] || t('map.incident');
+                    return {
+                        id: item.id,
+                        lat: item.lat,
+                        lng: item.lng,
+                        radius: item.radius,
+                        title,
+                        description: item.description.split(' - ')[1] || item.description,
+                        color: getIncidentColor(title, item.type)
+                    };
+                }));
+            } catch (err) {
+                console.error('[UnifiedMap] Error fetching local incidents:', err);
+            }
+        };
+
+        fetchLocalIncidents();
+
+        window.addEventListener('incident-queue-updated', fetchLocalIncidents);
+        return () => {
+            window.removeEventListener('incident-queue-updated', fetchLocalIncidents);
+        };
+    }, [t]);
+
+    const userLocationRef = useRef(userLocation);
+    useEffect(() => {
+        userLocationRef.current = userLocation;
+    }, [userLocation]);
+
+    useEffect(() => {
+        if (userLocation && !hasCenteredLocally) {
+            mapRef.current?.easeTo({
+                center: [userLocation.lng, userLocation.lat],
+                zoom: 17,
+                duration: 300
+            });
             setViewState(prev => ({
                 ...prev,
                 latitude: userLocation.lat,
-                longitude: userLocation.lng
+                longitude: userLocation.lng,
+                zoom: 17
+            }));
+            setHasCenteredLocally(true);
+        }
+    }, [userLocation, hasCenteredLocally]);
+
+    const recenterMap = useCallback(() => {
+        const loc = userLocationRef.current;
+        if (loc) {
+            mapRef.current?.easeTo({
+                center: [loc.lng, loc.lat],
+                zoom: 17,
+                pitch: 0,
+                bearing: 0,
+                duration: 500
+            });
+            setViewState(prev => ({
+                ...prev,
+                latitude: loc.lat,
+                longitude: loc.lng,
+                zoom: 17,
+                pitch: 0,
+                bearing: 0
             }));
         }
-    }, [userLocation, isTrackingUser]);
+    }, []);
+
+    useEffect(() => {
+        if (onRecenterInit) {
+            onRecenterInit(recenterMap);
+        }
+    }, [onRecenterInit, recenterMap]);
+
+    useEffect(() => {
+        if (centerCoordinate && mapRef.current) {
+            mapRef.current.easeTo({
+                center: [centerCoordinate.lng, centerCoordinate.lat],
+                zoom: 17,
+                duration: 800
+            });
+        }
+    }, [centerCoordinate]);
 
     // Fetch Danger Zones from Supabase
     useEffect(() => {
@@ -158,7 +258,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                             lng: zone.lng,
                             radius: zone.radius,
                             title,
-                            description
+                            description,
+                            color: getIncidentColor(title, zone.type)
                         };
                     });
                     setIncidenceZones(mappedZones);
@@ -233,6 +334,25 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     await Geolocation.requestPermissions();
                 }
                 
+                // Immediately check and apply cached location to prevent map rendering latency
+                try {
+                    const { Preferences } = await import('@capacitor/preferences');
+                    const { value: cached } = await Preferences.get({ key: 'LAST_KNOWN_LOCATION' });
+                    if (cached) {
+                        const parsed = JSON.parse(cached);
+                        setUserLocation({ lat: parsed.lat, lng: parsed.lng });
+                        setViewState(prev => ({
+                            ...prev,
+                            latitude: parsed.lat,
+                            longitude: parsed.lng,
+                            zoom: 17
+                        }));
+                        console.log('[UnifiedMap] Instantly loaded cached location:', parsed);
+                    }
+                } catch (e) {
+                    console.warn('[UnifiedMap] Failed to load cached location:', e);
+                }
+
                 // Request orientation permissions for iOS
                 if (Capacitor.isNativePlatform() && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
                     await (DeviceOrientationEvent as any).requestPermission();
@@ -257,9 +377,6 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                     }
                 });
-
-                // Listen for device orientation to rotate map
-                window.addEventListener('deviceorientation', handleHeading, true);
             } catch (e) {
                 console.error("Permission request or location error:", e);
                 // Fallback to default view happens automatically as state is initialized with DEFAULT_VIEW
@@ -269,7 +386,6 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         initLocation();
         
         return () => {
-            window.removeEventListener('deviceorientation', handleHeading);
             if (watchId) {
                 Geolocation.clearWatch({ id: watchId });
             }
@@ -286,24 +402,6 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
             return next3D;
         });
     }, []);
-
-    const recenterToUser = useCallback(() => {
-        setIsTrackingUser(true);
-        if (userLocation) {
-            setViewState(prev => ({
-                ...prev,
-                latitude: userLocation.lat,
-                longitude: userLocation.lng,
-                zoom: 18, // Zoom in for "Grandmother-friendly" detail
-                pitch: 0,  // Force cenital view
-                bearing: 0 // Reset rotation to North
-            }));
-            setIs3D(false);
-        } else {
-            setViewState(prev => ({ ...prev, zoom: 18, pitch: 0, bearing: 0 }));
-            setIs3D(false);
-        }
-    }, [userLocation]);
 
     // Fetch transit stops when showTransit is enabled
     useEffect(() => {
@@ -335,17 +433,58 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         }
     }, [showPOIs, viewState.latitude, viewState.longitude]); // Depend on view center
 
-    // Force cenital view (2D) when showing routes
+    // Force cenital view (2D) and fit bounds to show the entire route when showing routes
     useEffect(() => {
-        if (showRoutes && routeGeometry) {
+        if (showRoutes) {
             setViewState(prev => ({
                 ...prev,
                 pitch: 0,
                 bearing: 0
             }));
             setIs3D(false);
+
+            if (origin && destination && mapRef.current) {
+                // Collect all points to fit
+                const points: [number, number][] = [
+                    [origin.lng, origin.lat],
+                    [destination.lng, destination.lat]
+                ];
+
+                // Also add route coordinates if available for a perfect fit
+                if (routeGeometry) {
+                    if (routeGeometry.safe) points.push(...routeGeometry.safe);
+                    if (routeGeometry.balanced) points.push(...routeGeometry.balanced);
+                    if (routeGeometry.fast) points.push(...routeGeometry.fast);
+                }
+
+                if (points.length > 0) {
+                    let minLng = points[0][0];
+                    let maxLng = points[0][0];
+                    let minLat = points[0][1];
+                    let maxLat = points[0][1];
+
+                    for (let i = 1; i < points.length; i++) {
+                        const [lng, lat] = points[i];
+                        if (lng < minLng) minLng = lng;
+                        if (lng > maxLng) maxLng = lng;
+                        if (lat < minLat) minLat = lat;
+                        if (lat > maxLat) maxLat = lat;
+                    }
+
+                    // Fit bounds with animation
+                    // We add a bottom padding (250px) because the route selection bottom sheet occupies 45% of screen height
+                    mapRef.current.fitBounds(
+                        [[minLng, minLat], [maxLng, maxLat]],
+                        {
+                            padding: { top: 60, bottom: 250, left: 60, right: 60 },
+                            duration: 1000,
+                            essential: true
+                        }
+                    );
+                }
+            }
         }
-    }, [showRoutes, routeGeometry]);
+    }, [showRoutes, origin, destination, routeGeometry]);
 
     const handleMarkerClick = useCallback((memberId: string) => {
         // Handle family member marker click
@@ -356,9 +495,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     return (
         <div className={clsx("relative w-full h-full overflow-hidden", className)}>
             <Map
+                ref={mapRef}
                 {...viewState}
                 onMove={evt => setViewState(evt.viewState)}
-                onMoveStart={evt => { if (evt.originalEvent) setIsTrackingUser(false); }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
                 mapboxAccessToken={MAPBOX_TOKEN}
                 style={{ width: '100%', height: '100%' }}
@@ -371,6 +510,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 pitchWithRotate={false}
                 dragPan={true}
                 touchPitch={false}
+                cooperativeGestures={true}
             >
 
                 {/* Map UI Cleaned up as requested */}
@@ -397,6 +537,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 description: t(p.descriptionKey)
                             })),
                             ...incidenceZones,
+                            ...localIncidents,
                             ...externalIncidenceZones
                         ].map(z => ({
                             ...z,
@@ -499,23 +640,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 ))}
             </Map>
 
+            {/* Recenter button removed (now rendered inside children/parent column) */}
 
-            {/* Navigation & Location Controls */}
-            <div className="absolute bottom-[35%] right-4 z-30 pointer-events-auto flex flex-col gap-3">
-                <button
-                    onClick={recenterToUser}
-                    className={clsx(
-                        "size-14 rounded-2xl border shadow-xl backdrop-blur-md flex items-center justify-center transition-all",
-                        isTrackingUser 
-                            ? "bg-blue-600/90 text-white border-blue-500 shadow-blue-500/20" 
-                            : "bg-zinc-900/90 text-white border-white/10 hover:bg-zinc-800"
-                    )}
-                    title="Centrar en mi ubicación"
-                >
-                    <span className="material-symbols-outlined text-2xl">my_location</span>
-                </button>
-            </div>
-
+            {/* Children Content - High z-index for UI widgets */}
             {/* Children Content - High z-index for UI widgets */}
             <div className="absolute inset-0 z-20 w-full h-full pointer-events-none">
                 <div className="w-full h-full *:pointer-events-auto">

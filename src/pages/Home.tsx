@@ -12,22 +12,24 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSOS } from '../contexts/SOSContext.base';
 import { TrustedContactsService } from '../services/trustedContactsService';
 import { getSafeZones, type SafeZone } from '../services/locationService';
-import { 
-    getActiveAlerts, 
-    subscribeToSOSAlerts, 
-    requestSOSPermissions, 
+import {
+    getActiveAlerts,
+    subscribeToSOSAlerts,
+    requestSOSPermissions,
     requestNotificationPermission,
-    executeSOSProtocol
+    executeSOSProtocol,
+    resolveSOS
 } from '../services/sosService';
 import type { SOSAlert } from '../services/database.types';
 import { AddSafeZoneModal } from '../components/safety/AddSafeZoneModal';
 import { NightModeWarning } from '../components/safety/NightModeWarning';
 import { ReportDangerModal } from '../components/safety/ReportDangerModal';
 import { LocationHistoryModal } from '../components/map/LocationHistoryModal';
-import { ShieldAlert, Send, Users, Battery, Shield, Zap } from 'lucide-react';
+import { ShieldAlert, Send, Users, Shield, Zap } from 'lucide-react';
 
 import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services/geocodingService';
 import { AlertDetailsModal } from '../components/safety/AlertDetailsModal';
+import { ReviewPromptModal } from '../components/ReviewPromptModal';
 
 // Tipos para el estado de la UI
 interface UIMember {
@@ -46,6 +48,7 @@ interface UIMember {
     isEmergency?: boolean;
     route: { from: string; to: string; eta: string; progress: number } | null;
 }
+
 
 export const Home: React.FC = () => {
     const navigate = useNavigate();
@@ -68,6 +71,8 @@ export const Home: React.FC = () => {
     const [sosConfig, setSOSConfig] = useState<SOSConfigData | null>(null);
     const [, setSheetHeight] = useState(45);
     const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+    const [showReviewPrompt, setShowReviewPrompt] = useState(false);
+    const [recenterMapFn, setRecenterMapFn] = useState<(() => void) | null>(null);
 
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
     const [activeAlerts, setActiveAlerts] = useState<SOSAlert[]>([]);
@@ -102,8 +107,8 @@ export const Home: React.FC = () => {
                 .select('*')
                 .or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`);
 
-            const { getFamilyGroup, createFamilyGroup } = await import('../services/familyService');
-            const groupPromise = getFamilyGroup(user.id).then(async (g) => {
+            const groupPromise = import('../services/familyService').then(async ({ getFamilyGroup, createFamilyGroup }) => {
+                const g = await getFamilyGroup(user.id);
                 if (!g) {
                     const { group: newG } = await createFamilyGroup("Mi Círculo", "parental", user.id);
                     return newG;
@@ -116,6 +121,35 @@ export const Home: React.FC = () => {
                 dangerPromise, 
                 groupPromise
             ]);
+
+            // Auto-link unassociated contacts by phone number using RPC
+            const unlinkedContacts = contacts.filter(c => !c.associated_user_id && c.phone);
+            if (unlinkedContacts.length > 0) {
+                for (const contact of unlinkedContacts) {
+                    try {
+                        const { data: matchedId, error: rpcError } = await supabase.rpc('match_user_for_contact', {
+                            p_phone: contact.phone || null,
+                            p_email: null
+                        });
+
+                        if (!rpcError && matchedId) {
+                            console.log(`[Auto-Link] Match found for ${contact.name}: ${matchedId}`);
+                            await supabase
+                                .from('trusted_contacts')
+                                .update({ 
+                                    associated_user_id: matchedId,
+                                    status: 'accepted'
+                                })
+                                .eq('id', contact.id);
+                            
+                            contact.associated_user_id = matchedId;
+                            contact.status = 'accepted';
+                        }
+                    } catch (err) {
+                        console.error('[Auto-Link] Error matching user:', err);
+                    }
+                }
+            }
 
             setFamilyGroup(group);
 
@@ -168,14 +202,13 @@ export const Home: React.FC = () => {
                 if (contacts.length > 0) {
                     // Fetch latest locations for contacts that have associated user IDs
                     const contactIds = contacts.map(c => c.associated_user_id as string).filter(Boolean);
+                    const userAndContactIds = [user.id, ...contactIds];
                     
                     let locations: any[] = [];
                     let profilesMap: Record<string, string> = {};
-                    if (contactIds.length > 0) {
-                        const profRes = await supabase.from('profiles').select('id, avatar_url').in('id', contactIds);
-                        
-                        // Fetch latest location for EACH contact individually to avoid Supabase 1000 row limits cutting off recent data
-                        const locPromises = contactIds.map(id => 
+                    if (userAndContactIds.length > 0) {
+                        // Fetch profiles and latest locations in parallel to avoid sequential blocking awaits
+                        const locPromises = userAndContactIds.map(id => 
                             supabase.from('locations')
                                 .select('*')
                                 .eq('user_id', id)
@@ -184,10 +217,14 @@ export const Home: React.FC = () => {
                                 .single()
                         );
                         
-                        const locResults = await Promise.allSettled(locPromises);
+                        const [profRes, locResults] = await Promise.all([
+                            supabase.from('profiles').select('id, avatar_url').in('id', contactIds),
+                            Promise.allSettled(locPromises)
+                        ]);
+                        
                         locations = locResults
-                            .filter(r => r.status === 'fulfilled' && r.value.data)
-                            .map((r: any) => r.value.data);
+                            .filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<any>).value.data)
+                            .map((r: any) => (r as PromiseFulfilledResult<any>).value.data);
                         
                         const profiles = profRes.data || [];
                         profilesMap = profiles.reduce((acc: any, p: any) => {
@@ -196,36 +233,62 @@ export const Home: React.FC = () => {
                         }, {});
                     }
 
-                    const uiMembers: UIMember[] = contacts.map((c) => {
-                        const isPending = c.status === 'pending' || !c.associated_user_id;
-                        const loc = isPending ? undefined : locations.find((l: any) => l.user_id === c.associated_user_id);
-                        const hasActiveAlert = !isPending && alerts.some((a) => a.user_id === c.associated_user_id);
-                        
-                        // Location is visible if they are an accepted contact
-                        const isLocationHidden = false;
+                    const myLoc = locations.find((l: any) => l.user_id === user.id);
+                    const centerLat = myLoc?.lat || 41.4088;
+                    const centerLng = myLoc?.lng || 2.1890;
 
-                        let timeString = t('common.no_data') || 'Sin datos';
-                        if (isPending) {
-                            timeString = 'Pendiente';
-                        } else if (loc?.created_at) {
-                            const date = new Date(loc.created_at);
-                            const now = new Date();
-                            const diff = (now.getTime() - date.getTime()) / 1000 / 60;
-                            if (diff < 1) timeString = t('common.now');
-                            else if (diff < 60) timeString = `${t('common.ago')} ${Math.floor(diff)} min`;
-                            else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        }
+                    const uiMembers: UIMember[] = contacts
+                        .filter(c => c.status !== 'rejected')
+                        .map((c) => {
+                            const isPending = c.status === 'pending';
+                            const loc = isPending ? undefined : locations.find((l: any) => l.user_id === c.associated_user_id);
+                            const hasActiveAlert = !isPending && alerts.some((a) => a.user_id === c.associated_user_id);
+                            
+                            // Location is visible if they are an accepted contact
+                            const isLocationHidden = false;
 
-                        let displayLocation = t('home.no_location');
-                        if (isPending) {
-                            displayLocation = 'Invitación pendiente...';
-                        } else if (hasActiveAlert) {
-                            displayLocation = `⚠️ ${t('home.emergency_active')}`;
-                        } else if (isLocationHidden) {
-                            displayLocation = loc ? t('home.current_location') + ' (Pausada)' : t('home.no_location');
-                        } else if (loc) {
-                            displayLocation = t('home.current_location');
-                        }
+                            let timeString = t('common.no_data') || 'Sin datos';
+                            if (isPending) {
+                                timeString = 'Pendiente';
+                            } else if (loc?.created_at) {
+                                const date = new Date(loc.created_at);
+                                const now = new Date();
+                                const diff = (now.getTime() - date.getTime()) / 1000 / 60;
+                                if (diff < 1) timeString = t('common.now');
+                                else if (diff < 60) timeString = `${t('common.ago')} ${Math.floor(diff)} min`;
+                                else timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+
+                            let displayLocation = t('home.no_location');
+                            if (isPending) {
+                                displayLocation = 'Invitación pendiente...';
+                            } else if (hasActiveAlert) {
+                                displayLocation = `⚠️ ${t('home.emergency_active')}`;
+                            } else if (isLocationHidden) {
+                                displayLocation = loc ? t('home.current_location') + ' (Pausada)' : t('home.no_location');
+                            } else if (loc) {
+                                displayLocation = t('home.current_location');
+                            }
+
+                            let lat = 0;
+                            let lng = 0;
+                            let battery = loc?.battery_level || 0;
+                            
+                            if (!isLocationHidden && loc) {
+                                lat = loc.lat;
+                                lng = loc.lng;
+                            } else {
+                                // No real GPS data — keep lat/lng at 0 so the map filter hides them
+                                if (isPending) {
+                                    displayLocation = 'Invitación pendiente...';
+                                    battery = 0;
+                                    timeString = 'Pendiente';
+                                } else {
+                                    displayLocation = 'Esperando señal GPS...';
+                                    battery = 0;
+                                    timeString = '';
+                                }
+                            }
 
                         return {
                             id: c.associated_user_id || c.id, // Fallback to contact ID if pending
@@ -234,11 +297,11 @@ export const Home: React.FC = () => {
                             avatarUrl: !isPending && c.associated_user_id ? (profilesMap[c.associated_user_id] || null) : null,
                             avatarBg: hasActiveAlert ? 'bg-red-600' : (isPending ? 'bg-zinc-700' : 'bg-slate-600'),
                             location: displayLocation,
-                            lat: (!isLocationHidden && loc) ? loc.lat : 0,
-                            lng: (!isLocationHidden && loc) ? loc.lng : 0,
+                            lat: lat,
+                            lng: lng,
                             status: loc && loc.speed && loc.speed > 5 ? 'moving' : 'stationary',
                             speed: loc?.speed ? `${Math.round(loc.speed)} km/h` : null,
-                            battery: loc?.battery_level || 0,
+                            battery: battery,
                             lastUpdate: timeString,
                             isEmergency: hasActiveAlert,
                             route: null
@@ -294,6 +357,31 @@ export const Home: React.FC = () => {
         };
     }, [user]);
 
+    // Suscribir a cambios en contactos de confianza en tiempo real
+    useEffect(() => {
+        if (!user) return;
+
+        const subscription = supabase
+            .channel(`contacts-realtime-home-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'trusted_contacts'
+                },
+                (payload: any) => {
+                    console.log('Contacts update detected on Home. Refreshing map data...', payload);
+                    loadData();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
+    }, [user]);
+
     // Onboarding check - waits for profile to load before deciding
     useEffect(() => {
         // 1. If already marked complete in localStorage → skip
@@ -314,6 +402,47 @@ export const Home: React.FC = () => {
             navigate('/onboarding');
         }
     }, [navigate, user, user?.profile]);
+
+    // Check rating prompt conditions
+    useEffect(() => {
+        const checkRatingPrompt = async () => {
+            try {
+                const { Preferences } = await import('@capacitor/preferences');
+                
+                // Check if already rated
+                const { value: hasRated } = await Preferences.get({ key: 'HAS_RATED_APP' });
+                if (hasRated === 'true') return;
+
+                // Check first launch date
+                const { value: firstLaunch } = await Preferences.get({ key: 'FIRST_LAUNCH_DATE' });
+                let launchTime = 0;
+                if (!firstLaunch) {
+                    const nowStr = String(Date.now());
+                    await Preferences.set({ key: 'FIRST_LAUNCH_DATE', value: nowStr });
+                    launchTime = Date.now();
+                } else {
+                    launchTime = parseInt(firstLaunch, 10);
+                }
+
+                // Check completed routes
+                const { value: completedRoutesVal } = await Preferences.get({ key: 'COMPLETED_ROUTES_COUNT' });
+                const completedRoutes = completedRoutesVal ? parseInt(completedRoutesVal, 10) : 0;
+
+                const daysSinceLaunch = (Date.now() - launchTime) / (1000 * 60 * 60 * 24);
+
+                console.log(`[Rating Check] Days since launch: ${daysSinceLaunch.toFixed(2)}, Completed routes: ${completedRoutes}`);
+
+                if (completedRoutes >= 3 || daysSinceLaunch >= 7) {
+                    setShowReviewPrompt(true);
+                }
+            } catch (e) {
+                console.error('[Rating Check] Error:', e);
+            }
+        };
+
+        const timer = setTimeout(checkRatingPrompt, 3000);
+        return () => clearTimeout(timer);
+    }, []);
 
 
     // Cargar si ya estaba configurado SOS localmente y forzar si no
@@ -364,27 +493,49 @@ export const Home: React.FC = () => {
     useEffect(() => {
         loadData();
         
-        // Request permissions on entry for better SOS readiness
-        const requestInitialPermissions = async () => {
+        let trackingSub: { stop: () => Promise<void> } | null = null;
+
+        // Request permissions and start tracking
+        const initLocationTracking = async () => {
             try {
                 const { Geolocation } = await import('@capacitor/geolocation');
                 const locPerms = await Geolocation.checkPermissions();
                 if (locPerms.location !== 'granted') {
                     await Geolocation.requestPermissions();
                 }
-                const { PushNotifications } = await import('@capacitor/push-notifications');
-                const pushPerms = await PushNotifications.checkPermissions();
+                const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+                const pushPerms = await FirebaseMessaging.checkPermissions();
                 if (pushPerms.receive !== 'granted') {
                     await requestNotificationPermission();
                 }
                 console.log('Initial permissions checked');
+
+                if (user) {
+                    const { Capacitor } = await import('@capacitor/core');
+                    const { BackgroundGeofenceService } = await import('../services/backgroundGeofenceService');
+                    if (Capacitor.isNativePlatform() && BackgroundGeofenceService.isTracking) {
+                        // BackgroundGeofenceService already has a native watcher — skip duplicate
+                        console.log('[Home] Native BG tracking already active, skipping second watcher');
+                    } else {
+                        const { startLocationTracking } = await import('../services/locationService');
+                        trackingSub = await startLocationTracking(user.id, (pos) => {
+                            console.log('[Home] Foreground location update:', pos.coords.latitude, pos.coords.longitude);
+                        });
+                        console.log('[Home] Location tracking started for user:', user.id);
+                    }
+                }
             } catch (err) {
-                console.warn('Initial permission request failed:', err);
+                console.warn('Location tracking initialization failed:', err);
             }
         };
         
-        // Trigger permissions request
-        requestInitialPermissions();
+        initLocationTracking();
+
+        return () => {
+            if (trackingSub) {
+                trackingSub.stop().catch(console.error);
+            }
+        };
     }, [user]);
 
     useEffect(() => {
@@ -602,8 +753,9 @@ export const Home: React.FC = () => {
                         setShowSuggestions(false);
                         setSelectedZoneId(id);
                     }}
+                    onRecenterInit={setRecenterMapFn}
                 >
-                    <div className="absolute top-[120px] right-4 z-40 pointer-events-auto flex flex-col items-end gap-3">
+                    <div className="absolute top-[175px] right-4 z-40 pointer-events-auto flex flex-col items-end gap-3">
                         <button
                             onClick={() => navigate('/notifications')}
                             className={clsx(
@@ -638,6 +790,16 @@ export const Home: React.FC = () => {
                                 title={t('nav.settings')}
                             >
                                 <span className="material-symbols-outlined">tune</span>
+                            </button>
+                        )}
+
+                        {recenterMapFn && (
+                            <button
+                                onClick={recenterMapFn}
+                                className="size-14 rounded-2xl bg-zinc-900/90 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shadow-xl shrink-0 hover:bg-zinc-800 active:scale-95 transition-all pointer-events-auto"
+                                title="Centrar en mi ubicación"
+                            >
+                                <span className="material-symbols-outlined text-2xl text-blue-500" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
                             </button>
                         )}
                     </div>
@@ -803,10 +965,6 @@ export const Home: React.FC = () => {
                                             <p className="text-xs text-white/40">{member.location}</p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            <div className="flex items-center gap-1 text-[10px] text-white/40">
-                                                <Battery size={12} className={member.battery < 20 ? 'text-red-500' : ''} />
-                                                {member.battery}%
-                                            </div>
                                             <p className="text-[10px] text-white/20">{member.lastUpdate}</p>
                                         </div>
                                     </button>
@@ -918,8 +1076,8 @@ export const Home: React.FC = () => {
                 <ReportDangerModal
                     isOpen={showReportDangerModal}
                     onClose={() => setShowReportDangerModal(false)}
-                    userLat={familyMembers.find(m => m.id === user.id)?.lat || 0}
-                    userLng={familyMembers.find(m => m.id === user.id)?.lng || 0}
+                    userLat={familyMembers.find(m => m.id === user.id)?.lat ?? null}
+                    userLng={familyMembers.find(m => m.id === user.id)?.lng ?? null}
                     onSuccess={loadData}
                 />
             )}
@@ -1046,25 +1204,89 @@ export const Home: React.FC = () => {
                                                 {member.location}
                                             </p>
                                             <div className="flex items-center gap-3 mt-2">
-                                                <div className={clsx(
-                                                    "px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border",
-                                                    member.battery > 20 ? "bg-zinc-800 border-zinc-700 text-white" : "bg-red-500/20 border-red-500/50 text-red-400"
-                                                )}>
-                                                    <span className="material-symbols-outlined text-[10px]">battery_full</span>
-                                                    {member.battery}%
-                                                </div>
-                                                {member.speed && (
-                                                    <div className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border border-primary/30 bg-primary/10 text-primary">
-                                                        <span className="material-symbols-outlined text-[10px]">speed</span>
-                                                        {member.speed}
-                                                    </div>
-                                                )}
                                                 <div className="text-[10px] text-white/40">
                                                     {t('common.updated')}: {member.lastUpdate}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Video Player for SOS alert */}
+                                    {(() => {
+                                        const activeAlert = activeAlerts.find(a => a.user_id === member.id);
+                                        const videoUrl = activeAlert?.media_video_url || (activeAlert as any)?.media_url;
+                                        if (!videoUrl) return null;
+                                        return (
+                                            <div className="w-full mb-6 rounded-2xl overflow-hidden bg-black aspect-video border border-white/10">
+                                                <video
+                                                    src={videoUrl}
+                                                    playsInline
+                                                    muted
+                                                    controls
+                                                    preload="auto"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Confirmar / desestimar la alerta SOS de un miembro del círculo */}
+                                    {(() => {
+                                        const activeAlert = activeAlerts.find(a => a.user_id === member.id);
+                                        if (!activeAlert || member.id === user?.id) return null;
+                                        const confirmations = ((activeAlert.context_payload as any)?.confirmed_by || []) as any[];
+                                        const alreadyConfirmed = confirmations.some(c => c.user_id === user?.id);
+                                        return (
+                                            <div className="mb-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-3">
+                                                <p className="text-xs font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-base">sos</span>
+                                                    Alerta SOS activa
+                                                    {confirmations.length > 0 && (
+                                                        <span className="text-white/50 normal-case font-bold tracking-normal">
+                                                            · confirmada por {confirmations.length}
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        disabled={alreadyConfirmed}
+                                                        onClick={async () => {
+                                                            const payload = {
+                                                                ...((activeAlert.context_payload as any) || {}),
+                                                                confirmed_by: [
+                                                                    ...confirmations,
+                                                                    { user_id: user?.id, at: new Date().toISOString() }
+                                                                ]
+                                                            };
+                                                            const { error } = await (supabase.from('sos_alerts') as any)
+                                                                .update({ context_payload: payload })
+                                                                .eq('id', activeAlert.id);
+                                                            if (error) {
+                                                                window.alert('No se pudo confirmar la alerta: ' + error.message);
+                                                            }
+                                                            loadData();
+                                                        }}
+                                                        className="flex-1 py-3 bg-red-600 text-white text-xs font-black uppercase tracking-wider rounded-xl active:scale-95 transition-all disabled:opacity-40"
+                                                    >
+                                                        {alreadyConfirmed ? 'Confirmada ✓' : 'Confirmar emergencia'}
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!window.confirm(`¿Marcar la alerta de ${member.name} como falsa alarma? Se desactivará para todo el círculo.`)) return;
+                                                            const { error } = await resolveSOS(activeAlert.id, 'cancelled');
+                                                            if (error) {
+                                                                window.alert('No se pudo desestimar la alerta: ' + error);
+                                                            }
+                                                            loadData();
+                                                        }}
+                                                        className="flex-1 py-3 bg-white/10 text-white/70 text-xs font-black uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+                                                    >
+                                                        Falsa alarma
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Actions */}
                                     <div className="flex gap-2">
@@ -1082,22 +1304,6 @@ export const Home: React.FC = () => {
                                         >
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
                                             {t('common.go')}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                if (!isPremium) {
-                                                    openPaywall(t('home.gate_history'));
-                                                } else {
-                                                    setShowHistoryModal(member);
-                                                }
-                                            }}
-                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors text-sm"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">history</span>
-                                            {t('home.history')}
-                                        </button>
-                                        <button className="size-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
-                                            <span className="material-symbols-outlined text-white/80">call</span>
                                         </button>
                                     </div>
                                 </>
@@ -1121,6 +1327,11 @@ export const Home: React.FC = () => {
                 isOpen={!!selectedZoneId}
                 onClose={() => setSelectedZoneId(null)}
                 onAlertDeleted={loadData}
+            />
+
+            <ReviewPromptModal
+                isOpen={showReviewPrompt}
+                onClose={() => setShowReviewPrompt(false)}
             />
 
         </div>
