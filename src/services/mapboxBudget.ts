@@ -26,10 +26,20 @@ export const ALERT_EUR = 10;
 export const BLOCK_EUR = 50;
 const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
+// Cupos mensuales POR USUARIO (holgados para uso real, letales para abuso).
+// Coste máximo por usuario/mes si los agota todos: ~4,3 €.
+export const USER_MONTHLY_CALLS: Record<string, number> = {
+  geocode_v5: 2000,
+  geocode_v6: 2000,
+  searchbox:  300,
+  directions: 600,
+};
+
 // ── In-memory state ────────────────────────────────────────
 let _total: number | null = null;
 let _expiry = 0;
 let _blocked = false;
+let _userCalls: Record<string, number> = {};
 
 // ── Helpers ────────────────────────────────────────────────
 export function getPeriod(): string {
@@ -62,11 +72,25 @@ async function refreshCache(): Promise<number> {
 /** Call once at app start to warm the cache (App.tsx). */
 export async function initBudget(): Promise<void> {
   await refreshCache();
+  try {
+    // RLS limita el select a las filas del propio usuario
+    const { data } = await supabase
+      .from('mapbox_user_usage')
+      .select('product, calls')
+      .eq('period', getPeriod());
+    for (const r of (data ?? []) as any[]) _userCalls[r.product] = Number(r.calls) || 0;
+  } catch { /* sin sesión aún — los contadores arrancan a 0 */ }
 }
 
 /** Synchronous — safe to call before every API hit. */
 export function isBlocked(): boolean {
   return _blocked;
+}
+
+/** Cupo mensual del usuario agotado para este producto (síncrono). */
+export function isUserBlocked(product: string): boolean {
+  const cap = USER_MONTHLY_CALLS[product];
+  return cap !== undefined && (_userCalls[product] ?? 0) >= cap;
 }
 
 /** Estimated spend this billing period in EUR. */
@@ -89,6 +113,7 @@ export function track(product: string, calls = 1): void {
     _total  += cost;
     _blocked = _total >= BLOCK_EUR;
   }
+  _userCalls[product] = (_userCalls[product] ?? 0) + calls;
 
   // Async persistence — does not slow callers
   _persistAndCheck(product, calls, cost);
@@ -98,6 +123,14 @@ export function track(product: string, calls = 1): void {
 
 async function _persistAndCheck(product: string, calls: number, cost: number): Promise<void> {
   try {
+    // Contador por usuario — el servidor devuelve el total real del mes,
+    // asi el cupo se comparte entre todos los dispositivos del usuario.
+    supabase.rpc('mapbox_user_increment', {
+      p_product: product, p_calls: calls, p_eur: cost,
+    }).then(({ data }) => {
+      if (typeof data === 'number' && data > 0) _userCalls[product] = data;
+    });
+
     await supabase.rpc('mapbox_budget_increment', {
       p_period:  getPeriod(),
       p_product: product,
