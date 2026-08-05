@@ -2,6 +2,8 @@
 // Prevents loop bugs and excessive bursts from hitting billable Mapbox APIs.
 // This is a defensive guard, not a security boundary — mapboxBudget.ts hard-blocks at €50.
 
+import { isUserBlocked } from './mapboxBudget';
+
 const WINDOW_MS = 60_000; // 1 minute
 
 const _windows = new Map<string, number[]>();
@@ -21,6 +23,10 @@ function _prune(ts: number[], now: number): number[] {
  *   searchbox   → 10   (€0.04/min max, session-based billing)
  */
 export function allow(product: string, max: number): boolean {
+  if (isUserBlocked(product)) {
+    console.warn(`[RateLimit] ${product}: cupo mensual por usuario agotado — call blocked`);
+    return false;
+  }
   const now = Date.now();
   const ts = _prune(_windows.get(product) ?? [], now);
   if (ts.length >= max) {
