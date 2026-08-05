@@ -6,12 +6,11 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Preferences } from '@capacitor/preferences';
 import clsx from 'clsx';
 
-import { 
-    startSOSPreview, 
-    stopSOSPreview, 
-    startRecording, 
-    stopAndUploadRecording, 
-    updateSOSAlertMedia,
+import {
+    startSOSPreview,
+    stopSOSPreview,
+    startChunkedRecording,
+    stopChunkedRecording,
     resolveSOS
 } from '../services/sosService';
 import { useAuth } from '../contexts/AuthContext';
@@ -159,8 +158,11 @@ export const SOSActivePage: React.FC = () => {
                 }
             }
 
-            // 3. Start Recording (Resilient with it's own timeouts)
-            await startRecording(isPremium);
+            // 3. Start Recording por segmentos (vídeo .mp4 + audio .m4a cada chunk,
+            //    subidos al bucket privado según se graban)
+            if (user && alertId) {
+                startChunkedRecording(user.id, alertId, isPremium).catch(console.error);
+            }
 
             // 4. Auto-call 112 only if user has this option enabled in settings
             if (call112) {
@@ -300,12 +302,9 @@ export const SOSActivePage: React.FC = () => {
             await resolveSOS(alertId);
         }
 
-        // 2. Stop and upload recording
-        if (user) {
-            const url = await stopAndUploadRecording(user.id);
-            if (url && alertId) {
-                await updateSOSAlertMedia(alertId, url);
-            }
+        // 2. Stop chunked recording — sube el último segmento parcial
+        if (user && alertId) {
+            await stopChunkedRecording(user.id, alertId);
         }
         
         await cleanAll();
