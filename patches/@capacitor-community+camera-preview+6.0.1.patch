@@ -7,8 +7,7 @@ index 0000000..0d259dd
 +o/classes
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/1a1148150c0e18a38d1ae1028e5fd79f/transformed/classes/classes_dex/classes.dex b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/1a1148150c0e18a38d1ae1028e5fd79f/transformed/classes/classes_dex/classes.dex
 new file mode 100644
-index 0000000..5b32db5
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/1a1148150c0e18a38d1ae1028e5fd79f/transformed/classes/classes_dex/classes.dex differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/34177df809126b13aefe37f0caee2f83/results.bin b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/34177df809126b13aefe37f0caee2f83/results.bin
 new file mode 100644
 index 0000000..e3f0ff0
@@ -39,8 +38,7 @@ index 0000000..0d259dd
 +o/classes
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/e65b7338fd4784533b776a14b6a268cb/transformed/classes/classes_dex/classes.dex b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/e65b7338fd4784533b776a14b6a268cb/transformed/classes/classes_dex/classes.dex
 new file mode 100644
-index 0000000..170ceba
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/e65b7338fd4784533b776a14b6a268cb/transformed/classes/classes_dex/classes.dex differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f65f187f341d7668189eb561ef8267ea/results.bin b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f65f187f341d7668189eb561ef8267ea/results.bin
 new file mode 100644
 index 0000000..0d259dd
@@ -50,8 +48,7 @@ index 0000000..0d259dd
 +o/classes
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f65f187f341d7668189eb561ef8267ea/transformed/classes/classes_dex/classes.dex b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f65f187f341d7668189eb561ef8267ea/transformed/classes/classes_dex/classes.dex
 new file mode 100644
-index 0000000..5b32db5
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/f65f187f341d7668189eb561ef8267ea/transformed/classes/classes_dex/classes.dex differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/.transforms/fc5c6895faf0d6922ccfa698e975b765/results.bin b/node_modules/@capacitor-community/camera-preview/android/build/.transforms/fc5c6895faf0d6922ccfa698e975b765/results.bin
 new file mode 100644
 index 0000000..e3f0ff0
@@ -218,20 +215,16 @@ index 0000000..9e26dfe
 \ No newline at end of file
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/bundleLibCompileToJarRelease/classes.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/bundleLibCompileToJarRelease/classes.jar
 new file mode 100644
-index 0000000..2d9e2b3
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/bundleLibCompileToJarRelease/classes.jar differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/classes.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/classes.jar
 new file mode 100644
-index 0000000..2d9e2b3
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_library_classes_jar/release/classes.jar differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/R.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/R.jar
 new file mode 100644
-index 0000000..0ddcacc
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/R.jar differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar
 new file mode 100644
-index 0000000..0ddcacc
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_symbol_list/release/R.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compile_symbol_list/release/R.txt
 new file mode 100644
 index 0000000..3544914
@@ -272,20 +265,16 @@ index 0000000..3544914
 +int style CameraPreviewTheme 0x0
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_bridge_layout_main.xml.flat b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_bridge_layout_main.xml.flat
 new file mode 100644
-index 0000000..8878756
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_bridge_layout_main.xml.flat differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_camera_activity.xml.flat b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_camera_activity.xml.flat
 new file mode 100644
-index 0000000..ae9dd90
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_camera_activity.xml.flat differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_bridge_layout_main.xml.flat b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_bridge_layout_main.xml.flat
 new file mode 100644
-index 0000000..3b76051
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_bridge_layout_main.xml.flat differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_camera_activity.xml.flat b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_camera_activity.xml.flat
 new file mode 100644
-index 0000000..1a5bf40
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/compiled_local_resources/release/out/layout_camera_activity.xml.flat differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml
 new file mode 100644
 index 0000000..92dc73d
@@ -356,180 +345,136 @@ index 0000000..c110b91
 \ No newline at end of file
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class
 new file mode 100644
-index 0000000..e0e7f23
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class
 new file mode 100644
-index 0000000..d001b82
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class
 new file mode 100644
-index 0000000..5580776
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class
 new file mode 100644
-index 0000000..d0a3ef0
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class
 new file mode 100644
-index 0000000..8182edc
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class
 new file mode 100644
-index 0000000..661a81c
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class
 new file mode 100644
-index 0000000..4d8f83a
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class
 new file mode 100644
-index 0000000..70f555c
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class
 new file mode 100644
-index 0000000..c37971d
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class
 new file mode 100644
-index 0000000..8a7c357
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class
 new file mode 100644
-index 0000000..4f7ad8e
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class
 new file mode 100644
-index 0000000..43f4900
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity.class
 new file mode 100644
-index 0000000..5382b74
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraActivity.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class
 new file mode 100644
-index 0000000..3a104d9
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class
 new file mode 100644
-index 0000000..138b3db
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class
 new file mode 100644
-index 0000000..c3f2b00
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class
 new file mode 100644
-index 0000000..8461d8e
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview.class
 new file mode 100644
-index 0000000..9c619f3
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CameraPreview.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class
 new file mode 100644
-index 0000000..af8dfce
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class
 new file mode 100644
-index 0000000..7be1222
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/Preview.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/Preview.class
 new file mode 100644
-index 0000000..e83a382
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/Preview.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class
 new file mode 100644
-index 0000000..b078051
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class
 new file mode 100644
-index 0000000..e0e7f23
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class
 new file mode 100644
-index 0000000..d001b82
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class
 new file mode 100644
-index 0000000..5580776
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class
 new file mode 100644
-index 0000000..d0a3ef0
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class
 new file mode 100644
-index 0000000..8182edc
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class
 new file mode 100644
-index 0000000..661a81c
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class
 new file mode 100644
-index 0000000..4d8f83a
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$3.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class
 new file mode 100644
-index 0000000..70f555c
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$4.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class
 new file mode 100644
-index 0000000..c37971d
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$5.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class
 new file mode 100644
-index 0000000..8a7c357
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$6.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class
 new file mode 100644
-index 0000000..4f7ad8e
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$CameraPreviewListener.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class
 new file mode 100644
-index 0000000..43f4900
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity$RecordingState.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity.class
 new file mode 100644
-index 0000000..5382b74
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraActivity.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class
 new file mode 100644
-index 0000000..3a104d9
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$1.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class
 new file mode 100644
-index 0000000..138b3db
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$2.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class
 new file mode 100644
-index 0000000..c3f2b00
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$3.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class
 new file mode 100644
-index 0000000..8461d8e
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview$4.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview.class
 new file mode 100644
-index 0000000..9c619f3
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CameraPreview.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class
 new file mode 100644
-index 0000000..af8dfce
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CustomSurfaceView.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class
 new file mode 100644
-index 0000000..7be1222
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/CustomTextureView.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/Preview.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/Preview.class
 new file mode 100644
-index 0000000..e83a382
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/Preview.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class
 new file mode 100644
-index 0000000..b078051
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/com/ahm/capacitor/camera/preview/TapGestureDetector.class differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/local_only_symbol_list/release/R-def 2.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/local_only_symbol_list/release/R-def 2.txt
 new file mode 100644
 index 0000000..b73bd59
@@ -926,12 +871,10 @@ index 0000000..2bdbdbc
 \ No newline at end of file
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/bundleLibRuntimeToJarRelease/classes.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/bundleLibRuntimeToJarRelease/classes.jar
 new file mode 100644
-index 0000000..df6c474
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/bundleLibRuntimeToJarRelease/classes.jar differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/classes.jar b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/classes.jar
 new file mode 100644
-index 0000000..df6c474
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/runtime_library_classes_jar/release/classes.jar differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/intermediates/symbol_list_with_package_name/release/generateReleaseRFile/package-aware-r.txt b/node_modules/@capacitor-community/camera-preview/android/build/intermediates/symbol_list_with_package_name/release/generateReleaseRFile/package-aware-r.txt
 new file mode 100644
 index 0000000..9a2fbbc
@@ -1040,63 +983,124 @@ index 0000000..9ce1029
 +		INJECTED from /Users/ikerlopezalegre/Desktop/RedCarpet_Fresh 2/node_modules/@capacitor-community/camera-preview/android/src/main/AndroidManifest.xml
 diff --git a/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin b/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin
 new file mode 100644
-index 0000000..efba661
-Binary files /dev/null and b/node_modules/@capacitor-community/camera-preview/android/build/tmp/compileReleaseJavaWithJavac/previous-compilation-data.bin differ
+index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift b/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift
-index a09e72a..763595e 100644
+index a09e72a..cf7f398 100644
 --- a/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift
 +++ b/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift
-@@ -19,6 +19,8 @@ class CameraController: NSObject {
+@@ -19,6 +19,11 @@ class CameraController: NSObject {
  
      var dataOutput: AVCaptureVideoDataOutput?
      var photoOutput: AVCapturePhotoOutput?
-+    var videoOutput: AVCaptureMovieFileOutput?
++    var videoWriter: AVAssetWriter?
++    var videoWriterInput: AVAssetWriterInput?
++    var isRecordingVideo = false
++    var videoRecordingURL: URL?
 +    var videoRecordCompletionBlock: ((URL?, Error?) -> Void)?
  
      var rearCamera: AVCaptureDevice?
      var rearCameraInput: AVCaptureDeviceInput?
-@@ -409,8 +411,28 @@ extension CameraController {
+@@ -409,16 +414,83 @@ extension CameraController {
  
          let fileUrl = path.appendingPathComponent(fileName)
          try? FileManager.default.removeItem(at: fileUrl)
 -        /*videoOutput!.startRecording(to: fileUrl, recordingDelegate: self)
 -         self.videoRecordCompletionBlock = completion*/
 +
-+        if self.videoOutput == nil {
-+            let output = AVCaptureMovieFileOutput()
-+            captureSession.beginConfiguration()
-+            if captureSession.canAddOutput(output) {
-+                captureSession.addOutput(output)
-+                self.videoOutput = output
-+            }
-+            captureSession.commitConfiguration()
-+        }
-+
-+        guard let videoOutput = self.videoOutput, !videoOutput.isRecording else {
++        guard !self.isRecordingVideo else {
 +            completion(nil, CameraControllerError.invalidOperation)
 +            return
 +        }
 +
-+        if let connection = videoOutput.connection(with: .video), connection.isVideoOrientationSupported {
-+            connection.videoOrientation = .portrait
-+        }
-+
++        // Grabación vía AVAssetWriter alimentado por el dataOutput ya existente:
++        // NO se toca la sesión de captura, así la preview nunca se ve afectada.
++        // El writer se crea perezosamente con el primer frame (dimensiones reales).
++        self.videoRecordingURL = fileUrl
 +        self.videoRecordCompletionBlock = completion
-+        videoOutput.startRecording(to: fileUrl, recordingDelegate: self)
++        self.isRecordingVideo = true
      }
  
      func stopRecording(completion: @escaping (Error?) -> Void) {
-@@ -418,7 +440,8 @@ extension CameraController {
-             completion(CameraControllerError.captureSessionIsMissing)
+-        guard let captureSession = self.captureSession, captureSession.isRunning else {
+-            completion(CameraControllerError.captureSessionIsMissing)
++        guard self.isRecordingVideo else {
++            completion(CameraControllerError.invalidOperation)
++            return
++        }
++        self.isRecordingVideo = false
++
++        let writer = self.videoWriter
++        let input = self.videoWriterInput
++        let url = self.videoRecordingURL
++        let cb = self.videoRecordCompletionBlock
++        self.videoWriter = nil
++        self.videoWriterInput = nil
++        self.videoRecordingURL = nil
++        self.videoRecordCompletionBlock = nil
++
++        guard let w = writer, let i = input else {
++            cb?(nil, CameraControllerError.unknown)
++            completion(nil)
              return
          }
 -        // self.videoOutput?.stopRecording()
-+        self.videoOutput?.stopRecording()
++        i.markAsFinished()
++        w.finishWriting {
++            if w.status == .completed {
++                cb?(url, nil)
++            } else {
++                cb?(nil, w.error ?? CameraControllerError.unknown)
++            }
++        }
 +        completion(nil)
++    }
++
++    func _appendVideoFrame(_ sampleBuffer: CMSampleBuffer) {
++        if videoWriter == nil {
++            guard let url = videoRecordingURL,
++                  let format = CMSampleBufferGetFormatDescription(sampleBuffer) else { return }
++            let dims = CMVideoFormatDescriptionGetDimensions(format)
++            do {
++                let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
++                let settings: [String: Any] = [
++                    AVVideoCodecKey: AVVideoCodecType.h264,
++                    AVVideoWidthKey: Int(dims.width),
++                    AVVideoHeightKey: Int(dims.height),
++                ]
++                let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
++                input.expectsMediaDataInRealTime = true
++                // Los buffers llegan en orientación de sensor (landscape): rotamos a retrato.
++                input.transform = CGAffineTransform(rotationAngle: .pi / 2)
++                guard writer.canAdd(input) else { return }
++                writer.add(input)
++                writer.startWriting()
++                writer.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
++                videoWriter = writer
++                videoWriterInput = input
++            } catch {
++                isRecordingVideo = false
++                return
++            }
++        }
++        if let input = videoWriterInput, input.isReadyForMoreMediaData,
++           videoWriter?.status == .writing {
++            input.append(sampleBuffer)
++        }
      }
  }
  
-@@ -639,10 +662,11 @@ extension UIImage {
+@@ -497,6 +569,10 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
+ 
+ extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
+     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
++        if isRecordingVideo {
++            _appendVideoFrame(sampleBuffer)
++        }
++
+         guard let completion = sampleBufferCaptureCompletionBlock else { return }
+ 
+         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+@@ -639,10 +715,11 @@ extension UIImage {
  
  extension CameraController: AVCaptureFileOutputRecordingDelegate {
      func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
