@@ -180,9 +180,21 @@ async function _startRecordingSegment(isPremium: boolean): Promise<boolean> {
                 });
                 // El vídeo sale sin sonido (la sesión de cámara va sin micro para no
                 // interrumpir la llamada al 112): grabamos audio en paralelo.
+                // Reintentos: con la cámara aún arrancando, el primer intento puede
+                // fallar con CANNOT_RECORD_ON_THIS_PHONE (transitorio).
                 try {
                     const { value: canRecord } = await VoiceRecorder.canDeviceVoiceRecord();
-                    if (canRecord) await VoiceRecorder.startRecording();
+                    if (canRecord) {
+                        for (let attempt = 0; attempt < 3; attempt++) {
+                            try {
+                                await VoiceRecorder.startRecording();
+                                break;
+                            } catch (e) {
+                                if (attempt === 2) console.error('[SOS] VoiceRecorder no arranca tras 3 intentos:', e);
+                                else await new Promise(r => setTimeout(r, 800));
+                            }
+                        }
+                    }
                 } catch {}
                 return true;
             }
@@ -253,10 +265,17 @@ async function _stopSegmentAndUpload(
 
                 const rawPath: string | undefined = result?.value ?? result;
                 if (!rawPath) throw new Error('Empty video path');
-                const filePath = rawPath.startsWith('file://') ? rawPath.slice(7) : rawPath;
 
+                // Filesystem.readFile quiere la URL file:// COMPLETA; como
+                // fallback probamos la ruta pelada (comportamiento antiguo).
                 const { Filesystem } = await import('@capacitor/filesystem');
-                const file = await Filesystem.readFile({ path: filePath });
+                let file;
+                try {
+                    file = await Filesystem.readFile({ path: rawPath });
+                } catch {
+                    const stripped = rawPath.startsWith('file://') ? rawPath.slice(7) : rawPath;
+                    file = await Filesystem.readFile({ path: stripped });
+                }
                 const blob = b64ToBlob(file.data as string, 'video/mp4');
 
                 const storagePath = `${userId}/${alertId}/chunk_${chunkIdx}.mp4`;
@@ -579,7 +598,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function executeSOSProtocol(userId: string, groupId: string, type = 'security') {
-    call112();
+    // La llamada al 112 la gestiona SOSActivePage (cuenta atrás de 10s
+    // configurable con autoCall112) — no llamar aquí para no duplicar.
     return activateSOS(userId, groupId, {
         message: '⚠️ AVISO DE TRAYECTO. \nHe activado una nota de trayecto. Mi ubicación y cámara han sido compartidas con mis contactos seleccionados. Por favor, revisa mi progreso.',
         highPriority: false,
