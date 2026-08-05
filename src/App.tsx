@@ -147,6 +147,8 @@ const GlobalModals = () => {
 function App() {
     useEffect(() => {
         // Deep Links are handled by src/components/auth/DeepLinkHandler.tsx
+        // Warm Mapbox spend cache so isBlocked() is ready before first API call
+        import('./services/mapboxBudget').then(({ initBudget }) => initBudget()).catch(() => {});
     }, []);
 
     return (

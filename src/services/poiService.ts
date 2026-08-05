@@ -1,4 +1,10 @@
 // POI Service - Fetch nearby places using Mapbox Geocoding API
+import { isBlocked, track } from './mapboxBudget';
+import { allow, sanitizeQuery } from './rateLimiter';
+
+// ── POI cache: coarse grid (2 decimal ≈ 1 km) + category, 30-min TTL ──
+const _poiCache = new Map<string, { data: POI[]; expiresAt: number }>();
+const POI_TTL_MS = 30 * 60 * 1000;
 
 export interface POI {
     id: string;
@@ -43,38 +49,47 @@ export async function getNearbyPOIs(
     category?: POICategory
 ): Promise<POI[]> {
     if (!MAPBOX_TOKEN) {
-        console.warn('🚨 Mapbox token not found');
+        console.warn('Mapbox token not found, falling back to empty POIs');
         return [];
     }
 
+    // ── Cache check ───────────────────────────────────────
+    const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${category ?? 'all'}`;
+    const cached = _poiCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return cached.data;
+
+    // ── Budget + rate guard ───────────────────────────────
+    if (isBlocked() || !allow('geocode_v5', 40)) {
+        console.warn('[POI] Mapbox calls blocked — budget or rate limit reached.');
+        return cached?.data ?? [];
+    }
+
     try {
+        // Broad search for POIs and landmarks - More aggressive to avoid empty results
         const queries = category
             ? [categoryConfig[category].types[0]]
             : ['landmark', 'park', 'university', 'museum', 'monument', 'square', 'market', 'church', 'school', 'hospital', 'restaurant', 'cafe', 'shop', 'pharmacy', 'poi'];
 
-        console.log('🔍 getNearbyPOIs queries:', queries.slice(0, 8));
+        const batchedQueries = queries.slice(0, 8);
 
-        const responses = await Promise.all(queries.slice(0, 8).map(q =>
+        // Track before firing (we know how many calls we're about to make)
+        track('geocode_v5', batchedQueries.length);
+
+        // We'll combine multiple queries to ensure landmark and POI richness
+        const responses = await Promise.all(batchedQueries.map(q =>
             fetch(
                 `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?` +
                 `proximity=${lng},${lat}&` +
                 `types=poi&` +
                 `access_token=${MAPBOX_TOKEN}&` +
                 `limit=12`
-            ).then(r => r.json()).catch(err => {
-                console.error(`❌ Mapbox API error for query "${q}":`, err);
-                return { features: [] };
-            })
+            ).then(r => r.json())
         ));
 
-        console.log('✅ Mapbox responses received:', responses.length);
-
         const allFeatures = responses.flatMap(r => r.features || []);
-        console.log('📍 Total features from all queries:', allFeatures.length);
 
         // Deduplicate features by ID
         const uniqueFeatures = Array.from(new Map(allFeatures.map(f => [f.id, f])).values());
-        console.log('🗺️ Unique features after dedup:', uniqueFeatures.length);
 
         const pois: POI[] = uniqueFeatures.map((f: any) => {
             const [poiLng, poiLat] = f.center;
@@ -119,9 +134,13 @@ export async function getNearbyPOIs(
         });
 
         // Filter and sort by distance
-        return pois
+        const result = pois
             .filter(p => p.distance! <= radiusMeters)
             .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+
+        // Store in cache
+        _poiCache.set(cacheKey, { data: result, expiresAt: Date.now() + POI_TTL_MS });
+        return result;
 
     } catch (e) {
         console.error('Error fetching nearby POIs:', e);
@@ -131,18 +150,20 @@ export async function getNearbyPOIs(
 
 /**
  * Search POIs by query text using Mapbox Geocoding API
- * Results are sorted by proximity to user location (closest first)
  */
-export async function searchPOIs(query: string, lat: number, lng: number, radiusMeters: number = 5000): Promise<POI[]> {
-    if (!query.trim() || !MAPBOX_TOKEN) return [];
+export async function searchPOIs(query: string, lat: number, lng: number): Promise<POI[]> {
+    const clean = sanitizeQuery(query);
+    if (!clean || !MAPBOX_TOKEN) return [];
+    if (isBlocked() || !allow('geocode_v5', 40)) return [];
 
     try {
+        track('geocode_v5');
         const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(clean)}.json?` +
             `proximity=${lng},${lat}&` +
             `types=address,place,poi,neighborhood&` +
             `access_token=${MAPBOX_TOKEN}&` +
-            `limit=25`
+            `limit=10`
         );
 
         if (!response.ok) throw new Error('Mapbox search error');
@@ -150,7 +171,7 @@ export async function searchPOIs(query: string, lat: number, lng: number, radius
         const data = await response.json();
         if (!data.features) return [];
 
-        const pois = data.features.map((f: any) => {
+        return data.features.map((f: any) => {
             const [poiLng, poiLat] = f.center;
             const distance = calculateDistance(lat, lng, poiLat, poiLng);
 
@@ -159,7 +180,7 @@ export async function searchPOIs(query: string, lat: number, lng: number, radius
             let poiCategory: POICategory = 'shop';
             if (mbtypes.includes('restaurant')) poiCategory = 'restaurant';
             else if (mbtypes.includes('cafe')) poiCategory = 'cafe';
-
+            
             // For addresses, use the formatted place name parts rather than POI names
             const isAddress = f.place_type?.includes('address') || f.place_type?.includes('place');
             const primaryName = isAddress ? (f.place_name?.split(',')[0] || f.text) : (f.text_es || f.text);
@@ -175,11 +196,6 @@ export async function searchPOIs(query: string, lat: number, lng: number, radius
                 distance
             };
         });
-
-        // Filter by radius and sort by distance (closest first)
-        return pois
-            .filter(p => p.distance! <= radiusMeters)
-            .sort((a, b) => (a.distance || 0) - (b.distance || 0));
     } catch (e) {
         console.error('Error searching POIs:', e);
         return [];

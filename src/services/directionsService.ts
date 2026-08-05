@@ -4,6 +4,8 @@
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DIRECTIONS_API_BASE = 'https://api.mapbox.com/directions/v5/mapbox';
 import { supabase } from './supabaseClient';
+import { isBlocked, track } from './mapboxBudget';
+import { allow } from './rateLimiter';
 import {
     loadNeighborhoodScores,
     scoreAtPoint,
@@ -58,6 +60,8 @@ export async function getRoute(
     destination: Coordinate,
     mode: string = 'walking'
 ): Promise<RouteResult | null> {
+    if (isBlocked() || !allow('directions', 15)) return null;
+
     const profile = PROFILE_MAP[mode] || 'walking';
 
     const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
@@ -71,6 +75,7 @@ export async function getRoute(
 
     try {
         const response = await fetch(url);
+        track('directions');
         const data = await response.json();
 
         if (data.routes && data.routes.length > 0) {
@@ -287,6 +292,7 @@ export async function getAlternativeRoutes(
     const profile = PROFILE_MAP[baseMode] || 'walking';
 
     const fetchWithWaypoint = async (waypoint: Coordinate | null): Promise<RouteResult[]> => {
+        if (isBlocked() || !allow('directions', 15)) return [];
         const coords = waypoint
             ? `${origin.lng},${origin.lat};${waypoint.lng},${waypoint.lat};${destination.lng},${destination.lat}`
             : `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
@@ -303,6 +309,7 @@ export async function getAlternativeRoutes(
 
         try {
             const response = await fetch(url);
+            track('directions');
             const data = await response.json();
             if (!data.routes || data.routes.length === 0) return [];
             return data.routes.map((route: any) => ({

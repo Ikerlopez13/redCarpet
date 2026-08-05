@@ -2,14 +2,19 @@ import { supabase } from './supabaseClient';
 import type { Location, DangerZone } from './database.types';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import { Preferences } from '@capacitor/preferences';
 
 const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation');
 
 let watchId: string | null = null;
 let bgWatcherId: string | null = null;
-let periodicTimer: ReturnType<typeof setInterval> | null = null;
 let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null;
+let _timeFallbackInterval: ReturnType<typeof setInterval> | null = null;
+let _lastUpdateMs = 0;
+
+// Minimum movement before writing a new location row.
+const DISTANCE_THRESHOLD_M = 75;
+// Max time between forced updates even when stationary.
+const TIME_THRESHOLD_MS = 45_000;
 
 /**
  * Update current user's location
@@ -103,32 +108,26 @@ export async function getFamilyLocations(memberIds: string[]): Promise<Record<st
 }
 
 /**
- * Start watching user's location and sending updates
+ * Start watching user's location and sending updates.
+ * On native iOS/Android, uses BackgroundGeolocation so tracking continues when app is backgrounded.
  */
 export async function startLocationTracking(
     userId: string,
     onUpdate?: (position: any) => void,
     intervalMs: number = 30000
 ) {
-    try {
-        await Geolocation.requestPermissions();
-    } catch (e) {
-        console.error("Location permission error", e);
-    }
-
     // Get initial position
     try {
-        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
-        const cached = JSON.stringify({ lat: position.coords.latitude, lng: position.coords.longitude });
-        await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: cached });
+        await Geolocation.requestPermissions();
+        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
         updateLocation(userId, position);
         onUpdate?.(position);
     } catch (error) {
-        console.error('Location error:', error);
+        console.error('Initial location error:', error);
     }
 
-    // Use BackgroundGeolocation on native (continues tracking in background with "Always" permission)
     if (Capacitor.isNativePlatform()) {
+        // Use BackgroundGeolocation — continues firing when app is backgrounded with "Always" permission
         try {
             bgWatcherId = await BackgroundGeolocation.addWatcher(
                 {
@@ -136,31 +135,53 @@ export async function startLocationTracking(
                     backgroundTitle: 'RedCarpet activo',
                     requestPermissions: false,
                     stale: false,
-                    distanceFilter: 15,
+                    distanceFilter: DISTANCE_THRESHOLD_M,
                 },
-                async (position: any, error: any) => {
-                    if (error) { console.error('BG location error:', error); return; }
+                (position: any, error: any) => {
+                    if (error) {
+                        console.error('[BG Location] error:', error);
+                        return;
+                    }
                     if (position) {
+                        // BackgroundGeolocation returns flat fields, convert to Capacitor format
                         const capacitorPosition = {
                             coords: {
                                 latitude: position.latitude,
                                 longitude: position.longitude,
                                 accuracy: position.accuracy,
-                                altitude: position.altitude,
-                                altitudeAccuracy: position.altitudeAccuracy,
-                                heading: position.bearing,
-                                speed: position.speed,
-                            }
+                                altitude: position.altitude ?? null,
+                                altitudeAccuracy: null,
+                                heading: position.bearing ?? null,
+                                speed: position.speed ?? null,
+                            },
+                            timestamp: position.time ?? Date.now(),
                         };
-                        const cached = JSON.stringify({ lat: position.latitude, lng: position.longitude });
-                        await Preferences.set({ key: 'LAST_KNOWN_LOCATION', value: cached });
+                        _lastUpdateMs = Date.now();
                         updateLocation(userId, capacitorPosition);
                         onUpdate?.(capacitorPosition);
                     }
                 }
             );
-        } catch (bgError) {
-            console.error('BackgroundGeolocation failed, fallback to watchPosition:', bgError);
+
+            // Time-based fallback: push a heartbeat if user hasn't moved enough
+            // to trigger the distanceFilter within TIME_THRESHOLD_MS.
+            _timeFallbackInterval = setInterval(async () => {
+                if (Date.now() - _lastUpdateMs >= TIME_THRESHOLD_MS) {
+                    try {
+                        const pos = await Geolocation.getCurrentPosition({
+                            enableHighAccuracy: false,
+                            timeout: 5_000,
+                            maximumAge: TIME_THRESHOLD_MS,
+                        });
+                        _lastUpdateMs = Date.now();
+                        updateLocation(userId, pos);
+                        onUpdate?.(pos);
+                    } catch { /* ignore — next tick will retry */ }
+                }
+            }, TIME_THRESHOLD_MS);
+        } catch (err) {
+            // Fallback: standard watchPosition (foreground only)
+            console.warn('[Location] BackgroundGeolocation failed, falling back to watchPosition:', err);
             watchId = await Geolocation.watchPosition(
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: intervalMs },
                 (position, error) => {
@@ -170,6 +191,7 @@ export async function startLocationTracking(
             );
         }
     } else {
+        // Web: standard watchPosition
         watchId = await Geolocation.watchPosition(
             { enableHighAccuracy: true, timeout: 10000, maximumAge: intervalMs },
             (position, error) => {
@@ -179,26 +201,14 @@ export async function startLocationTracking(
         );
     }
 
-    // Force-save location every 5 minutes so stationary users don't show stale data
-    const PERIODIC_MS = 5 * 60 * 1000;
-    periodicTimer = setInterval(async () => {
-        try {
-            const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
-            if (pos) {
-                updateLocation(userId, pos);
-                onUpdate?.(pos);
-            }
-        } catch { /* ignore periodic errors */ }
-    }, PERIODIC_MS);
-
     return {
         stop: async () => {
-            if (periodicTimer !== null) {
-                clearInterval(periodicTimer);
-                periodicTimer = null;
+            if (_timeFallbackInterval !== null) {
+                clearInterval(_timeFallbackInterval);
+                _timeFallbackInterval = null;
             }
             if (bgWatcherId !== null) {
-                await BackgroundGeolocation.removeWatcher({ id: bgWatcherId });
+                await BackgroundGeolocation.removeWatcher({ id: bgWatcherId }).catch(console.error);
                 bgWatcherId = null;
             }
             if (watchId !== null) {
@@ -317,12 +327,10 @@ export async function checkGeofence(
             // OR better, just log it as the user specifically asked for "Avisos automáticos"
             const { error } = await supabase.functions.invoke('send-sos-notifications', {
                 body: {
-                    alertId: 'safe-zone-' + Date.now(),
+                    alertId: 'safe-zone-' + Date.now(), // Dummy ID
                     groupId: zone.family_id,
-                    userId,
-                    notificationType: 'safe_arrival',
                     config: {
-                        message: `Ha llegado a "${zone.name}" — está a salvo.`,
+                        message: `📍 ${zone.name}: Un familiar ha llegado a salvo.`,
                         notifyContacts: true
                     }
                 }
@@ -340,10 +348,8 @@ export async function checkGeofence(
                 body: {
                     alertId: 'safe-zone-leave-' + Date.now(),
                     groupId: zone.family_id,
-                    userId,
-                    notificationType: 'safe_departure',
                     config: {
-                        message: `Ha salido de "${zone.name}".`,
+                        message: `🚶 ${zone.name}: Un familiar ha salido de esta zona segura.`,
                         notifyContacts: true
                     }
                 }
@@ -421,33 +427,17 @@ export async function checkIncidenceZones(
             if (membership) {
                 await updateFamilyStats(membership.group_id, 'risk_alert');
 
-                // Aviso al círculo: un contacto está pasando por una zona alertada
+                // Send Notification to Family
                 await supabase.functions.invoke('send-sos-notifications', {
                     body: {
-                        alertId: zone.id,
+                        alertId: 'incidence-' + Date.now(),
                         groupId: membership.group_id,
-                        userId,
-                        notificationType: 'contact_in_zone',
                         config: {
-                            message: `Está pasando por una zona con un aviso activo${zone.description ? `: ${zone.description}` : ''}.`,
+                            message: `📍 NOTA DE TRAYECTO: Un familiar ha entrado en una zona de interés (${zone.type}).`,
                             notifyContacts: true
                         }
                     }
                 });
-            }
-
-            // Aviso al propio usuario: estás entrando en una zona con aviso activo
-            await supabase.functions.invoke('send-sos-notifications', {
-                body: {
-                    alertId: zone.id,
-                    targetUserId: userId,
-                    notificationType: 'zone_proximity',
-                    config: {
-                        message: `Estás pasando por una zona con un aviso de seguridad activo${zone.description ? `: ${zone.description}` : ''}. Mantén la atención.`
-                    }
-                }
-            }).catch(() => {});
-            {
             }
 
             // RE-CONFIRMATION LOGIC: If zone is older than 12 hours, ask the user if it's still there
