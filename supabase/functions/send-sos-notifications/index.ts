@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import admin from "npm:firebase-admin";
+import { initializeApp, cert } from "npm:firebase-admin/app";
+import { getMessaging } from "npm:firebase-admin/messaging";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,7 @@ function initFirebase() {
     if (firebaseInitialized) return;
     const sa = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
     if (!sa) throw new Error("FIREBASE_SERVICE_ACCOUNT secret missing");
-    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(sa)) });
+    initializeApp({ credential: cert(JSON.parse(sa)) });
     firebaseInitialized = true;
 }
 
@@ -179,7 +180,7 @@ serve(async (req) => {
             },
         };
 
-        const response = await admin.messaging().sendEachForMulticast(message);
+        const response = await getMessaging().sendEachForMulticast(message);
         console.log(`[SOS] ✅ sent=${response.successCount} ❌ failed=${response.failureCount}`);
 
         // Remove stale tokens
