@@ -26,6 +26,7 @@ interface SOSRecording {
   thumbnail_url: string | null;
   created_at: string;
   preserved: boolean;
+  signedUrl?: string; // pre-firmada en lote al cargar la página
 }
 
 interface NotificationItem {
@@ -49,8 +50,12 @@ function SOSRecordingPlayer({ rec }: { rec: SOSRecording }) {
   const [preserved, setPreserved] = useState(rec.preserved);
 
   useEffect(() => {
-    getSignedVideoUrl(rec.storage_path, 3600).then(setUrl);
-  }, [rec.storage_path]);
+    if (rec.signedUrl) {
+      setUrl(rec.signedUrl);
+    } else {
+      getSignedVideoUrl(rec.storage_path, 3600).then(setUrl);
+    }
+  }, [rec.storage_path, rec.signedUrl]);
 
   const handlePreserve = async () => {
     await preserveSOSRecording(rec.id);
@@ -148,10 +153,22 @@ export const Notifications: React.FC = () => {
                     .order('chunk_index', { ascending: true })
                 : { data: [] };
 
+            // Firmar TODAS las URLs en una sola petición (antes: una por segmento)
+            const allPaths = (recordingsData || []).map((r: any) => r.storage_path);
+            const signedByPath: Record<string, string> = {};
+            if (allPaths.length > 0) {
+                const { data: signedList } = await supabase.storage
+                    .from('sos-videos')
+                    .createSignedUrls(allPaths, 3600);
+                for (const s of (signedList || [])) {
+                    if (s.signedUrl && s.path) signedByPath[s.path] = s.signedUrl;
+                }
+            }
+
             const recordingsByAlert: Record<string, SOSRecording[]> = {};
             for (const r of (recordingsData || [])) {
                 if (!recordingsByAlert[r.sos_alert_id]) recordingsByAlert[r.sos_alert_id] = [];
-                recordingsByAlert[r.sos_alert_id].push(r as SOSRecording);
+                recordingsByAlert[r.sos_alert_id].push({ ...r, signedUrl: signedByPath[r.storage_path] } as SOSRecording);
             }
 
             const dangerData = dangerRes.data;
