@@ -178,6 +178,12 @@ async function _startRecordingSegment(isPremium: boolean): Promise<boolean> {
                     position: 'rear',
                     storeToFile: true,
                 });
+                // El vídeo sale sin sonido (la sesión de cámara va sin micro para no
+                // interrumpir la llamada al 112): grabamos audio en paralelo.
+                try {
+                    const { value: canRecord } = await VoiceRecorder.canDeviceVoiceRecord();
+                    if (canRecord) await VoiceRecorder.startRecording();
+                } catch {}
                 return true;
             }
         } catch (err) {
@@ -223,15 +229,26 @@ async function _startRecordingSegment(isPremium: boolean): Promise<boolean> {
     }
 }
 
+const VIDEO_STOP_TIMEOUT_MS = 10_000;
+
+function _withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+    return Promise.race([
+        p,
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`${label} timeout`)), ms)),
+    ]);
+}
+
 async function _stopSegmentAndUpload(
     userId: string, alertId: string, chunkIdx: number
-): Promise<string | null> {
+): Promise<string[]> {
     if (Capacitor.isNativePlatform()) {
+        const paths: string[] = [];
+
         if (videoRecordPromise) {
             try {
                 const { CameraPreview } = await import('@capacitor-community/camera-preview');
-                await CameraPreview.stopRecordVideo();
-                const result = await videoRecordPromise;
+                await _withTimeout(CameraPreview.stopRecordVideo(), VIDEO_STOP_TIMEOUT_MS, 'stopRecordVideo');
+                const result: any = await _withTimeout(videoRecordPromise, VIDEO_STOP_TIMEOUT_MS, 'videoRecordPromise');
                 videoRecordPromise = null;
 
                 const rawPath: string | undefined = result?.value ?? result;
@@ -247,14 +264,14 @@ async function _stopSegmentAndUpload(
                     contentType: 'video/mp4', upsert: true,
                 });
                 if (error) throw error;
-                return storagePath;
+                paths.push(storagePath);
             } catch (err) {
                 console.error('[SOS] Native video chunk upload failed:', err);
-                videoRecordPromise = null;
             }
+            videoRecordPromise = null;
         }
 
-        // Audio fallback
+        // Audio del segmento (grabado en paralelo al vídeo, o como único medio si no hay cámara)
         try {
             const result = await VoiceRecorder.stopRecording();
             if (result.value?.recordDataBase64) {
@@ -264,15 +281,15 @@ async function _stopSegmentAndUpload(
                 const { error } = await supabase.storage.from(VIDEO_BUCKET).upload(storagePath, blob, {
                     contentType: mime, upsert: true,
                 });
-                if (!error) return storagePath;
+                if (!error) paths.push(storagePath);
             }
         } catch {}
-        return null;
+        return paths;
     }
 
     // Web MediaRecorder
     return new Promise((resolve) => {
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') return resolve(null);
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') return resolve([]);
         mediaRecorder.onstop = async () => {
             try {
                 const mime = mediaRecorder?.mimeType || 'video/webm';
@@ -283,8 +300,8 @@ async function _stopSegmentAndUpload(
                 const { error } = await supabase.storage.from(VIDEO_BUCKET).upload(storagePath, blob, {
                     contentType: mime, upsert: true,
                 });
-                resolve(error ? null : storagePath);
-            } catch { resolve(null); }
+                resolve(error ? [] : [storagePath]);
+            } catch { resolve([]); }
         };
         mediaRecorder.stop();
     });
@@ -324,22 +341,25 @@ async function _loopIteration() {
 }
 
 async function _finishChunk(userId: string, alertId: string, idx: number) {
-    const storagePath = await _stopSegmentAndUpload(userId, alertId, idx);
-    if (!storagePath) return;
+    const storagePaths = await _stopSegmentAndUpload(userId, alertId, idx);
+    if (storagePaths.length === 0) return;
 
-    // Persist chunk metadata
-    const { error: dbErr } = await (supabase.from('sos_recordings') as any).insert({
-        sos_alert_id: alertId,
-        user_id: userId,
-        storage_path: storagePath,
-        chunk_index: idx,
-        media_type: storagePath.endsWith('.m4a') ? 'audio/m4a' : 'video/mp4',
-    });
-    if (dbErr) console.error('[SOS] sos_recordings insert error:', dbErr);
+    // Persist chunk metadata (una fila por medio: vídeo y/o audio)
+    for (const storagePath of storagePaths) {
+        const { error: dbErr } = await (supabase.from('sos_recordings') as any).insert({
+            sos_alert_id: alertId,
+            user_id: userId,
+            storage_path: storagePath,
+            chunk_index: idx,
+            media_type: storagePath.endsWith('.m4a') ? 'audio/m4a' : 'video/mp4',
+        });
+        if (dbErr) console.error('[SOS] sos_recordings insert error:', dbErr);
+    }
 
     // Send notification with signed URL (24h validity) so contacts can watch immediately
+    const notifyPath = storagePaths.find(p => p.endsWith('.mp4')) || storagePaths[0];
     try {
-        const { data: signed } = await supabase.storage.from(VIDEO_BUCKET).createSignedUrl(storagePath, 86400);
+        const { data: signed } = await supabase.storage.from(VIDEO_BUCKET).createSignedUrl(notifyPath, 86400);
         if (signed?.signedUrl) {
             supabase.functions.invoke('send-sos-notifications', {
                 body: {
@@ -385,7 +405,8 @@ export async function startRecording(isPremium: boolean = false, options: { posi
 }
 
 export async function stopAndUploadRecording(userId: string): Promise<string | null> {
-    const storagePath = await _stopSegmentAndUpload(userId, `legacy_${Date.now()}`, 0);
+    const storagePaths = await _stopSegmentAndUpload(userId, `legacy_${Date.now()}`, 0);
+    const storagePath = storagePaths.find(p => p.endsWith('.mp4')) || storagePaths[0];
     if (!storagePath) return null;
     // Return a signed URL (24h) for backwards compat callers
     const { data } = await supabase.storage.from(VIDEO_BUCKET).createSignedUrl(storagePath, 86400);
