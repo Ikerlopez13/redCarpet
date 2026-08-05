@@ -2,6 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import admin from "npm:firebase-admin";
 
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 let firebaseInitialized = false;
 
 function initFirebase() {
@@ -13,10 +19,19 @@ function initFirebase() {
 }
 
 serve(async (req) => {
-    const {
-        alertId, userId, groupId, config,
-        action, mediaUrl, thumbnailUrl, chunkIndex,
-    } = await req.json();
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
+    let alertId, userId, groupId, config, action, mediaUrl, thumbnailUrl, chunkIndex;
+    try {
+        ({ alertId, userId, groupId, config,
+            action, mediaUrl, thumbnailUrl, chunkIndex } = await req.json());
+    } catch {
+        return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
 
     const db = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
@@ -55,7 +70,7 @@ serve(async (req) => {
         userIds = Array.from(new Set(userIds)).filter(id => id !== userId);
         if (userIds.length === 0) {
             return new Response(JSON.stringify({ message: "No contacts to notify" }), {
-                headers: { "Content-Type": "application/json" },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
@@ -67,7 +82,7 @@ serve(async (req) => {
         if (tokensError) throw tokensError;
         if (!tokenRows?.length) {
             return new Response(JSON.stringify({ message: "No push tokens found" }), {
-                headers: { "Content-Type": "application/json" },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
@@ -187,12 +202,12 @@ serve(async (req) => {
             success: true,
             sent: response.successCount,
             failed: response.failureCount,
-        }), { headers: { "Content-Type": "application/json" } });
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     } catch (error: any) {
         console.error('[SOS] Fatal error:', error);
         return new Response(JSON.stringify({ error: error.message }), {
-            status: 500, headers: { "Content-Type": "application/json" },
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
 });

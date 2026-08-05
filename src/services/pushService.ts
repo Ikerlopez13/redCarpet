@@ -1,4 +1,5 @@
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabaseClient';
 
 /**
@@ -64,7 +65,7 @@ async function savePushToken(userId: string, token: string): Promise<void> {
             token,
             platform: getPlatform(),
             updated_at: new Date().toISOString(),
-        }, { onConflict: 'token,user_id' }); // Ensure we don't duplicate based on PK
+        }, { onConflict: 'user_id' });
 
         if (error) {
             console.error('Error saving push token to DB:', error);
@@ -109,11 +110,12 @@ function handleNotificationAction(event: any): void {
     const data = notification.data;
 
     if (data?.type === 'sos' && data?.alertId) {
-        // Navigate to SOS screen
-        window.location.href = `/emergency?alertId=${data.alertId}`;
+        // Go to notifications page so the contact sees the video/audio recording
+        window.location.href = `/notifications?alertId=${data.alertId}`;
     } else if (data?.type === 'location' && data?.userId) {
-        // Navigate to map centered on user
         window.location.href = `/?focusUser=${data.userId}`;
+    } else if (data?.type === 'contact_request') {
+        window.location.href = '/contacts';
     }
 }
 
@@ -130,9 +132,9 @@ function showInAppAlert(alert: { type: string; title: string; body: string; data
  * Get current platform
  */
 function getPlatform(): 'ios' | 'android' | 'web' {
-    const userAgent = navigator.userAgent.toLowerCase();
-    if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
-    if (/android/.test(userAgent)) return 'android';
+    const p = Capacitor.getPlatform();
+    if (p === 'ios') return 'ios';
+    if (p === 'android') return 'android';
     return 'web';
 }
 

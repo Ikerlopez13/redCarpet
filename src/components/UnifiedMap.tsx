@@ -20,6 +20,21 @@ import type { DangerZone as IncidenceZone } from '../services/database.types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
+function getIncidentColor(title: string, type?: string): string {
+    const l = title.toLowerCase();
+    if (l.includes('poca luz') || l.includes('baja visibilidad')) return '#eab308';
+    if (l.includes('inseguro') || l.includes('peligro'))           return '#ef4444';
+    if (l.includes('acceso limitado'))                              return '#a855f7';
+    if (l.includes('acceso seguro'))                                return '#22c55e';
+    if (l.includes('inclusiva') || l.includes('inclusividad'))      return '#ec4899';
+    if (l.includes('cortada'))                                      return '#f97316';
+    if (l.includes('mal estado'))                                   return '#14b8a6';
+    if (l.includes('autoridades'))                                  return '#3b82f6';
+    if (type === 'dark')  return '#eab308';
+    if (type === 'safe')  return '#22c55e';
+    return '#ef4444';
+}
+
 // Default location: Sagrada Familia, Barcelona (as requested to avoid doxing)
 const DEFAULT_VIEW = {
     latitude: 41.4036,
@@ -158,7 +173,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                             lng: zone.lng,
                             radius: zone.radius,
                             title,
-                            description
+                            description,
+                            color: getIncidentColor(title, zone.type)
                         };
                     });
                     setIncidenceZones(mappedZones);
