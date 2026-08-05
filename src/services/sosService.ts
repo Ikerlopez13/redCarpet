@@ -68,8 +68,10 @@ export async function startSOSPreview(options: { position?: 'front' | 'rear' } =
                 toBack: true,
                 storeToFile: false,
                 disableAudio: true,
-                width: 640,
-                height: 480,
+                x: 0,
+                y: 0,
+                width: window.innerWidth,
+                height: window.innerHeight,
             });
             return true;
         } catch (err) {
