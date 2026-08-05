@@ -302,11 +302,14 @@ export const SOSActivePage: React.FC = () => {
             await resolveSOS(alertId);
         }
 
-        // 2. Stop chunked recording — sube el último segmento parcial
+        // 2. Stop chunked recording — sube el último segmento parcial.
+        // No bloqueamos la salida: esperamos máx 2,5s a que el segmento quede
+        // capturado y la subida continúa en segundo plano (SPA, el JS sigue vivo).
         if (user && alertId) {
-            await stopChunkedRecording(user.id, alertId);
+            const uploadPromise = stopChunkedRecording(user.id, alertId).catch(console.error);
+            await Promise.race([uploadPromise, new Promise(r => setTimeout(r, 2500))]);
         }
-        
+
         await cleanAll();
         
         const { value } = await Preferences.get({ key: 'HAS_RATED_APP' });

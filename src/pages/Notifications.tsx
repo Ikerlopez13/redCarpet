@@ -130,19 +130,14 @@ export const Notifications: React.FC = () => {
             const contactUserIds = acceptedContacts.map(c => c.associated_user_id as string);
             const relevantUserIds = [user.id, ...contactUserIds];
 
-            // Fetch profiles to map names
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, full_name, avatar_url')
-                .in('id', relevantUserIds);
-
-            // Fetch SOS alerts
-            const { data: alertsData } = await supabase
-                .from('sos_alerts')
-                .select('*')
-                .in('user_id', relevantUserIds)
-                .order('created_at', { ascending: false })
-                .limit(20);
+            // Profiles, alerts y danger zones en paralelo (antes eran secuenciales)
+            const [{ data: profiles }, { data: alertsData }, dangerRes] = await Promise.all([
+                supabase.from('profiles').select('id, full_name, avatar_url').in('id', relevantUserIds),
+                supabase.from('sos_alerts').select('*').in('user_id', relevantUserIds)
+                    .order('created_at', { ascending: false }).limit(20),
+                supabase.from('danger_zones').select('*').in('reporter_id', relevantUserIds)
+                    .order('created_at', { ascending: false }).limit(20),
+            ]);
 
             // Fetch chunked recordings for each alert (new private bucket)
             const alertIds = (alertsData || []).map((a: any) => a.id);
@@ -159,13 +154,7 @@ export const Notifications: React.FC = () => {
                 recordingsByAlert[r.sos_alert_id].push(r as SOSRecording);
             }
 
-            // Fetch danger zones (street danger reports)
-            const { data: dangerData } = await supabase
-                .from('danger_zones')
-                .select('*')
-                .in('reporter_id', relevantUserIds)
-                .order('created_at', { ascending: false })
-                .limit(20);
+            const dangerData = dangerRes.data;
 
             const formatTime = (dateStr: string) => {
                 const date = new Date(dateStr);
