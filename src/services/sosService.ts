@@ -41,7 +41,7 @@ const _loop: ChunkLoop = {
     alertId: null, userId: null, isPremium: false, thumbnailCaptured: false,
 };
 
-const CHUNK_MS = 45_000;  // 45-second chunks
+const CHUNK_MS = 15_000;  // 15-second chunks (subida rápida + aparecen antes en Notificaciones)
 const VIDEO_BUCKET = 'sos-videos';
 const THUMB_BUCKET = 'sos-thumbnails';
 

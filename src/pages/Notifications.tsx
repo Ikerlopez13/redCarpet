@@ -97,6 +97,7 @@ function SOSRecordingPlayer({ rec }: { rec: SOSRecording }) {
             controls
             playsInline
             preload="metadata"
+            poster={rec.thumbnail_url || undefined}
             className="w-full max-h-64 object-cover bg-black"
             style={{ display: 'block' }}
           />
