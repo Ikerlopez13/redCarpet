@@ -65,11 +65,11 @@ export const Subscription: React.FC = () => {
                     });
                 });
             } else {
-                // Fallback: abrir directamente la web del paywall
-                await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+                // Fallback: abrir directamente la web del paywall con user_id + plan
+                await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}&plan=${planId}` });
             }
         } catch {
-            await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}` });
+            await Browser.open({ url: `https://tryredcarpet.com/premium?uid=${user.id}&plan=${planId}` });
         }
     };
 
@@ -138,6 +138,15 @@ export const Subscription: React.FC = () => {
     }, [t]);
 
     const handlePurchase = async (planKey: string, packageId: string) => {
+        // Android: sin compra in-app (Google Play Billing). Se redirige al pago web
+        // con el user_id + plan; el backend habilita el premium correspondiente y al
+        // volver a la app el listener de openWebPaywall refresca el estado. iOS sigue
+        // usando RevenueCat (Apple exige compra in-app).
+        if (isAndroid) {
+            setSelectedPlan(planKey);
+            await openWebPaywall(planKey);
+            return;
+        }
         console.log(`[RevenueCat] 👉 Botón de compra pulsado para el paquete: ${packageId} (${planKey})`);
         setSelectedPlan(planKey);
         setProcessing(true);

@@ -11,6 +11,7 @@ import {
     Shield,
     Grid
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
 import { useSOS } from '../contexts/SOSContext.base';
 import { executeSOSProtocol } from '../services/sosService';
@@ -72,10 +73,15 @@ export const Emergency: React.FC = () => {
                 replace: true
             });
             
-            // Call 112 at the same time, allowing the app to transition in the background
-            setTimeout(() => {
-                window.location.href = 'tel:112';
-            }, 500);
+            // Call 112 at the same time, allowing the app to transition in the background.
+            // Android: NO se marca automáticamente aquí — la pantalla activa muestra un
+            // diálogo in-app "¿Quieres llamar al 112?" para no sacar al usuario de la app
+            // sin su confirmación. iOS mantiene el comportamiento actual.
+            if (Capacitor.getPlatform() !== 'android') {
+                setTimeout(() => {
+                    window.location.href = 'tel:112';
+                }, 500);
+            }
         } catch (err: any) {
             console.error('[Emergency-Page] SOS Activation failed:', err);
             setError(err.message || 'Error al activar SOS. Por favor, intenta de nuevo.');

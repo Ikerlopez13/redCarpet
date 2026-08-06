@@ -38,6 +38,7 @@ export const SOSActivePage: React.FC = () => {
     const [step, setStep] = useState<'active' | 'pin'>('active');
     const [showReview, setShowReview] = useState(false);
     const [autoCall112, setAutoCall112] = useState(true);
+    const [show112Dialog, setShow112Dialog] = useState(false);
     
     // PIN State
     const [pinInput, setPinInput] = useState('');
@@ -164,15 +165,23 @@ export const SOSActivePage: React.FC = () => {
                 startChunkedRecording(user.id, alertId, isPremium).catch(console.error);
             }
 
-            // 4. Auto-call 112 only if user has this option enabled in settings
+            // 4. Llamada al 112.
+            // Android: NO se marca automáticamente. Se muestra un diálogo in-app
+            // "¿Quieres llamar al 112?" (Sí/No). El protocolo SOS ya está corriendo
+            // (contactos + grabación); el diálogo solo decide si además se llama.
+            // iOS: mantiene el auto-marcado a los 10s si autoCall112 está activo.
             if (call112) {
-                const timer = setTimeout(() => {
-                    if (step === 'active') {
-                        console.log('🚨 Auto-calling 112 after 10s timeout');
-                        window.location.href = 'tel:112';
-                    }
-                }, 10000);
-                (window as any)._sos112Timer = timer;
+                if (Capacitor.getPlatform() === 'android') {
+                    setShow112Dialog(true);
+                } else {
+                    const timer = setTimeout(() => {
+                        if (step === 'active') {
+                            console.log('🚨 Auto-calling 112 after 10s timeout');
+                            window.location.href = 'tel:112';
+                        }
+                    }, 10000);
+                    (window as any)._sos112Timer = timer;
+                }
             }
         };
 
@@ -332,6 +341,34 @@ export const SOSActivePage: React.FC = () => {
         )}>
             {/* Native Camera Container (Placeholder for z-index ref) */}
             <div id="sos-native-preview" className="fixed inset-0 z-0 pointer-events-none" />
+
+            {/* Diálogo in-app de llamada al 112 (solo Android). No saca al usuario de
+                la app; el protocolo SOS ya está corriendo, esto solo decide la llamada. */}
+            {show112Dialog && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-fade-in">
+                    <div className="w-full max-w-[340px] bg-[#141414] border border-white/10 rounded-3xl p-7 text-center shadow-2xl">
+                        <div className="size-16 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center mx-auto mb-5">
+                            <Phone size={30} className="text-red-500" />
+                        </div>
+                        <h2 className="text-2xl font-black text-white mb-2">¿Quieres llamar al 112?</h2>
+                        <p className="text-white/50 text-sm mb-7">Se abrirá el marcador para llamar a emergencias.</p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShow112Dialog(false)}
+                                className="flex-1 h-14 rounded-2xl bg-white/10 text-white font-black uppercase tracking-widest text-sm active:scale-95 transition-transform"
+                            >
+                                No
+                            </button>
+                            <button
+                                onClick={() => { setShow112Dialog(false); window.location.href = 'tel:112'; }}
+                                className="flex-1 h-14 rounded-2xl bg-red-600 text-white font-black uppercase tracking-widest text-sm active:scale-95 transition-transform"
+                            >
+                                Sí
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {step === 'active' && (
                 sosMode === 'discrete' ? (
