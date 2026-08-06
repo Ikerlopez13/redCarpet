@@ -1,3 +1,43 @@
+diff --git a/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraActivity.java b/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraActivity.java
+index b0554fe..d8e5301 100644
+--- a/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraActivity.java
++++ b/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraActivity.java
+@@ -327,7 +327,18 @@ public class CameraActivity extends Fragment {
+     public void onResume() {
+         super.onResume();
+ 
+-        mCamera = Camera.open(defaultCameraId);
++        // La cámara puede fallar (permiso denegado, cámara ocupada, sin hardware,
++        // emulador sin cámara...). Antes esto lanzaba una RuntimeException no
++        // capturada que cerraba TODA la app — crítico en una app de SOS. Ahora se
++        // captura: el SOS continúa sin vídeo (la parte JS cae a audio) en vez de
++        // crashear.
++        try {
++            mCamera = Camera.open(defaultCameraId);
++        } catch (Exception e) {
++            Log.e(TAG, "No se pudo abrir la cámara, se continúa sin vídeo: " + e.getMessage());
++            mCamera = null;
++            return;
++        }
+ 
+         if (cameraParameters != null) {
+             mCamera.setParameters(cameraParameters);
+diff --git a/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraPreview.java b/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraPreview.java
+index d962d56..2f847a9 100644
+--- a/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraPreview.java
++++ b/node_modules/@capacitor-community/camera-preview/android/src/main/java/com/ahm/capacitor/camera/preview/CameraPreview.java
+@@ -495,7 +495,10 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
+                 new View.OnTouchListener() {
+                     @Override
+                     public boolean onTouch(View v, MotionEvent event) {
+-                        if ((null != fragment) && (fragment.toBack == true)) {
++                        // frameContainerLayout puede ser null si la cámara no llegó a
++                        // inicializarse (sin cámara / fallo). Sin este guard, tocar la
++                        // pantalla del SOS crasheaba la app.
++                        if ((null != fragment) && (fragment.toBack == true) && (fragment.frameContainerLayout != null)) {
+                             fragment.frameContainerLayout.dispatchTouchEvent(event);
+                         }
+                         return false;
 diff --git a/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift b/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift
 index a09e72a..42771c1 100644
 --- a/node_modules/@capacitor-community/camera-preview/ios/Plugin/CameraController.swift

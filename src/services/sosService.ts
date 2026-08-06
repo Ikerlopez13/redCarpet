@@ -62,7 +62,10 @@ export async function startSOSPreview(options: { position?: 'front' | 'rear' } =
     for (const position of positions) {
         try {
             const { CameraPreview } = await import('@capacitor-community/camera-preview');
-            await CameraPreview.start({
+            // Timeout de 4s: si la cámara no arranca (permiso, ocupada, emulador
+            // sin cámara...) NO bloqueamos el SOS — seguimos sin vídeo. Sin esto,
+            // un fallo de cámara dejaba colgada la activación (y el diálogo del 112).
+            await _withTimeout(CameraPreview.start({
                 parent: 'sos-native-preview',
                 position,
                 toBack: true,
@@ -72,7 +75,7 @@ export async function startSOSPreview(options: { position?: 'front' | 'rear' } =
                 y: 0,
                 width: window.innerWidth,
                 height: window.innerHeight,
-            });
+            }), 4000, 'CameraPreview.start');
             return true;
         } catch (err) {
             console.warn('[SOS] Camera preview failed for', position, err);
