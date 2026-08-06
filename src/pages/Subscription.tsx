@@ -256,42 +256,6 @@ export const Subscription: React.FC = () => {
                     </div>
                 )}
 
-                {/* Android: pago web como opción principal (sin comisión de Play Store) */}
-                {isAndroid && user && (
-                    <div className="bg-gradient-to-b from-blue-950/60 to-zinc-950 border-2 border-blue-500/40 rounded-[2rem] p-6 space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                                <Globe size={20} className="text-blue-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-black uppercase tracking-tight text-white text-sm">Paga con tarjeta en la web</h3>
-                                <p className="text-[10px] text-white/40 uppercase tracking-widest">Precio directo · Sin intermediarios</p>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => openWebPaywall('monthly')}
-                                className="w-full h-12 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <Globe size={14} /> Mensual · 9,99 €/mes
-                            </button>
-                            <button
-                                onClick={() => openWebPaywall('annual')}
-                                className="w-full h-12 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <Globe size={14} /> Anual · 79,99 €/año
-                            </button>
-                        </div>
-                        <button
-                            onClick={verifyWebPurchase}
-                            disabled={processing}
-                            className="w-full h-10 bg-white/5 border border-white/10 rounded-xl text-white/50 font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2"
-                        >
-                            {processing ? <Loader2 size={14} className="animate-spin" /> : '✓ Ya pagué · Verificar acceso'}
-                        </button>
-                    </div>
-                )}
-
                 {/* 1. PREMIUM INDIVIDUAL */}
                 <div className="bg-gradient-to-b from-zinc-900/90 to-zinc-950 border-2 border-primary/30 rounded-[2rem] p-6 relative overflow-hidden shadow-2xl shadow-primary/5 space-y-5">
                     <div className="absolute -top-12 -right-12 size-36 bg-primary/20 rounded-full blur-2xl" />
