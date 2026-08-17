@@ -141,6 +141,11 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                         <h3 className="text-xl font-bold mb-3 text-gray-900">{t('privacy.section10_title')}</h3>
                         <p>{t('privacy.section10_content')}</p>
                     </section>
+
+                    <section>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">{t('privacy.section11_title')}</h3>
+                        <p className="whitespace-pre-line">{t('privacy.section11_content')}</p>
+                    </section>
                 </div>
             </div>
         </div>

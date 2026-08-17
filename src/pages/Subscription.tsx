@@ -276,6 +276,7 @@ export const Subscription: React.FC = () => {
                         <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Incluye</h4>
                         {[
                             "Rutas seguras ilimitadas",
+                            "Cobertura en toda España",
                             "Prioridad total en rutas y seguridad",
                             "SOS avanzado",
                             "Alertas inteligentes",
@@ -364,6 +365,7 @@ export const Subscription: React.FC = () => {
                         {[
                             "Premium completo para todos",
                             "Rutas ilimitadas compartidas",
+                            "Cobertura en toda España",
                             "Avisos si alguien no llega a su destino",
                             "Alertas y seguimiento inteligente",
                             "Protección para hijos, adolescentes y personas mayores",
@@ -470,6 +472,7 @@ export const Subscription: React.FC = () => {
                             {[
                                 "Acceso completo Premium",
                                 "Rutas ilimitadas",
+                                "Cobertura en toda España",
                                 "SOS avanzado",
                                 "Máxima precisión y protección"
                             ].map((feature, i) => (

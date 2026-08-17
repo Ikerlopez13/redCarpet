@@ -590,7 +590,7 @@ export const Home: React.FC = () => {
                     familyMembers={familyMembers.filter(m => m.lat !== 0 && m.lng !== 0)}
                     showIncidenceZones={true}
                     externalIncidenceZones={incidenceZones}
-                    showPOIs={true}
+                    showPOIs={false}
                     onPOIClick={(poi) => {
                         setShowSuggestions(false);
                         setSelectedPOI(poi);
@@ -1047,19 +1047,6 @@ export const Home: React.FC = () => {
                                                 {member.location}
                                             </p>
                                             <div className="flex items-center gap-3 mt-2">
-                                                <div className={clsx(
-                                                    "px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border",
-                                                    member.battery > 20 ? "bg-zinc-800 border-zinc-700 text-white" : "bg-red-500/20 border-red-500/50 text-red-400"
-                                                )}>
-                                                    <span className="material-symbols-outlined text-[10px]">battery_full</span>
-                                                    {member.battery}%
-                                                </div>
-                                                {member.speed && (
-                                                    <div className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border border-primary/30 bg-primary/10 text-primary">
-                                                        <span className="material-symbols-outlined text-[10px]">speed</span>
-                                                        {member.speed}
-                                                    </div>
-                                                )}
                                                 <div className="text-[10px] text-white/40">
                                                     {t('common.updated')}: {member.lastUpdate}
                                                 </div>
@@ -1083,9 +1070,6 @@ export const Home: React.FC = () => {
                                         >
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
                                             {t('common.go')}
-                                        </button>
-                                        <button className="size-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
-                                            <span className="material-symbols-outlined text-white/80">call</span>
                                         </button>
                                     </div>
                                 </>
