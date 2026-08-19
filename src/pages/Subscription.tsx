@@ -502,7 +502,7 @@ export const Subscription: React.FC = () => {
                     <div className="bg-amber-500/10 rounded-2xl p-4 border border-amber-500/20 flex flex-col gap-3 mt-2">
                         <div className="flex justify-between items-center">
                             <h5 className="font-black italic uppercase text-sm text-amber-500">Precio</h5>
-                            <span className="font-black italic text-xl text-amber-500">1,99 €</span>
+                            <span className="font-black italic text-xl text-amber-500">3,99 €</span>
                         </div>
                         <p className="text-[10px] text-amber-500/80 uppercase tracking-wide font-bold text-center">72 horas Premium</p>
                         <button

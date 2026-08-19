@@ -126,14 +126,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             .then(tracker => { locationTrackingStop = tracker.stop; })
                             .catch(err => console.warn('[AuthContext] Location tracking start error (non-fatal):', err));
 
+                        // Rastreo en segundo plano para TODOS los usuarios (seguridad tipo Life360).
+                        // Desacoplado de RevenueCat/premium para que la ubicación en 2º plano
+                        // se vea siempre, aunque el usuario no sea premium.
+                        BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+
                         // Initialize RevenueCat for native platform (non-blocking)
                         RevenueCatService.initialize(loggedUser.id)
                             .then(() => updatePremiumStatus(loggedUser))
-                            .then(hasPremium => {
-                                if (hasPremium) {
-                                    BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
-                                }
-                            })
                             .catch(err => console.warn('[AuthContext] RevenueCat init error (non-fatal):', err));
                     }
                 } else {
@@ -155,6 +155,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setIsLoading(false);
                     fetchAndSetProfile(loggedUser);
                     updatePremiumStatus(loggedUser);
+                    // Rastreo en 2º plano para TODOS también en login nuevo
+                    // (idempotente: el servicio ignora si ya está activo)
+                    BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
                 } else {
                     setUser(null);
                     setIsLoading(false);
