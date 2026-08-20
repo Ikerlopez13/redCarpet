@@ -59,6 +59,8 @@ export const Home: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'places' | 'alerts' | 'family'>('places');
     const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
+    // Ubicación GPS real del usuario, para priorizar por cercanía en el buscador
+    const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [showSOSConfig, setShowSOSConfig] = useState(false);
 
     const [showAddZoneModal, setShowAddZoneModal] = useState(false);
@@ -373,6 +375,13 @@ export const Home: React.FC = () => {
                 if (locPerms.location !== 'granted') {
                     await Geolocation.requestPermissions();
                 }
+                // Ubicación actual real para priorizar el buscador por cercanía
+                try {
+                    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 8000 });
+                    setMyLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                } catch (e) {
+                    console.warn('No se pudo obtener la ubicación actual para el buscador:', e);
+                }
                 const { PushNotifications } = await import('@capacitor/push-notifications');
                 const pushPerms = await PushNotifications.checkPermissions();
                 if (pushPerms.receive !== 'granted') {
@@ -435,8 +444,10 @@ export const Home: React.FC = () => {
         debounceRef.current = setTimeout(async () => {
             // Get current location for proximity bit
             const me = familyMembers.find(m => m.id === user?.id);
-            const proximity = me?.lat && me?.lng ? { lat: me.lat, lng: me.lng } : undefined;
-            
+            // Priorizar la GPS real del usuario; si no, su última ubicación conocida
+            const proximity = myLocation
+                ?? (me?.lat && me?.lng ? { lat: me.lat, lng: me.lng } : undefined);
+
             const results = await searchPlaces(searchQuery, proximity);
             setSuggestions(results);
             setShowSuggestions(results.length > 0);

@@ -16,9 +16,10 @@ interface BusinessListing {
 
 interface BusinessMarkersProps {
   onBusinessClick?: (biz: BusinessListing) => void;
+  zoom?: number;
 }
 
-export const BusinessMarkers: React.FC<BusinessMarkersProps> = ({ onBusinessClick }) => {
+export const BusinessMarkers: React.FC<BusinessMarkersProps> = ({ onBusinessClick, zoom = 16 }) => {
   const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
 
   useEffect(() => {
@@ -42,6 +43,11 @@ export const BusinessMarkers: React.FC<BusinessMarkersProps> = ({ onBusinessClic
 
   if (businesses.length === 0) return null;
 
+  // Escalar los pines según el zoom: al desampliar (zoom bajo) se hacen más
+  // pequeños para no colapsar el mapa; de cerca vuelven al tamaño normal.
+  const scale = Math.max(0.4, Math.min(1, (zoom - 10) / 5)); // zoom 10 → 0.4, 15+ → 1
+  const showLabel = zoom >= 13;
+
   return (
     <>
       {businesses.map(biz => (
@@ -53,6 +59,7 @@ export const BusinessMarkers: React.FC<BusinessMarkersProps> = ({ onBusinessClic
         >
           <div
             className="flex flex-col items-center gap-1 cursor-pointer group"
+            style={{ transform: `scale(${scale})`, transformOrigin: 'bottom center' }}
             onClick={() => onBusinessClick?.(biz)}
           >
             {/* Pin dorado con icono de tienda */}
@@ -60,10 +67,12 @@ export const BusinessMarkers: React.FC<BusinessMarkersProps> = ({ onBusinessClic
               <Store size={18} className="text-amber-900" />
               <div className="absolute inset-0 rounded-full border-2 border-amber-300 animate-ping opacity-30 pointer-events-none" />
             </div>
-            {/* Etiqueta */}
-            <div className="bg-amber-400/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
-              <span className="text-amber-900 text-[8px] font-black uppercase tracking-wider">{biz.name}</span>
-            </div>
+            {/* Etiqueta (oculta al desampliar para no saturar el mapa) */}
+            {showLabel && (
+              <div className="bg-amber-400/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
+                <span className="text-amber-900 text-[8px] font-black uppercase tracking-wider">{biz.name}</span>
+              </div>
+            )}
           </div>
         </Marker>
       ))}

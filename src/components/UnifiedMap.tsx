@@ -417,8 +417,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     <POILayer pois={pois} onPOIClick={onPOIClick} />
                 )}
 
-                {/* Negocios destacados — pin dorado */}
-                <BusinessMarkers />
+                {/* Negocios destacados — pin dorado (se encogen al desampliar) */}
+                <BusinessMarkers zoom={viewState.zoom} />
 
                 {/* Route Lines from Directions API */}
                 {showRoutes && routeGeometry && (

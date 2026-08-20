@@ -167,8 +167,17 @@ export const TrustedContacts: React.FC = () => {
         try {
             if (Capacitor.isNativePlatform()) {
                 const { Contacts } = await import('@capacitor-community/contacts');
-                const permissionState = await Contacts.requestPermissions();
-                if (permissionState.contacts !== 'granted') {
+                // Android: requestPermissions() puede devolver un estado obsoleto
+                // justo tras conceder el permiso, dejando el botón "sin hacer nada".
+                // Comprobar primero, pedir si hace falta, y volver a comprobar.
+                let perm = await Contacts.checkPermissions();
+                if (perm.contacts !== 'granted') {
+                    perm = await Contacts.requestPermissions();
+                }
+                if (perm.contacts !== 'granted') {
+                    perm = await Contacts.checkPermissions();
+                }
+                if (perm.contacts !== 'granted') {
                     setIsPermissionsModalOpen(true);
                     return;
                 }
@@ -257,8 +266,17 @@ export const TrustedContacts: React.FC = () => {
         try {
             if (Capacitor.isNativePlatform()) {
                 const { Contacts } = await import('@capacitor-community/contacts');
-                const permissionState = await Contacts.requestPermissions();
-                if (permissionState.contacts !== 'granted') {
+                // Android: requestPermissions() puede devolver un estado obsoleto
+                // justo tras conceder el permiso, dejando el botón "sin hacer nada".
+                // Comprobar primero, pedir si hace falta, y volver a comprobar.
+                let perm = await Contacts.checkPermissions();
+                if (perm.contacts !== 'granted') {
+                    perm = await Contacts.requestPermissions();
+                }
+                if (perm.contacts !== 'granted') {
+                    perm = await Contacts.checkPermissions();
+                }
+                if (perm.contacts !== 'granted') {
                     setIsPermissionsModalOpen(true);
                     return;
                 }
