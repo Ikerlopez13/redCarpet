@@ -27,7 +27,7 @@
     "register_subtitle": "Unisciti a noi per una città più confortevole e sicura.",
     "forgot_subtitle": "Ti invieremo un codice per ripristinare il tuo accesso.",
     "email_label": "Accedi all'e-mail",
-    "email_placeholder": "tu@email.com",
+    "email_placeholder": "tua@email.com",
     "password_label": "Parola d'ordine",
     "password_placeholder": "••••••••",
     "name_label": "Nome completo",
@@ -78,7 +78,7 @@
     "report_incident": "Condividi Avviso",
     "add_place": "Aggiungi un nuovo posto",
     "no_saved_places": "Non ci sono posti salvati.",
-    "radius": "Radio",
+    "radius": "Raggio",
     "how_to_get_there": "Come arrivarci",
     "history": "Storia",
     "member_location": "Posizione di {{name}}",
@@ -440,7 +440,18 @@
     "your_co2": "I tuoi chilogrammi di CO₂",
     "eco_elite": "Eco-élite",
     "eco_elite_desc": "Contribuisci attivamente allo sviluppo di città sicure.",
-    "share_impact": "Condividi l'impatto"
+    "share_impact": "Condividi l'impatto",
+    "investor_title": "Metriche per Investitori",
+    "growth_rate_title": "Crescita dei Percorsi",
+    "growth_rate_desc": "Tasso mensile cumulato",
+    "sdg_alignment_title": "Allineamento OSS",
+    "sdg_alignment_desc": "Indicatori OSS 11 e 13",
+    "carbon_credits_title": "Crediti di Carbonio",
+    "carbon_credits_desc": "Stima tCO₂e registrabili",
+    "trend_title": "Evoluzione dell'Impatto",
+    "trend_desc": "Storico di CO₂ evitata (kg)",
+    "clean_energy_desc": "Energia pulita equivalente",
+    "clean_energy_title": "14.8 MWh"
   },
   "navigation": {
     "loading": "Preparare il percorso sicuro...",
@@ -621,7 +632,9 @@
     "section9_title": "9. Diritti dell'utente",
     "section9_content": "Puoi esercitare i tuoi diritti di accesso, rettifica, cancellazione e portabilità inviando un'e-mail a support@urbanguide.app.",
     "section10_title": "10. Modifiche alle politiche",
-    "section10_content": "REDCARPET si riserva il diritto di modificare questa politica. Ti informeremo di eventuali modifiche sostanziali."
+    "section10_content": "REDCARPET si riserva il diritto di modificare questa politica. Ti informeremo di eventuali modifiche sostanziali.",
+    "section11_title": "11. Uso dei percorsi e assunzione di responsabilità",
+    "section11_content": "I percorsi e le raccomandazioni forniti da REDCARPET hanno carattere puramente orientativo e si basano sulle informazioni disponibili in ogni momento. Sono presentati come opzioni potenzialmente più adeguate o sicure in base ai dati disponibili, senza costituire in alcun caso una garanzia di sicurezza né di assenza di rischi.\n\nLa decisione di utilizzare, seguire, modificare o abbandonare un percorso spetta esclusivamente all'utente, che dovrà valutare le condizioni reali dell'ambiente, agire con la dovuta cautela e rispettare in ogni momento la segnaletica, le indicazioni delle autorità e la normativa applicabile.\n\nREDCARPET non sarà responsabile per danni, perdite, incidenti o conseguenze derivanti da fatti, rischi o circostanze al di fuori del suo controllo, inclusi furti, rapine, aggressioni, molestie, incidenti, reati o altri eventi imprevedibili, anche se si verificano mentre l'utente segue un percorso raccomandato dall'applicazione. L'uso dei percorsi e delle funzionalità di REDCARPET avviene a discrezione e sotto la responsabilità dell'utente, fatte salve le responsabilità che non possono essere legalmente escluse o limitate.\n\nIl servizio di percorsi include 5 percorsi gratuiti al mese."
   },
   "terms": {
     "title": "Termini di servizio",

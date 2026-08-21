@@ -24,10 +24,21 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
     const [isSearching, setIsSearching] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const skipNextSearch = useRef(false);
 
     // Handle address search
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        // Tras seleccionar una sugerencia NO volver a buscar: si no, la lista
+        // reaparece y tapa el botón de guardar (bug del lugar de confianza).
+        if (skipNextSearch.current) {
+            skipNextSearch.current = false;
+            setSuggestions([]);
+            setShowSuggestions(false);
+            setIsSearching(false);
+            return;
+        }
 
         if (addressQuery.length < 3) {
             setSuggestions([]);
@@ -58,6 +69,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
     }, [addressQuery]);
 
     const handleSelectSuggestion = (suggestion: GeocodingResult) => {
+        skipNextSearch.current = true;
         setSelectedLocation({
             lat: suggestion.lat,
             lng: suggestion.lng,
@@ -170,7 +182,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                                     setAddressQuery(e.target.value);
                                     if (selectedLocation) setSelectedLocation(null);
                                 }}
-                                onFocus={() => addressQuery.length >= 3 && setShowSuggestions(true)}
+                                onFocus={() => !selectedLocation && addressQuery.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
                                 placeholder="Escribe una dirección..."
                                 className="flex-1 bg-transparent text-white placeholder-zinc-700 outline-none text-sm font-medium"
                             />

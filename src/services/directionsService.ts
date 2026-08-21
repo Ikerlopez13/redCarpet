@@ -372,7 +372,17 @@ export async function getAlternativeRoutes(
         ]);
 
         const allRawRoutes = [directRoutes, ...waypointRouteSets].flat();
-        const allRoutes = allRawRoutes.filter(r => isValidRoute(r, origin, destination));
+        // Descartar rodeos excesivos: un waypoint lateral que obliga a un bucle
+        // ("nudos"/cruces raros) genera una ruta mucho más larga que la directa.
+        // Cualquier ruta >1,8× la directa se descarta (la directa siempre pasa).
+        const directDistance = directRoutes.reduce(
+            (min, r) => Math.min(min, r.distance),
+            Infinity
+        );
+        const maxDetour = Number.isFinite(directDistance) ? directDistance * 1.8 : Infinity;
+        const allRoutes = allRawRoutes.filter(
+            r => isValidRoute(r, origin, destination) && r.distance <= maxDetour
+        );
 
         const countDangerIntersections = (route: RouteResult) => {
             if (!route.geometry || !dangerZones) return 0;

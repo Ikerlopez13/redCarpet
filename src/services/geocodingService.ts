@@ -53,8 +53,10 @@ export async function searchPlaces(
     suggestUrl.searchParams.append('limit', '8');
     suggestUrl.searchParams.append('language', 'es');
     suggestUrl.searchParams.append('country', 'es');
-    // Heavily prioritize POIs (universities, businesses) and addresses to ensure high quality results
-    suggestUrl.searchParams.append('types', 'poi,address,place,neighborhood');
+    // Tipos amplios para que salga de todo: establecimientos (poi), plazas y
+    // parques (poi/categorías), calles (street), direcciones con número (address),
+    // barrios (neighborhood), pueblos/ciudades (place/locality) y distritos.
+    suggestUrl.searchParams.append('types', 'poi,address,street,place,locality,neighborhood,district');
 
     if (proximity) {
         suggestUrl.searchParams.append('proximity', `${proximity.lng},${proximity.lat}`);
@@ -68,15 +70,10 @@ export async function searchPlaces(
             return [];
         }
 
-        // Sort suggestions to prioritize exact addresses over POIs to avoid business names overshadowing homes
-        const sortedSuggestions = data.suggestions.sort((a: any, b: any) => {
-            if (a.feature_type === 'address' && b.feature_type !== 'address') return -1;
-            if (b.feature_type === 'address' && a.feature_type !== 'address') return 1;
-            return 0;
-        });
-
-        // We only retrieve coordinates for the top suggestions to be extremely fast (max 6)
-        const suggestionsToFetch = sortedSuggestions.slice(0, 6);
+        // Orden nativo de Mapbox (relevancia + proximidad): mezcla calles,
+        // plazas, parques, negocios y direcciones sin que las direcciones
+        // tapen al resto. Recuperamos hasta 8 para dar variedad.
+        const suggestionsToFetch = data.suggestions.slice(0, 8);
 
         const results = await Promise.all(
             suggestionsToFetch.map(async (suggestion: any) => {

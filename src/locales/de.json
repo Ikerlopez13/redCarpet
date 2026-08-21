@@ -78,7 +78,7 @@
     "report_incident": "Warnung teilen",
     "add_place": "Fügen Sie einen neuen Ort hinzu",
     "no_saved_places": "Es sind keine gespeicherten Orte vorhanden.",
-    "radius": "Radio",
+    "radius": "Radius",
     "how_to_get_there": "Wie komme ich dorthin?",
     "history": "Geschichte",
     "member_location": "Standort von {{name}}",
@@ -231,7 +231,7 @@
   "premium": {
     "pro": "PRO",
     "individual": {
-      "title": "Premium Individual",
+      "title": "Premium Einzel",
       "subtitle": "Bleiben Sie Risiken einen Schritt voraus."
     },
     "student": {
@@ -440,7 +440,18 @@
     "your_co2": "Ihre Kilogramm CO₂",
     "eco_elite": "Öko-Elite",
     "eco_elite_desc": "Sie tragen aktiv zur Entwicklung sicherer Städte bei.",
-    "share_impact": "Auswirkungen teilen"
+    "share_impact": "Auswirkungen teilen",
+    "investor_title": "Kennzahlen für Investoren",
+    "growth_rate_title": "Wachstum der Fahrten",
+    "growth_rate_desc": "Kumulierte monatliche Rate",
+    "sdg_alignment_title": "SDG-Ausrichtung",
+    "sdg_alignment_desc": "SDG-Indikatoren 11 und 13",
+    "carbon_credits_title": "CO₂-Zertifikate",
+    "carbon_credits_desc": "Gesch. erfassbare tCO₂e",
+    "trend_title": "Entwicklung der Wirkung",
+    "trend_desc": "Verlauf des vermiedenen CO₂ (kg)",
+    "clean_energy_desc": "Entspricht sauberer Energie",
+    "clean_energy_title": "14.8 MWh"
   },
   "navigation": {
     "loading": "Bereiten Sie Ihre sichere Route vor...",
@@ -621,7 +632,9 @@
     "section9_title": "9. Benutzerrechte",
     "section9_content": "Sie können Ihr Recht auf Zugang, Berichtigung, Löschung und Übertragbarkeit ausüben, indem Sie eine E-Mail an support@urbanguide.app senden.",
     "section10_title": "10. Richtlinienänderungen",
-    "section10_content": "REDCARPET behält sich das Recht vor, diese Richtlinie zu ändern. Wir werden Sie über alle wesentlichen Änderungen informieren."
+    "section10_content": "REDCARPET behält sich das Recht vor, diese Richtlinie zu ändern. Wir werden Sie über alle wesentlichen Änderungen informieren.",
+    "section11_title": "11. Nutzung der Routen und Haftungsübernahme",
+    "section11_content": "Die von REDCARPET bereitgestellten Routen und Empfehlungen dienen ausschließlich zur Orientierung und beruhen auf den jeweils verfügbaren Informationen. Sie werden als potenziell geeignetere oder sicherere Optionen entsprechend den verfügbaren Daten dargestellt und stellen in keinem Fall eine Garantie für Sicherheit oder das Fehlen von Risiken dar.\n\nDie Entscheidung, eine Route zu nutzen, ihr zu folgen, sie zu ändern oder zu verlassen, obliegt ausschließlich dem Nutzer, der die tatsächlichen Bedingungen der Umgebung beurteilen, mit der gebotenen Vorsicht handeln und jederzeit die Beschilderung, die Anweisungen der Behörden und die geltenden Vorschriften beachten muss.\n\nREDCARPET haftet nicht für Schäden, Verluste, Vorfälle oder Folgen, die sich aus Ereignissen, Risiken oder Umständen außerhalb seiner Kontrolle ergeben, einschließlich Diebstahl, Raub, Übergriffen, Belästigung, Unfällen, Straftaten oder anderen unvorhersehbaren Ereignissen, selbst wenn sie eintreten, während der Nutzer einer von der App empfohlenen Route folgt. Die Nutzung der Routen und Funktionen von REDCARPET erfolgt nach dem Ermessen und in der Verantwortung des Nutzers, unbeschadet solcher Haftungen, die gesetzlich nicht ausgeschlossen oder beschränkt werden können.\n\nDer Routendienst umfasst 5 kostenlose Routen pro Monat."
   },
   "terms": {
     "title": "Nutzungsbedingungen",
