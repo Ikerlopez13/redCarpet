@@ -14,11 +14,20 @@
 
 import { supabase } from './supabaseClient';
 
-// ── Pricing ────────────────────────────────────────────────
+// ── Pricing (USD ≈ EUR, tarifas post-free-tier de Mapbox) ──
+//   map_load    Map Loads for Web (mapbox-gl-js): 50.000 gratis/mes,
+//               luego ~$5/1.000  → $0.005 / carga de mapa
+//   geocode_v5  Geocoding legacy: $0.75/1.000     → $0.00075
+//   geocode_v6  Temporary Geocoding v6: 100k gratis, luego $0.75/1.000
+//   searchbox   Search Box /forward: por request, $0.75/1.000 (temporary
+//               geocoding). NOTA: el flujo suggest+retrieve antiguo se
+//               facturaba POR SESIÓN (~$5/1.000 sesiones). Migramos a /forward.
+//   directions  Directions: 100k gratis, luego $2/1.000 → $0.00200
 export const COSTS: Record<string, number> = {
+  map_load:    0.00500,
   geocode_v5:  0.00075,
   geocode_v6:  0.00075,
-  searchbox:   0.00400,
+  searchbox:   0.00075,
   directions:  0.00200,
 };
 
@@ -29,6 +38,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 min
 // Cupos mensuales POR USUARIO (holgados para uso real, letales para abuso).
 // Coste máximo por usuario/mes si los agota todos: ~4,3 €.
 export const USER_MONTHLY_CALLS: Record<string, number> = {
+  // Los map loads no se bloquean por usuario (romper el mapa sería peor que el
+  // coste); se cuentan para reflejar el gasto real en /spend.
+  map_load:   100000,
   geocode_v5: 2000,
   geocode_v6: 2000,
   // Search Box /forward = 1 request por búsqueda depurada (antes era 1 por

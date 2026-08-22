@@ -16,6 +16,7 @@ import { LOCATIONS } from '../services/directionsService';
 import { getNearbyBusStops, getNearbyMetroStations, type BusStop, type MetroStation } from '../services/tmbService';
 import { getNearbyPOIs, type POI } from '../services/poiService';
 import { getSafeZones, type SafeZone } from '../services/locationService';
+import { track as trackMapboxSpend } from '../services/mapboxBudget';
 import { Geolocation } from '@capacitor/geolocation';
 import { Preferences } from '@capacitor/preferences';
 import { supabase } from '../services/supabaseClient';
@@ -346,6 +347,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
         <div className={clsx("relative w-full h-full overflow-hidden", className)}>
             <Map
                 {...viewState}
+                reuseMaps
+                onLoad={() => trackMapboxSpend('map_load')}
                 onMove={evt => setViewState(evt.viewState)}
                 onMoveStart={evt => { if (evt.originalEvent) setIsTrackingUser(false); }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
