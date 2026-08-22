@@ -166,15 +166,10 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     const currentStep = steps[currentStepIndex];
     const nextStep = steps[currentStepIndex + 1];
 
-    // Fetch POIs nearby for the map icons
-    const [nearbyPOIs, setNearbyPOIs] = useState<any[]>([]);
-    useEffect(() => {
-        const fetchPOIs = async () => {
-            const results = await searchPlaces(t('navigation.searching_poi'), { lat: origin.lat, lng: origin.lng });
-            setNearbyPOIs(results);
-        };
-        fetchPOIs();
-    }, [origin]);
+    // POIs cosméticos eliminados: hacían un Search Box (billable) por cada
+    // cambio de origin buscando una etiqueta de UI. Solo pintaban pines grises
+    // genéricos, sin valor real, y disparaban coste en cada navegación.
+    const nearbyPOIs: any[] = [];
 
     if (isLoading) {
         return (

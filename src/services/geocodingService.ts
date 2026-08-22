@@ -66,13 +66,27 @@ async function resolveProximity(
  * @param query - Search query string
  * @param proximity - Coordenadas del usuario para priorizar por cercanía
  */
+// Caché de deduplicación: evita repetir una búsqueda facturable idéntica
+// (autocompletar que rebota, borrar y reescribir lo mismo, remontar la vista).
+// Search Box solo da 500 sesiones gratis/mes, así que cada llamada cuenta.
+const _searchCache = new Map<string, { results: GeocodingResult[]; expiresAt: number }>();
+const SEARCH_TTL_MS = 60 * 1000;
+
 export async function searchPlaces(
     query: string,
     proximity?: { lat: number; lng: number }
 ): Promise<GeocodingResult[]> {
     const clean = sanitizeQuery(query);
-    if (!clean || clean.length < 2) {
+    // Mínimo 3 caracteres: menos ruido, menos llamadas facturables.
+    if (!clean || clean.length < 3) {
         return [];
+    }
+
+    // Dedupe: misma query + misma zona (~1km) → resultados cacheados, sin llamada.
+    const cacheKey = `${clean.toLowerCase()}|${proximity ? `${proximity.lat.toFixed(2)},${proximity.lng.toFixed(2)}` : 'no'}`;
+    const cached = _searchCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+        return cached.results;
     }
 
     // Budget + rate guard. El cap por minuto es holgado (autocompletar dispara
@@ -149,6 +163,7 @@ export async function searchPlaces(
         );
     }
 
+    _searchCache.set(cacheKey, { results, expiresAt: Date.now() + SEARCH_TTL_MS });
     return results;
 }
 
