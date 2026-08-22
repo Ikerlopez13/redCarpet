@@ -31,7 +31,10 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 min
 export const USER_MONTHLY_CALLS: Record<string, number> = {
   geocode_v5: 2000,
   geocode_v6: 2000,
-  searchbox:  300,
+  // Search Box /forward = 1 request por búsqueda depurada (antes era 1 por
+  // sesión). Se sube el cupo para no cortar el buscador en uso real; sigue
+  // siendo un techo anti-abuso.
+  searchbox:  1500,
   directions: 600,
 };
 

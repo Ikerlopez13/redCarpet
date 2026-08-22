@@ -15,18 +15,56 @@ export interface GeocodingResult {
     category?: string;
 }
 
-// Generate a random session token for Search Box API billing/sessionization
-function generateSessionToken(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+// Distancia en metros entre dos coordenadas (Haversine) — para ordenar por cercanía.
+function haversine(aLat: number, aLng: number, bLat: number, bLng: number): number {
+    const R = 6371e3;
+    const p1 = (aLat * Math.PI) / 180;
+    const p2 = (bLat * Math.PI) / 180;
+    const dPhi = ((bLat - aLat) * Math.PI) / 180;
+    const dLambda = ((bLng - aLng) * Math.PI) / 180;
+    const x =
+        Math.sin(dPhi / 2) ** 2 +
+        Math.cos(p1) * Math.cos(p2) * Math.sin(dLambda / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-// Keep a persistent session token that updates per search sequence
-let activeSessionToken = generateSessionToken();
+// Última ubicación conocida del usuario. Se actualiza cada vez que un llamador
+// pasa proximity y sirve de fallback cuando alguno no la tiene lista todavía
+// (evita el sesgo nacional a Barcelona cuando el GPS llega tarde).
+let _lastProximity: { lat: number; lng: number } | null = null;
+
+/** Intenta obtener la posición actual del dispositivo (nativo o navegador). */
+async function resolveProximity(
+    proximity?: { lat: number; lng: number }
+): Promise<{ lat: number; lng: number } | undefined> {
+    if (proximity && proximity.lat && proximity.lng) {
+        _lastProximity = proximity;
+        return proximity;
+    }
+    // Fallback 1: última conocida en esta sesión
+    if (_lastProximity) return _lastProximity;
+    // Fallback 2: pedir la posición actual (con timeout corto para no bloquear la UI)
+    try {
+        const { Geolocation } = await import('@capacitor/geolocation');
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 });
+        _lastProximity = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        return _lastProximity;
+    } catch {
+        return undefined;
+    }
+}
 
 /**
- * Search for places using Mapbox Search Box API (Suggest & Retrieve)
+ * Search for places using Mapbox Search Box FORWARD API.
+ *
+ * Un solo request que devuelve POIs (cadenas como Mercadona/Aldi), calles y
+ * direcciones YA con coordenadas, para poder ordenar por distancia real al
+ * usuario. Reemplaza el flujo suggest+retrieve (9 llamadas) por 1 sola,
+ * elimina el token de sesión (fuente de estados atascados) y aplica siempre
+ * bias geográfico.
+ *
  * @param query - Search query string
- * @param proximity - Optional coordinates to bias results towards
+ * @param proximity - Coordenadas del usuario para priorizar por cercanía
  */
 export async function searchPlaces(
     query: string,
@@ -37,76 +75,81 @@ export async function searchPlaces(
         return [];
     }
 
-    // Budget + rate guard
-    if (isBlocked() || !allow('searchbox', 10)) return [];
+    // Budget + rate guard. El cap por minuto es holgado (autocompletar dispara
+    // 1 llamada por búsqueda depurada); el cupo mensual por usuario sigue
+    // protegiendo del abuso. Ver rateLimiter.ts / mapboxBudget.ts.
+    if (isBlocked() || !allow('searchbox', 40)) return [];
 
-    // Refresh session token if a new search interaction starts (2 chars)
-    if (clean.length === 2) {
-        activeSessionToken = generateSessionToken();
-        track('searchbox'); // one session = one session token lifetime
-    }
+    // Garantizar bias geográfico SIEMPRE: si el llamador no trae ubicación,
+    // usamos la última conocida o pedimos la posición actual.
+    const prox = await resolveProximity(proximity);
 
-    const suggestUrl = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');
-    suggestUrl.searchParams.append('q', clean);
-    suggestUrl.searchParams.append('access_token', MAPBOX_TOKEN);
-    suggestUrl.searchParams.append('session_token', activeSessionToken);
-    suggestUrl.searchParams.append('limit', '8');
-    suggestUrl.searchParams.append('language', 'es');
-    suggestUrl.searchParams.append('country', 'es');
-    // Tipos amplios para que salga de todo: establecimientos (poi), plazas y
-    // parques (poi/categorías), calles (street), direcciones con número (address),
-    // barrios (neighborhood), pueblos/ciudades (place/locality) y distritos.
-    suggestUrl.searchParams.append('types', 'poi,address,street,place,locality,neighborhood,district');
-
-    if (proximity) {
-        suggestUrl.searchParams.append('proximity', `${proximity.lng},${proximity.lat}`);
-    }
-
-    try {
-        const response = await fetch(suggestUrl.toString());
-        const data = await response.json();
-
-        if (!data.suggestions || data.suggestions.length === 0) {
-            return [];
+    const buildUrl = () => {
+        const url = new URL('https://api.mapbox.com/search/searchbox/v1/forward');
+        url.searchParams.append('q', clean);
+        url.searchParams.append('access_token', MAPBOX_TOKEN);
+        url.searchParams.append('limit', '10');
+        url.searchParams.append('language', 'es');
+        url.searchParams.append('country', 'es');
+        // POIs (cadenas y negocios), direcciones con número, calles, plazas/
+        // parques (poi), barrios, pueblos y ciudades.
+        url.searchParams.append('types', 'poi,address,street,place,locality,neighborhood');
+        if (prox) {
+            url.searchParams.append('proximity', `${prox.lng},${prox.lat}`);
         }
+        return url.toString();
+    };
 
-        // Orden nativo de Mapbox (relevancia + proximidad): mezcla calles,
-        // plazas, parques, negocios y direcciones sin que las direcciones
-        // tapen al resto. Recuperamos hasta 8 para dar variedad.
-        const suggestionsToFetch = data.suggestions.slice(0, 8);
-
-        const results = await Promise.all(
-            suggestionsToFetch.map(async (suggestion: any) => {
-                try {
-                    const retrieveUrl = `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}?access_token=${MAPBOX_TOKEN}&session_token=${activeSessionToken}`;
-                    const retrieveResponse = await fetch(retrieveUrl);
-                    const retrieveData = await retrieveResponse.json();
-
-                    if (retrieveData.features && retrieveData.features.length > 0) {
-                        const feature = retrieveData.features[0];
-                        return {
-                            id: suggestion.mapbox_id,
-                            name: suggestion.name,
-                            address: suggestion.full_address || suggestion.place_formatted,
-                            lat: feature.geometry.coordinates[1],
-                            lng: feature.geometry.coordinates[0],
-                            category: suggestion.maki || (suggestion.poi_category_ids ? suggestion.poi_category_ids[0] : 'place')
-                        } as GeocodingResult;
-                    }
-                } catch (err) {
-                    console.error(`Error retrieving details for Mapbox ID ${suggestion.mapbox_id}:`, err);
-                }
-                return null;
-            })
-        );
-
-        // Filter out any failed retrievals
-        return results.filter((r): r is GeocodingResult => r !== null);
-
-    } catch (error) {
-        console.error('Error searching places with Search Box API:', error);
-        return [];
+    // 1 request con 1 reintento ante fallo de red (nunca quedarse vacío en
+    // silencio por un fallo transitorio).
+    let data: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const response = await fetch(buildUrl());
+            if (!response.ok) throw new Error(`Search Box forward HTTP ${response.status}`);
+            data = await response.json();
+            break;
+        } catch (error) {
+            if (attempt === 1) {
+                console.error('Error searching places (forward, tras reintento):', error);
+                return [];
+            }
+        }
     }
+
+    track('searchbox');
+
+    const features: any[] = data?.features ?? [];
+    if (features.length === 0) return [];
+
+    const results: GeocodingResult[] = features
+        .filter((f) => f?.geometry?.coordinates?.length === 2)
+        .map((f) => {
+            const p = f.properties ?? {};
+            const [lng, lat] = f.geometry.coordinates;
+            return {
+                id: p.mapbox_id || `${lat},${lng}`,
+                name: p.name || p.place_formatted || 'Lugar',
+                address: p.full_address || p.place_formatted || '',
+                lat,
+                lng,
+                category:
+                    p.maki ||
+                    (p.poi_category_ids ? p.poi_category_ids[0] : p.feature_type || 'place'),
+            } as GeocodingResult;
+        });
+
+    // Ordenar por distancia real al usuario. Mantenemos el orden de relevancia
+    // de la API como criterio de desempate cuando no hay ubicación.
+    if (prox) {
+        results.sort(
+            (a, b) =>
+                haversine(prox.lat, prox.lng, a.lat, a.lng) -
+                haversine(prox.lat, prox.lng, b.lat, b.lng)
+        );
+    }
+
+    return results;
 }
 
 /**

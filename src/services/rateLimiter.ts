@@ -20,7 +20,9 @@ function _prune(ts: number[], now: number): number[] {
  *   directions  → 15   (€0.03/min max, protects against navigation loops)
  *   geocode_v5  → 40
  *   geocode_v6  → 40
- *   searchbox   → 10   (€0.04/min max, session-based billing)
+ *   searchbox   → 40   (Search Box /forward = 1 request por búsqueda depurada;
+ *                       cap holgado para que el autocompletar no se bloquee y
+ *                       devuelva vacío. El abuso lo frena el cupo mensual/usuario)
  */
 export function allow(product: string, max: number): boolean {
   if (isUserBlocked(product)) {
