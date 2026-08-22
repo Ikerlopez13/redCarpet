@@ -12,6 +12,7 @@ import { searchPlaces, getCategoryIcon, type GeocodingResult } from '../services
 import { useAuth } from '../contexts/AuthContext';
 import { useSOS } from '../contexts/SOSContext.base';
 import { canStartRoute, recordRouteStart, getRemainingRoutes } from '../services/routeLimiterService';
+import { recordRoute as recordGreenRoute } from '../services/greenService';
 import { isNightTime, analyzeRouteSecurity } from '../services/aiRoutingService';
 
 // Datos de ejemplo de trayectos de familiares (Placeholder for real data)
@@ -27,6 +28,7 @@ const savedDestinations = [
 interface RouteData {
     time: string;
     distance: string;
+    distanceMeters: number; // km reales de la ruta (para el cálculo de CO₂)
     description: string;
     extra?: string;
     geometry?: [number, number][];
@@ -184,6 +186,7 @@ export const RouteSelection: React.FC = () => {
                 const safeRoute: RouteData = {
                     time: formatDuration(safeBase.duration),
                     distance: formatDistance(safeBase.distance),
+                    distanceMeters: safeBase.distance,
                     description: isNightMode ? aiAnalysis.description : 'Evita callejones. Vías principales.',
                     extra: safeBase.dangerCount > 0 ? `⚠️ Atraviesa ${safeBase.dangerCount} zona(s) del Ministerio` : 'Fuentes Oficiales / Zonas Seguras',
                     geometry: safeBase.geometry.coordinates as [number, number][]
@@ -192,6 +195,7 @@ export const RouteSelection: React.FC = () => {
                 const balancedRoute: RouteData = {
                     time: formatDuration(balancedBase.duration),
                     distance: formatDistance(balancedBase.distance),
+                    distanceMeters: balancedBase.distance,
                     description: balancedBase.dangerCount > 0 ? `⚠️ Atraviesa ${balancedBase.dangerCount} zona(s) de conflicto` : t('route.balanced_desc'),
                     geometry: balancedBase.geometry.coordinates as [number, number][]
                 };
@@ -199,6 +203,7 @@ export const RouteSelection: React.FC = () => {
                 const fastRoute: RouteData = {
                     time: formatDuration(fastBase.duration),
                     distance: formatDistance(fastBase.distance),
+                    distanceMeters: fastBase.distance,
                     description: fastBase.dangerCount > 0 ? `⚠️ PELIGRO: Atraviesa ${fastBase.dangerCount} zona(s) conflictivas` : t('route.fast_desc'),
                     geometry: fastBase.geometry.coordinates as [number, number][]
                 };
@@ -659,9 +664,16 @@ export const RouteSelection: React.FC = () => {
 
                                                 recordRouteStart(isPremium);
 
+                                                // Green Carpet: registrar el CO₂ evitado de esta ruta real.
+                                                const originCoords = userLocation || { lat: 41.3851, lng: 2.1734 };
+                                                const selectedMeters = routes[selectedRoute]?.distanceMeters || 0;
+                                                if (destinationCoords && selectedMeters > 0) {
+                                                    recordGreenRoute(originCoords, destinationCoords, selectedMeters);
+                                                }
+
                                                 navigate('/navigate', {
                                                     state: {
-                                                        origin: userLocation || { lat: 41.3851, lng: 2.1734 },
+                                                        origin: originCoords,
                                                         destination: destinationCoords,
                                                         destinationName: selectedDestination,
                                                         transportMode

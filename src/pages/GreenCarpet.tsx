@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Droplets,
@@ -17,14 +17,54 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { getUserStats, getCommunityReal, communityTotal } from '../services/greenService';
 
 type TabType = 'community' | 'personal';
+
+// Formatea kg con separador de miles ES y 1 decimal.
+const fmtKg = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export const GreenCarpet: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { t, i18n } = useTranslation();
     const [activeTab, setActiveTab] = useState<TabType>('community');
+
+    // ── Datos reales ──
+    const [myCo2, setMyCo2] = useState(0);
+    const [myKm, setMyKm] = useState(0);
+    const [myRoutes, setMyRoutes] = useState(0);
+    const [communityCo2, setCommunityCo2] = useState(0); // total mostrado (real+simulado)
+    const realCo2Ref = useRef(0); // parte real (se re-sincroniza periódicamente)
+
+    // Aporte individual: cargar al entrar y al volver de una ruta.
+    useEffect(() => {
+        if (!user?.id) return;
+        let alive = true;
+        const load = async () => {
+            const s = await getUserStats(user.id);
+            if (!alive) return;
+            setMyCo2(s.co2); setMyKm(s.km); setMyRoutes(s.routes);
+        };
+        load();
+        const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { alive = false; document.removeEventListener('visibilitychange', onVisible); };
+    }, [user?.id]);
+
+    // Comunidad: sincroniza la parte real cada 30 s y tic-tac cada segundo
+    // (el simulado es determinista → sube suave y nunca baja).
+    useEffect(() => {
+        let alive = true;
+        const syncReal = async () => { const r = await getCommunityReal(); if (alive) realCo2Ref.current = r; };
+        syncReal();
+        const syncId = setInterval(syncReal, 30_000);
+        const tickId = setInterval(() => {
+            if (alive) setCommunityCo2(communityTotal(realCo2Ref.current));
+        }, 1000);
+        setCommunityCo2(communityTotal(realCo2Ref.current));
+        return () => { alive = false; clearInterval(syncId); clearInterval(tickId); };
+    }, []);
 
     const currentLang = i18n.language?.split('-')[0] || 'es';
 
@@ -115,16 +155,16 @@ export const GreenCarpet: React.FC = () => {
                                 <div className="size-12 rounded-2xl bg-[#10B981]/15 text-[#10B981] flex items-center justify-center mb-3">
                                     <Leaf size={24} className="animate-pulse" />
                                 </div>
-                                <span className="text-5xl font-black italic tracking-tighter text-white">12.450,8</span>
+                                <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{fmtKg(communityCo2)}</span>
                                 <span className="text-[11px] font-bold text-[#10B981] uppercase tracking-wider mb-5">{t('greencarpet.co2_avoided')}</span>
-                                
+
                                 <div className="grid grid-cols-2 gap-4 w-full border-t border-white/5 pt-5">
                                     <div className="flex flex-col bg-white/[0.01] p-3 rounded-2xl border border-white/[0.03]">
-                                        <span className="text-xl font-black text-white/90">85.420</span>
+                                        <span className="text-xl font-black text-white/90 tabular-nums">{Math.round(communityCo2 / 0.12).toLocaleString('es-ES')}</span>
                                         <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">{t('greencarpet.kilometers')}</span>
                                     </div>
                                     <div className="flex flex-col bg-white/[0.01] p-3 rounded-2xl border border-white/[0.03]">
-                                        <span className="text-xl font-black text-white/90">12.413</span>
+                                        <span className="text-xl font-black text-white/90 tabular-nums">{Math.round(communityCo2 / 0.12 / 3).toLocaleString('es-ES')}</span>
                                         <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">{t('greencarpet.journeys')}</span>
                                     </div>
                                 </div>
@@ -319,17 +359,17 @@ export const GreenCarpet: React.FC = () => {
                                     alt="User Profile"
                                 />
                             </div>
-                            <span className="text-4xl font-black italic tracking-tighter text-white">42,3</span>
+                            <span className="text-4xl font-black italic tracking-tighter text-white tabular-nums">{fmtKg(myCo2)}</span>
                             <span className="text-[11px] font-bold text-[#10B981] uppercase tracking-wider">{t('greencarpet.your_co2')}</span>
-                            
-                            {/* Progress Ring / Bar */}
+
+                            {/* Progress Ring / Bar — meta de 100 kg */}
                             <div className="w-full mt-6 space-y-1.5 border-t border-white/5 pt-5">
                                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-white/40">
                                     <span>Nivel de Aporte</span>
-                                    <span className="text-white/80">42.3 / 100 kg</span>
+                                    <span className="text-white/80">{fmtKg(myCo2)} / 100 kg · {myRoutes} rutas</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-[#10B981] to-[#059669] rounded-full" style={{ width: '42.3%' }} />
+                                    <div className="h-full bg-gradient-to-r from-[#10B981] to-[#059669] rounded-full" style={{ width: `${Math.min(100, myCo2)}%` }} />
                                 </div>
                             </div>
                         </div>
