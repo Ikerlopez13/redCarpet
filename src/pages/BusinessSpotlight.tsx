@@ -33,6 +33,9 @@ export const BusinessSpotlight: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [myListingId, setMyListingId] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [promoTier, setPromoTier] = useState<string>('none');   // none | social_49 | plus_99
+  const [promoStatus, setPromoStatus] = useState<string>('none'); // none | pendiente | publicado
+  const [promoSubmitting, setPromoSubmitting] = useState<string | null>(null);
 
   const locateMe = async () => {
     setLocating(true);
@@ -126,18 +129,123 @@ export const BusinessSpotlight: React.FC = () => {
     setSubmitting(false);
   };
 
+  // Contratar una promo en redes (pago único 49€/99€) sobre un negocio ya activo.
+  const contractPromo = async (tier: 'social_49' | 'plus_99') => {
+    if (!user || !myListingId) return;
+    setPromoSubmitting(tier);
+    setError(null);
+    try {
+      const r = await fetch('https://tryredcarpet.com/api/create-business-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, listingId: myListingId, promoTier: tier })
+      });
+      const session = await r.json();
+      if (!session.url) throw new Error(session.error || 'Error al crear el pago');
+      await Browser.open({ url: session.url });
+
+      // Al volver, comprobar si la promo quedó registrada (pendiente de publicar).
+      const { App } = await import('@capacitor/app');
+      App.addListener('appStateChange', async ({ isActive }) => {
+        if (isActive) {
+          await new Promise(res => setTimeout(res, 2500));
+          const { data } = await supabase
+            .from('business_listings')
+            .select('promo_tier, promo_status')
+            .eq('id', myListingId)
+            .single();
+          if (data?.promo_tier && data.promo_tier !== 'none') {
+            setPromoTier(data.promo_tier);
+            setPromoStatus(data.promo_status || 'pendiente');
+          }
+        }
+      });
+    } catch (e: any) {
+      setError(e.message || 'Error inesperado');
+    } finally {
+      setPromoSubmitting(null);
+    }
+  };
+
   if (isPaid) {
+    const alreadyContracted = promoTier !== 'none';
     return (
-      <div className="flex flex-col h-full items-center justify-center p-8 text-center bg-[#0d0d0d] text-white">
-        <div className="size-24 rounded-[2rem] bg-amber-400/20 flex items-center justify-center mb-6 shadow-[0_0_60px_rgba(251,191,36,0.3)]">
-          <CheckCircle2 size={56} className="text-amber-400" />
+      <div className="flex flex-col h-full bg-[#0d0d0d] text-white overflow-y-auto no-scrollbar">
+        <div className="flex flex-col items-center text-center p-8 pt-14">
+          <div className="size-20 rounded-[2rem] bg-amber-400/20 flex items-center justify-center mb-5 shadow-[0_0_60px_rgba(251,191,36,0.3)]">
+            <CheckCircle2 size={48} className="text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-black italic uppercase tracking-tighter mb-2">¡Negocio Activo!</h1>
+          <p className="text-white/60 text-sm mb-1">{name} ya aparece destacado en el mapa y en el buscador de RedCarpet.</p>
+          <p className="text-white/30 text-xs">Los usuarios lo verán al explorar el mapa y al buscarlo por su nombre.</p>
         </div>
-        <h1 className="text-3xl font-black italic uppercase tracking-tighter mb-2">¡Negocio Activo!</h1>
-        <p className="text-white/60 text-sm mb-2">{name} ya aparece destacado en el mapa de RedCarpet.</p>
-        <p className="text-white/30 text-xs mb-8">Los usuarios verán tu pin dorado y podrán ver los detalles de tu negocio.</p>
-        <button onClick={() => navigate('/')} className="h-12 px-8 bg-amber-400 text-amber-900 rounded-xl font-black uppercase tracking-widest text-sm">
-          Ver en el mapa
-        </button>
+
+        {/* Upsell: promoción en redes sociales */}
+        <div className="px-6 pb-32 space-y-4">
+          {alreadyContracted ? (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 text-center">
+              <p className="text-green-400 font-black uppercase text-xs tracking-widest mb-1">Promo contratada</p>
+              <p className="text-white/70 text-sm">
+                {promoTier === 'plus_99' ? 'Promo Redes PLUS (99€)' : 'Promo Redes Sociales (49€)'} · {promoStatus === 'publicado' ? 'Publicada ✅' : 'Pendiente de publicar ⏳'}
+              </p>
+              <p className="text-white/30 text-xs mt-2">Nuestro equipo la publicará en TikTok e Instagram muy pronto.</p>
+            </div>
+          ) : (
+            <>
+              <div className="text-center">
+                <p className="text-white font-black uppercase text-sm tracking-widest">Multiplica tu visibilidad</p>
+                <p className="text-white/40 text-xs mt-1">Llega a nuestra comunidad en redes sociales. Pago único.</p>
+              </div>
+
+              {/* Opción 49€ */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-black uppercase italic tracking-tight">Promo Redes Sociales</p>
+                  <p className="text-amber-400 font-black text-lg">49€</p>
+                </div>
+                <div className="space-y-1.5 mb-4">
+                  {['Publicación en TikTok e Instagram de RedCarpet', 'Mayor visibilidad y presencia de marca', 'Tráfico y exposición ante nuestra comunidad'].map((f, i) => (
+                    <div key={i} className="flex items-center gap-2"><div className="size-1.5 rounded-full bg-amber-400" /><p className="text-white/70 text-xs">{f}</p></div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => contractPromo('social_49')}
+                  disabled={!!promoSubmitting}
+                  className="w-full h-11 bg-white/10 border border-white/15 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {promoSubmitting === 'social_49' ? <Loader2 size={16} className="animate-spin" /> : 'Contratar · 49€'}
+                </button>
+              </div>
+
+              {/* Opción 99€ (destacada) */}
+              <div className="bg-amber-400/10 border-2 border-amber-400/50 rounded-2xl p-5 relative">
+                <span className="absolute -top-2.5 left-5 bg-amber-400 text-amber-900 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Máximo alcance</span>
+                <div className="flex items-center justify-between mb-2 mt-1">
+                  <p className="font-black uppercase italic tracking-tight">Promo Redes PLUS</p>
+                  <p className="text-amber-400 font-black text-lg">99€</p>
+                </div>
+                <div className="space-y-1.5 mb-4">
+                  {['Todo lo de la promo de 49€', 'Vídeo dedicado a tu negocio', 'Varias publicaciones (más alcance)', 'Prioridad y máxima exposición'].map((f, i) => (
+                    <div key={i} className="flex items-center gap-2"><div className="size-1.5 rounded-full bg-amber-400" /><p className="text-white/80 text-xs">{f}</p></div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => contractPromo('plus_99')}
+                  disabled={!!promoSubmitting}
+                  className="w-full h-11 bg-amber-400 text-amber-900 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {promoSubmitting === 'plus_99' ? <Loader2 size={16} className="animate-spin" /> : 'Contratar · 99€'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{error}</div>}
+
+          <button onClick={() => navigate('/')} className="w-full h-12 bg-white/5 border border-white/10 text-white/60 rounded-xl font-bold text-sm">
+            Ver en el mapa
+          </button>
+        </div>
       </div>
     );
   }

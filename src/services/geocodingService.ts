@@ -3,6 +3,7 @@
 
 import { isBlocked, track } from './mapboxBudget';
 import { allow, sanitizeQuery } from './rateLimiter';
+import { supabase } from './supabaseClient';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -13,6 +14,34 @@ export interface GeocodingResult {
     lat: number;
     lng: number;
     category?: string;
+    isBusiness?: boolean; // negocio destacado de RedCarpet (aparece primero)
+}
+
+/**
+ * Busca negocios destacados de RedCarpet (nuestra BD) que coincidan con la
+ * query. Es GRATIS (no consume Mapbox) y da a los negocios que han pagado
+ * visibilidad prioritaria en el buscador, como un directorio propio.
+ */
+async function searchBusinesses(query: string): Promise<GeocodingResult[]> {
+    try {
+        const { data } = await supabase
+            .from('business_listings')
+            .select('id, name, description, category, address, lat, lng')
+            .eq('is_active', true)
+            .ilike('name', `%${query}%`)
+            .limit(5);
+        return (data ?? []).map((b: any) => ({
+            id: `biz-${b.id}`,
+            name: b.name,
+            address: b.address || b.description || 'Negocio destacado',
+            lat: b.lat,
+            lng: b.lng,
+            category: b.category || 'business',
+            isBusiness: true,
+        }));
+    } catch {
+        return [];
+    }
 }
 
 // Distancia en metros entre dos coordenadas (Haversine) — para ordenar por cercanía.
@@ -89,10 +118,15 @@ export async function searchPlaces(
         return cached.results;
     }
 
-    // Budget + rate guard. El cap por minuto es holgado (autocompletar dispara
-    // 1 llamada por búsqueda depurada); el cupo mensual por usuario sigue
-    // protegiendo del abuso. Ver rateLimiter.ts / mapboxBudget.ts.
-    if (isBlocked() || !allow('searchbox', 40)) return [];
+    // Negocios destacados de RedCarpet (gratis, nuestra BD) — se lanzan siempre,
+    // aunque Mapbox esté bloqueado por presupuesto/rate.
+    const businessesPromise = searchBusinesses(clean);
+
+    // Budget + rate guard SOLO para Mapbox. Si está bloqueado, devolvemos al
+    // menos los negocios (no consumen Mapbox).
+    if (isBlocked() || !allow('searchbox', 40)) {
+        return await businessesPromise;
+    }
 
     // Garantizar bias geográfico SIEMPRE: si el llamador no trae ubicación,
     // usamos la última conocida o pedimos la posición actual.
@@ -126,7 +160,7 @@ export async function searchPlaces(
         } catch (error) {
             if (attempt === 1) {
                 console.error('Error searching places (forward, tras reintento):', error);
-                return [];
+                return await businessesPromise; // al menos los negocios
             }
         }
     }
@@ -134,7 +168,7 @@ export async function searchPlaces(
     track('searchbox');
 
     const features: any[] = data?.features ?? [];
-    if (features.length === 0) return [];
+    if (features.length === 0) return await businessesPromise;
 
     const results: GeocodingResult[] = features
         .filter((f) => f?.geometry?.coordinates?.length === 2)
@@ -163,8 +197,17 @@ export async function searchPlaces(
         );
     }
 
-    _searchCache.set(cacheKey, { results, expiresAt: Date.now() + SEARCH_TTL_MS });
-    return results;
+    // Negocios destacados PRIMERO (han pagado visibilidad), sin duplicar los
+    // que Mapbox ya devuelva con el mismo nombre.
+    const businesses = await businessesPromise;
+    const bizNames = new Set(businesses.map(b => b.name.toLowerCase()));
+    const merged = [
+        ...businesses,
+        ...results.filter(r => !bizNames.has(r.name.toLowerCase())),
+    ];
+
+    _searchCache.set(cacheKey, { results: merged, expiresAt: Date.now() + SEARCH_TTL_MS });
+    return merged;
 }
 
 /**

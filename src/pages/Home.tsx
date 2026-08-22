@@ -558,13 +558,21 @@ export const Home: React.FC = () => {
                                                 onClick={() => handleSelectSuggestion(suggestion)}
                                                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-white/10 border-b border-white/5 last:border-0 text-left transition-all active:bg-white/20"
                                             >
-                                                <div className="size-11 rounded-xl bg-white/5 flex items-center justify-center text-primary shrink-0 transition-colors group-hover:bg-primary/20">
+                                                <div className={clsx(
+                                                    "size-11 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                                                    suggestion.isBusiness ? "bg-amber-400/20 text-amber-400" : "bg-white/5 text-primary group-hover:bg-primary/20"
+                                                )}>
                                                     <span className="material-symbols-outlined text-2xl">
-                                                        {getCategoryIcon(suggestion.category || 'location_on')}
+                                                        {suggestion.isBusiness ? 'store' : getCategoryIcon(suggestion.category || 'location_on')}
                                                     </span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-white font-bold text-sm truncate">{suggestion.name}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-white font-bold text-sm truncate">{suggestion.name}</p>
+                                                        {suggestion.isBusiness && (
+                                                            <span className="text-[8px] font-black uppercase tracking-wider text-amber-900 bg-amber-400 px-1.5 py-0.5 rounded-full shrink-0">Destacado</span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-white/40 text-[11px] truncate mt-0.5">{suggestion.address}</p>
                                                 </div>
                                                 <span className="material-symbols-outlined text-white/20 text-lg">north_west</span>
