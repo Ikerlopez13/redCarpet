@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Check, X, RefreshCw, Loader2, ShieldAlert } from 'lucide-react';
 import { captureBeRealDual } from '../../services/cameraService';
 import clsx from 'clsx';
@@ -10,6 +11,7 @@ interface DualCameraProps {
 }
 
 export const DualCamera: React.FC<DualCameraProps> = ({ className, onCaptureComplete, onClose }) => {
+    const { t } = useTranslation();
     const [isCapturing, setIsCapturing] = useState(false);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export const DualCamera: React.FC<DualCameraProps> = ({ className, onCaptureComp
             setCapturedImage(combinedBase64);
         } catch (err) {
             console.error('[DualCamera] Capture error:', err);
-            setError('Error al capturar. Inténtalo de nuevo.');
+            setError(t('camera.capture_error'));
         } finally {
             setIsCapturing(false);
         }

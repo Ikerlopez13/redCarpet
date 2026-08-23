@@ -81,12 +81,12 @@ export const TrustedContacts: React.FC = () => {
 
         const found = await findUserByShortId(rawId);
         if (!found) {
-            setAddByIdError('No se ha encontrado ningún usuario con ese ID. Comprueba que esté bien escrito.');
+            setAddByIdError(t('contacts.id_not_found'));
             setAddByIdLoading(false);
             return;
         }
         if (found.id === user.id) {
-            setAddByIdError('No puedes añadirte a ti mismo.');
+            setAddByIdError(t('contacts.cant_add_self'));
             setAddByIdLoading(false);
             return;
         }
@@ -109,14 +109,14 @@ export const TrustedContacts: React.FC = () => {
             .single();
 
         if (error) {
-            setAddByIdError('Error al añadir el contacto. Inténtalo de nuevo.');
+            setAddByIdError(t('contacts.add_error_retry'));
         } else {
             setContacts(prev => [...prev, data as TrustedContact]);
             setAddByIdInput('');
             setAddByIdName('');
             setShowIdForm(false);
             setShowAddContactSelector(false);
-            alert(`✅ Solicitud enviada a ${displayName}. Cuando acepte aparecerá en tu lista.`);
+            alert(t('contacts.req_sent', { name: displayName }));
             // Notify recipient via push
             const myName = user.profile?.full_name?.split(' ')[0] || 'Alguien';
             sendFriendRequestNotification(found.id, user.id, myName);
@@ -127,7 +127,7 @@ export const TrustedContacts: React.FC = () => {
     // Manual contact add handler
     // Abre WhatsApp con un mensaje de invitación + enlace de descarga.
     const sendInvite = (name: string, phone?: string) => {
-        const msg = `¡Hola${name ? ' ' + name : ''}! Te invito a RedCarpet, la app de seguridad para moverte por la ciudad. Descárgala y podremos cuidarnos: https://tryredcarpet.com`;
+        const msg = t('contacts.invite_msg', { name: name ? ' ' + name : '' });
         const digits = (phone || '').replace(/[^\d]/g, '');
         const url = digits.length >= 9
             ? `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`
@@ -151,25 +151,25 @@ export const TrustedContacts: React.FC = () => {
                         sendFriendRequestNotification(res.contact.associated_user_id, user!.id, myName);
                     }
                 }
-                alert(`Solicitud enviada a ${name}. Cuando acepte, aparecerá en tu lista.`);
+                alert(t('contacts.req_sent', { name }));
                 return true;
             case 'invited':
                 if (res.contact) upsert(res.contact);
-                if (confirm(`${name} todavía no usa RedCarpet.\n\n¿Quieres invitarle ahora por WhatsApp?`)) {
+                if (confirm(t('contacts.not_registered_confirm', { name }))) {
                     sendInvite(name, phone);
                 }
                 return true;
             case 'already_pending':
-                alert(`Ya tienes una solicitud pendiente con ${name}.`);
+                alert(t('contacts.already_pending_msg', { name }));
                 return true;
             case 'already_invited':
-                if (confirm(`Ya invitaste a ${name} y aún no se ha registrado.\n\n¿Reenviar la invitación?`)) {
+                if (confirm(t('contacts.already_invited_confirm', { name }))) {
                     sendInvite(name, phone);
                 }
                 return true;
             case 'error':
             default:
-                alert(res.error || 'No se pudo completar. Inténtalo de nuevo.');
+                alert(res.error || t('contacts.add_failed'));
                 return false;
         }
     };
@@ -509,7 +509,7 @@ export const TrustedContacts: React.FC = () => {
                                         <span className="text-sm text-white/60">{t('contacts.relation')}: {contact.relation} • {contact.phone}</span>
                                         {contact.status === 'invited' && (
                                             <button onClick={() => sendInvite(contact.name, contact.phone)} className="text-[11px] font-bold text-amber-400 mt-1 text-left">
-                                                ↗ Reenviar invitación por WhatsApp
+                                                {t('contacts.resend_whatsapp')}
                                             </button>
                                         )}
                                     </div>
@@ -828,7 +828,7 @@ export const TrustedContacts: React.FC = () => {
                                             type="text"
                                             value={addByIdName}
                                             onChange={(e) => setAddByIdName(e.target.value)}
-                                            placeholder="ej. Mamá, Carlos..."
+                                            placeholder={t('contacts.name_example_ph')}
                                             className="w-full h-14 bg-white/5 rounded-2xl border border-white/5 px-4 text-base text-white focus:outline-none focus:border-primary/50 transition-colors placeholder:text-white/20"
                                         />
                                     </div>
@@ -862,7 +862,7 @@ export const TrustedContacts: React.FC = () => {
                                             type="text"
                                             value={manualName}
                                             onChange={(e) => setManualName(e.target.value)}
-                                            placeholder="ej. Mamá, Carlos..."
+                                            placeholder={t('contacts.name_example_ph')}
                                             required
                                             className="w-full h-14 bg-white/5 rounded-2xl border border-white/5 px-4 text-base text-white focus:outline-none focus:border-primary/50 transition-colors placeholder:text-white/20"
                                         />

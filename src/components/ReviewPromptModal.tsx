@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { Star, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -10,6 +11,7 @@ interface ReviewPromptModalProps {
 }
 
 export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, onClose }) => {
+    const { t } = useTranslation();
     const [rating, setRating] = useState<number>(0);
     const [hover, setHover] = useState<number>(0);
     const [showFeedback, setShowFeedback] = useState(false);
@@ -86,7 +88,7 @@ export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, on
                                 <textarea
                                     value={feedback}
                                     onChange={(e) => setFeedback(e.target.value)}
-                                    placeholder="Dinos cómo podemos hacer la app mejor para ti..."
+                                    placeholder={t('review.placeholder')}
                                     className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder-white/30 resize-none outline-none focus:border-red-500 transition-colors"
                                 />
                                 <button 

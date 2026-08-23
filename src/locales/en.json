@@ -201,7 +201,14 @@
     "sos_title": "JOURNEY NOTES",
     "instructions": "Hold to share journey status",
     "cancel": "Cancel",
-    "disclaimer": "RedCarpet is an urban mobility app. It is not an emergency service nor affiliated with police. The alert facilitates communication with contacts and 112 access. No official response guaranteed."
+    "disclaimer": "RedCarpet is an urban mobility app. It is not an emergency service nor affiliated with police. The alert facilitates communication with contacts and 112 access. No official response guaranteed.",
+    "center": "Safety Center",
+    "online_shield": "Online • AI Shield Active",
+    "press_launch": "Press to launch",
+    "protocol": "Emergency Protocol",
+    "gps_live": "Live GPS",
+    "widgets": "Widgets & Discreet SOS",
+    "widgets_sub": "Set up widgets and secret pattern"
   },
   "premium": {
     "pro": "PRO",
@@ -327,7 +334,14 @@
       "start": "Start",
       "continue": "Continue",
       "finish": "Finish Setup"
-    }
+    },
+    "profile_title": "Your Safety Profile",
+    "name_ph": "e.g. Jane Smith",
+    "city_ph": "e.g. Barcelona",
+    "habits_title": "Movement Habits",
+    "zones_ph": "e.g. Downtown, University, Gym",
+    "loc_always": "Location (Always)",
+    "loc_always_sub": "Vital for rescues"
   },
   "account": {
     "title": "Account",
@@ -499,7 +513,18 @@
     "permission_denied": "Permission Denied",
     "permission_denied_desc": "Could not access your contacts because permission was denied. Please enable it in system settings.",
     "import_error": "Error importing contact",
-    "contact_no_phone": "The selected contact has no registered phone number."
+    "contact_no_phone": "The selected contact has no registered phone number.",
+    "req_sent": "Request sent to {{name}}. When they accept, they'll appear in your list.",
+    "already_pending_msg": "You already have a pending request with {{name}}.",
+    "not_registered_confirm": "{{name}} doesn't use RedCarpet yet.\n\nDo you want to invite them via WhatsApp now?",
+    "already_invited_confirm": "You already invited {{name}} and they haven't registered yet.\n\nResend the invite?",
+    "add_failed": "Could not complete. Please try again.",
+    "invite_msg": "Hi{{name}}! I'm inviting you to RedCarpet, the safety app for getting around the city. Download it and we can look out for each other: https://tryredcarpet.com",
+    "resend_whatsapp": "↗ Resend invite via WhatsApp",
+    "name_example_ph": "e.g. Mom, Carlos...",
+    "id_not_found": "No user found with that ID. Check it's written correctly.",
+    "cant_add_self": "You can't add yourself.",
+    "add_error_retry": "Error adding the contact. Please try again."
   },
   "feedback": {
     "title": "Rate our app",
@@ -674,7 +699,8 @@
     "pin_security": "PIN Security",
     "pin_desc": "Enter the code to safely deactivate journey tracking.",
     "access_error": "Could not access front camera.",
-    "rec": "REC"
+    "rec": "REC",
+    "capture_error": "Capture error. Please try again."
   },
   "safezone": {
     "title": "Add Safe Zone",
@@ -803,5 +829,8 @@
     "choose_individual": "Choose Individual",
     "choose_annual": "Choose Annual",
     "activate_pass": "Activate Pass"
+  },
+  "review": {
+    "placeholder": "Tell us how we can make the app better for you..."
   }
 }

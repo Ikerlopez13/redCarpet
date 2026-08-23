@@ -228,7 +228,14 @@
     "sos_title": "CENTRO DE AVISOS",
     "instructions": "Segure para avisar os contatos",
     "cancel": "Cancelar",
-    "disclaimer": "RedCarpet facilita a comunicação com seus contatos confiáveis. Não substitui os serviços de emergência oficiais, embora permita a ligação direta com o 112."
+    "disclaimer": "RedCarpet facilita a comunicação com seus contatos confiáveis. Não substitui os serviços de emergência oficiais, embora permita a ligação direta com o 112.",
+    "center": "Central de segurança",
+    "online_shield": "Online • Escudo IA ativo",
+    "press_launch": "Pressiona para lançar",
+    "protocol": "Protocolo de emergência",
+    "gps_live": "GPS ao vivo",
+    "widgets": "Widgets e SOS discreto",
+    "widgets_sub": "Configurar widgets e padrão secreto"
   },
   "premium": {
     "pro": "PRÓ",
@@ -327,7 +334,14 @@
       "start": "Comece",
       "continue": "Continuar",
       "finish": "Concluir configurações"
-    }
+    },
+    "profile_title": "O teu perfil de segurança",
+    "name_ph": "Ex. Ana Silva",
+    "city_ph": "Ex. Barcelona",
+    "habits_title": "Hábitos de movimento",
+    "zones_ph": "Ex. Centro, Universidade, Ginásio",
+    "loc_always": "Localização (Sempre)",
+    "loc_always_sub": "Vital para resgates"
   },
   "account": {
     "title": "Conta",
@@ -499,7 +513,18 @@
     "permission_denied": "Permissão negada",
     "permission_denied_desc": "Não foi possível acessar seus contatos porque a permissão foi negada. Ative-o nas configurações do seu celular.",
     "import_error": "Erro ao importar contato",
-    "contact_no_phone": "O contato selecionado não possui número de telefone cadastrado."
+    "contact_no_phone": "O contato selecionado não possui número de telefone cadastrado.",
+    "req_sent": "Pedido enviado a {{name}}. Quando aceitar, aparecerá na tua lista.",
+    "already_pending_msg": "Já tens um pedido pendente com {{name}}.",
+    "not_registered_confirm": "{{name}} ainda não usa a RedCarpet.\n\nQueres convidá-lo agora por WhatsApp?",
+    "already_invited_confirm": "Já convidaste {{name}} e ainda não se registou.\n\nReenviar o convite?",
+    "add_failed": "Não foi possível concluir. Tenta de novo.",
+    "invite_msg": "Olá{{name}}! Convido-te para a RedCarpet, a app de segurança para te moveres pela cidade. Descarrega-a: https://tryredcarpet.com",
+    "resend_whatsapp": "↗ Reenviar convite por WhatsApp",
+    "name_example_ph": "ex. Mãe, Carlos...",
+    "id_not_found": "Nenhum utilizador encontrado com esse ID. Verifica se está bem escrito.",
+    "cant_add_self": "Não te podes adicionar a ti mesmo.",
+    "add_error_retry": "Erro ao adicionar o contacto. Tenta de novo."
   },
   "feedback": {
     "title": "Comentários",
@@ -674,7 +699,8 @@
     "pin_security": "Segurança PIN",
     "pin_desc": "Digite o código para desativar o rastreamento de viagem com segurança.",
     "access_error": "A câmera frontal não pôde ser acessada.",
-    "rec": "REC"
+    "rec": "REC",
+    "capture_error": "Erro ao capturar. Tenta de novo."
   },
   "safezone": {
     "title": "Adicionar zona segura",
@@ -803,5 +829,8 @@
     "choose_individual": "Escolher Individual",
     "choose_annual": "Escolher Anual",
     "activate_pass": "Ativar passe"
+  },
+  "review": {
+    "placeholder": "Diz-nos como podemos melhorar a app para ti..."
   }
 }

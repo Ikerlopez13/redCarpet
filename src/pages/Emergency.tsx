@@ -110,10 +110,10 @@ export const Emergency: React.FC = () => {
                     <ChevronLeft size={24} />
                 </button>
                 <div className="flex flex-col items-center">
-                    <h1 className="text-xl font-black uppercase italic tracking-tighter text-white/90">Central de Seguridad</h1>
+                    <h1 className="text-xl font-black uppercase italic tracking-tighter text-white/90">{t('emergency.center')}</h1>
                     <div className="flex items-center gap-1.5 mt-0.5">
                         <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">En Línea • Escudo IA Activo</span>
+                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{t('emergency.online_shield')}</span>
                     </div>
                 </div>
                 <button 
@@ -147,7 +147,7 @@ export const Emergency: React.FC = () => {
                         ) : (
                             <>
                                 <h2 className="text-7xl font-black text-white italic tracking-tighter mb-1 drop-shadow-2xl">SOS</h2>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Pulsar para lanzar</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">{t('emergency.press_launch')}</p>
                             </>
                         )}
                         
@@ -165,7 +165,7 @@ export const Emergency: React.FC = () => {
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            <p className="text-sm font-bold text-white/90">Protocolo de Emergencia</p>
+                            <p className="text-sm font-bold text-white/90">{t('emergency.protocol')}</p>
                             <p className="text-[10px] text-white/40 font-medium leading-relaxed uppercase tracking-widest">
                                 En un solo clic se avisará al 112 y a tu círculo de seguridad compartiendo tu ubicación real.
                             </p>
@@ -178,7 +178,7 @@ export const Emergency: React.FC = () => {
                             <div className="p-1.5 bg-blue-500/20 rounded-lg text-blue-400">
                                 <Activity size={14} />
                             </div>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/40">GPS Vivo</span>
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/40">{t('emergency.gps_live')}</span>
                         </div>
                         <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex items-center gap-3">
                             <div className="p-1.5 bg-orange-500/20 rounded-lg text-orange-400">
@@ -201,8 +201,8 @@ export const Emergency: React.FC = () => {
                             <Grid size={24} />
                         </div>
                         <div>
-                            <p className="text-sm font-black italic uppercase tracking-tighter text-white">Widgets y SOS Discreto</p>
-                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">Configurar widgets y patrón secreto</p>
+                            <p className="text-sm font-black italic uppercase tracking-tighter text-white">{t('emergency.widgets')}</p>
+                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">{t('emergency.widgets_sub')}</p>
                         </div>
                     </div>
                     <span className="material-symbols-outlined text-white/40">chevron_right</span>

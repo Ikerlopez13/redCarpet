@@ -180,7 +180,14 @@
     "sos_title": "NOTES DEL TRAJECTE",
     "instructions": "Mantén premut per avisar del teu trajecte",
     "cancel": "Cancel·lar",
-    "disclaimer": "RedCarpet és una aplicació de mobilitat urbana. No és un servei d'emergències ni està afiliat a la policia. Facilita la comunicació amb contactes de confiança. No garanteix resposta d'autoritats."
+    "disclaimer": "RedCarpet és una aplicació de mobilitat urbana. No és un servei d'emergències ni està afiliat a la policia. Facilita la comunicació amb contactes de confiança. No garanteix resposta d'autoritats.",
+    "center": "Central de seguretat",
+    "online_shield": "En línia • Escut IA actiu",
+    "press_launch": "Prem per llançar",
+    "protocol": "Protocol d'emergència",
+    "gps_live": "GPS en viu",
+    "widgets": "Widgets i SOS discret",
+    "widgets_sub": "Configurar widgets i patró secret"
   },
   "premium": {
     "individual": {
@@ -327,7 +334,14 @@
       "start": "Començar",
       "continue": "Continuar",
       "finish": "Finalitzar configuració"
-    }
+    },
+    "profile_title": "El teu perfil de seguretat",
+    "name_ph": "Ex. Anna Garcia",
+    "city_ph": "Ex. Barcelona",
+    "habits_title": "Hàbits de moviment",
+    "zones_ph": "Ex. Centre, Universitat, Gimnàs",
+    "loc_always": "Ubicació (Sempre)",
+    "loc_always_sub": "Vital per a rescats"
   },
   "account": {
     "title": "Compte",
@@ -499,7 +513,18 @@
     "permission_denied": "Permís denegat",
     "permission_denied_desc": "No s'ha pogut accedir als teus contactes perquè el permís va ser denegat. Activa'l als Ajustos del teu mòbil.",
     "import_error": "Error en importar el contacte",
-    "contact_no_phone": "El contacte seleccionat no té cap número de telèfon registrat."
+    "contact_no_phone": "El contacte seleccionat no té cap número de telèfon registrat.",
+    "req_sent": "Sol·licitud enviada a {{name}}. Quan accepti, apareixerà a la teva llista.",
+    "already_pending_msg": "Ja tens una sol·licitud pendent amb {{name}}.",
+    "not_registered_confirm": "{{name}} encara no fa servir RedCarpet.\n\nVols convidar-lo ara per WhatsApp?",
+    "already_invited_confirm": "Ja vas convidar {{name}} i encara no s'ha registrat.\n\nReenviar la invitació?",
+    "add_failed": "No s'ha pogut completar. Torna-ho a provar.",
+    "invite_msg": "Hola{{name}}! Et convido a RedCarpet, l'app de seguretat per moure't per la ciutat. Descarrega-la: https://tryredcarpet.com",
+    "resend_whatsapp": "↗ Reenviar invitació per WhatsApp",
+    "name_example_ph": "ex. Mama, Carlos...",
+    "id_not_found": "No s'ha trobat cap usuari amb aquest ID. Comprova que estigui ben escrit.",
+    "cant_add_self": "No et pots afegir a tu mateix.",
+    "add_error_retry": "Error en afegir el contacte. Torna-ho a provar."
   },
   "feedback": {
     "title": "Valora la nostra aplicació",
@@ -674,7 +699,8 @@
     "pin_security": "Seguretat PIN",
     "pin_desc": "Introdueix el codi per desactivar el seguiment del trajecte de manera segura.",
     "access_error": "No s'ha pogut accedir a la càmera frontal.",
-    "rec": "REC"
+    "rec": "REC",
+    "capture_error": "Error en capturar. Torna-ho a provar."
   },
   "safezone": {
     "title": "Afegir zona segura",
@@ -803,5 +829,8 @@
     "choose_individual": "Triar Individual",
     "choose_annual": "Triar Anual",
     "activate_pass": "Activar pase"
+  },
+  "review": {
+    "placeholder": "Digues-nos com podem millorar l'app per a tu..."
   }
 }

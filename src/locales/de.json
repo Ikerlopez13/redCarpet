@@ -228,7 +228,14 @@
     "sos_title": "GEMEINSCHAFTSALARM",
     "instructions": "Halten, um Kontakte zu warnen",
     "cancel": "Abbrechen",
-    "disclaimer": "RedCarpet erleichtert die Kommunikation mit Ihren vertrauenswürdigen Kontakten. Es ist kein Ersatz für den offiziellen Notdienst, ermöglicht jedoch eine direkte Verbindung mit der 112."
+    "disclaimer": "RedCarpet erleichtert die Kommunikation mit Ihren vertrauenswürdigen Kontakten. Es ist kein Ersatz für den offiziellen Notdienst, ermöglicht jedoch eine direkte Verbindung mit der 112.",
+    "center": "Sicherheitszentrale",
+    "online_shield": "Online • KI-Schutz aktiv",
+    "press_launch": "Zum Auslösen drücken",
+    "protocol": "Notfallprotokoll",
+    "gps_live": "Live-GPS",
+    "widgets": "Widgets & diskretes SOS",
+    "widgets_sub": "Widgets und Geheimmuster einrichten"
   },
   "premium": {
     "pro": "PRO",
@@ -327,7 +334,14 @@
       "start": "Fangen Sie an",
       "continue": "Weiter",
       "finish": "Beenden Sie die Einstellungen"
-    }
+    },
+    "profile_title": "Dein Sicherheitsprofil",
+    "name_ph": "z. B. Anna Müller",
+    "city_ph": "z. B. Barcelona",
+    "habits_title": "Bewegungsgewohnheiten",
+    "zones_ph": "z. B. Zentrum, Uni, Fitness",
+    "loc_always": "Standort (Immer)",
+    "loc_always_sub": "Wichtig für Rettungen"
   },
   "account": {
     "title": "Konto",
@@ -499,7 +513,18 @@
     "permission_denied": "Erlaubnis verweigert",
     "permission_denied_desc": "Auf Ihre Kontakte konnte nicht zugegriffen werden, da die Berechtigung verweigert wurde. Aktivieren Sie es in den Einstellungen Ihres Mobiltelefons.",
     "import_error": "Fehler beim Importieren des Kontakts",
-    "contact_no_phone": "Für den ausgewählten Kontakt ist keine Telefonnummer registriert."
+    "contact_no_phone": "Für den ausgewählten Kontakt ist keine Telefonnummer registriert.",
+    "req_sent": "Anfrage an {{name}} gesendet. Nach Annahme erscheint sie in deiner Liste.",
+    "already_pending_msg": "Du hast bereits eine ausstehende Anfrage mit {{name}}.",
+    "not_registered_confirm": "{{name}} nutzt RedCarpet noch nicht.\n\nMöchtest du ihn/sie jetzt per WhatsApp einladen?",
+    "already_invited_confirm": "Du hast {{name}} bereits eingeladen, aber er/sie hat sich noch nicht registriert.\n\nEinladung erneut senden?",
+    "add_failed": "Konnte nicht abgeschlossen werden. Versuche es erneut.",
+    "invite_msg": "Hallo{{name}}! Ich lade dich zu RedCarpet ein, der Sicherheits-App für die Stadt. Lade sie herunter: https://tryredcarpet.com",
+    "resend_whatsapp": "↗ Einladung per WhatsApp erneut senden",
+    "name_example_ph": "z. B. Mama, Carlos...",
+    "id_not_found": "Kein Nutzer mit dieser ID gefunden. Prüfe die Schreibweise.",
+    "cant_add_self": "Du kannst dich nicht selbst hinzufügen.",
+    "add_error_retry": "Fehler beim Hinzufügen des Kontakts. Versuche es erneut."
   },
   "feedback": {
     "title": "Rückmeldung",
@@ -674,7 +699,8 @@
     "pin_security": "PIN-Sicherheit",
     "pin_desc": "Geben Sie den Code ein, um die Fahrtverfolgung sicher zu deaktivieren.",
     "access_error": "Auf die Frontkamera konnte nicht zugegriffen werden.",
-    "rec": "REC"
+    "rec": "REC",
+    "capture_error": "Aufnahmefehler. Versuche es erneut."
   },
   "safezone": {
     "title": "Sichere Zone hinzufügen",
@@ -803,5 +829,8 @@
     "choose_individual": "Einzel wählen",
     "choose_annual": "Jährlich wählen",
     "activate_pass": "Pass aktivieren"
+  },
+  "review": {
+    "placeholder": "Sag uns, wie wir die App für dich verbessern können..."
   }
 }

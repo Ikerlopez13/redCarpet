@@ -144,7 +144,7 @@ export const Onboarding: React.FC = () => {
 
                 {step === 'profile' && (
                     <div className="space-y-6 flex flex-col items-center w-full animate-fade-in">
-                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Tu Perfil de Seguridad</h2>
+                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">{t('onboarding.profile_title')}</h2>
                         <p className="text-white/40 text-xs leading-relaxed px-4">Esta información vital nos ayudará a identificar tus patrones y agilizar el rescate en caso de emergencia.</p>
                         
                         <div className="w-full max-w-xs space-y-4 text-left">
@@ -155,7 +155,7 @@ export const Onboarding: React.FC = () => {
                                         type="text" 
                                         value={fullName}
                                         onChange={e => setFullName(e.target.value)}
-                                        placeholder="Ej. Ana García"
+                                        placeholder={t('onboarding.name_ph')}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-colors"
                                     />
                                 </div>
@@ -175,7 +175,7 @@ export const Onboarding: React.FC = () => {
                                     type="text" 
                                     value={habitualCity}
                                     onChange={e => setHabitualCity(e.target.value)}
-                                    placeholder="Ej. Barcelona"
+                                    placeholder={t('onboarding.city_ph')}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-colors"
                                 />
                             </div>
@@ -185,7 +185,7 @@ export const Onboarding: React.FC = () => {
 
                 {step === 'habits' && (
                     <div className="space-y-6 flex flex-col items-center w-full animate-fade-in">
-                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Hábitos de Movimiento</h2>
+                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">{t('onboarding.habits_title')}</h2>
                         <p className="text-white/40 text-xs leading-relaxed px-4">Ajustaremos nuestro algoritmo de protección según tus rutinas diarias.</p>
                         
                         <div className="w-full max-w-xs space-y-6 text-left">
@@ -233,7 +233,7 @@ export const Onboarding: React.FC = () => {
                                     type="text" 
                                     value={habitualZones}
                                     onChange={e => setHabitualZones(e.target.value)}
-                                    placeholder="Ej. Centro, Universidad, Gimnasio"
+                                    placeholder={t('onboarding.zones_ph')}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-colors"
                                 />
                             </div>
@@ -254,8 +254,8 @@ export const Onboarding: React.FC = () => {
                             <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                                 <MapPin size={24} className="text-primary" />
                                 <div className="text-left">
-                                    <p className="text-sm font-bold">Ubicación (Siempre)</p>
-                                    <p className="text-[10px] text-zinc-500 uppercase font-black">Vital para rescates</p>
+                                    <p className="text-sm font-bold">{t('onboarding.loc_always')}</p>
+                                    <p className="text-[10px] text-zinc-500 uppercase font-black">{t('onboarding.loc_always_sub')}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
