@@ -4,6 +4,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { Navigation2, Settings } from 'lucide-react';
 import { requestSOSPermissions, requestNotificationPermission } from '../services/sosService';
+import { getForegroundState, syncForegroundConsent, recordAlwaysConsent } from '../services/locationPermissionService';
 import { useAuth } from '../contexts/AuthContext';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,9 +42,15 @@ export function PermissionsPrimer() {
                 console.warn('[PermissionsPrimer] Error pidiendo permisos:', err);
             }
 
+            // Registrar el consentimiento en primer plano (nivel + fecha en BD).
+            await syncForegroundConsent();
+
             if (Capacitor.getPlatform() === 'android') {
+                // CHECK-BEFORE-ASK: si el permiso en primer plano ni siquiera está
+                // concedido, no tiene sentido pedir "Siempre" todavía.
+                const fg = await getForegroundState();
                 const { value } = await Preferences.get({ key: ALWAYS_CONFIRMED_KEY });
-                if (value !== 'true') {
+                if (fg === 'granted' && value !== 'true') {
                     // En Android 10 el diálogo nativo de ubicación aún ofrece "Permitir
                     // siempre"; lo provocamos con un watcher efímero en segundo plano.
                     try {
@@ -67,6 +74,21 @@ export function PermissionsPrimer() {
         })();
     }, [user, isExcludedPage, isOnboardingComplete]);
 
+    // Al volver de Ajustes (foco recuperado), re-sincronizar el estado del
+    // permiso sin requerir reiniciar la app. No deja al usuario atrapado.
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        let remove: (() => void) | undefined;
+        (async () => {
+            const { App } = await import('@capacitor/app');
+            const handle = await App.addListener('appStateChange', ({ isActive }) => {
+                if (isActive) syncForegroundConsent().catch(() => {});
+            });
+            remove = () => handle.remove();
+        })();
+        return () => { if (remove) remove(); };
+    }, []);
+
     const openLocationSettings = async () => {
         try {
             await BackgroundGeolocation.openSettings();
@@ -77,6 +99,7 @@ export function PermissionsPrimer() {
 
     const confirmAlways = async () => {
         await Preferences.set({ key: ALWAYS_CONFIRMED_KEY, value: 'true' });
+        await recordAlwaysConsent(); // registrar consentimiento "Siempre" en BD
         setShowAlwaysSheet(false);
     };
 
