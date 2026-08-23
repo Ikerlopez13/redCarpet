@@ -82,7 +82,7 @@ export const Subscription: React.FC = () => {
             .eq('user_id', user.id).eq('status', 'active')
             .gt('expires_at', new Date().toISOString()).maybeSingle();
         if (data) { setIsPremium(true); setShowSuccess(true); }
-        else setError('No se encontró ninguna suscripción activa. Comprueba tu correo de confirmación.');
+        else setError(t('sub.err_no_active'));
         setProcessing(false);
     };
 
@@ -231,7 +231,7 @@ export const Subscription: React.FC = () => {
                 <button
                     onClick={() => navigate('/')}
                     className="absolute right-6 top-16 size-12 flex items-center justify-center text-white/60 hover:text-white bg-white/5 rounded-2xl backdrop-blur-2xl border border-white/10 transition-all active:scale-90 shadow-xl"
-                    aria-label="Cerrar Premium"
+                    aria-label={t('sub.close')}
                     id="premium-dismiss-button"
                 >
                     <X size={24} />
@@ -273,15 +273,15 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Incluye</h4>
+                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('sub.includes')}</h4>
                         {[
-                            "Rutas seguras ilimitadas",
-                            "Cobertura en toda España",
-                            "Prioridad total en rutas y seguridad",
-                            "SOS avanzado",
-                            "Alertas inteligentes",
-                            "Mejor detección de riesgo en tiempo real",
-                            "Mejoras premium en toda la experiencia"
+                            t('sub.f_routes_unlimited'),
+                            t('sub.coverage_spain'),
+                            t('sub.f_priority'),
+                            t('sub.f_sos'),
+                            t('sub.f_smart_alerts'),
+                            t('sub.f_risk'),
+                            t('sub.f_premium_all')
                         ].map((feature, i) => (
                             <div key={i} className="flex items-start gap-2">
                                 <Check size={14} className="text-primary shrink-0 mt-0.5" />
@@ -291,7 +291,7 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <div className="space-y-3 pt-4 border-t border-white/10">
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Opciones</h4>
+                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('sub.options')}</h4>
                         
                         {/* Option: Individual */}
                         <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3">
@@ -310,7 +310,7 @@ export const Subscription: React.FC = () => {
                                 disabled={processing}
                                 className="w-full h-10 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2"
                             >
-                                {processing && selectedPlan === 'monthly' ? <Loader2 className="animate-spin size-3" /> : "Elegir Individual"}
+                                {processing && selectedPlan === 'monthly' ? <Loader2 className="animate-spin size-3" /> : t('sub.choose_individual')}
                             </button>
                         </div>
 
@@ -318,10 +318,10 @@ export const Subscription: React.FC = () => {
 
                         {/* Option: Anual */}
                         <div className="bg-primary/10 rounded-2xl p-4 border border-primary/40 flex flex-col gap-3 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-primary text-black text-[8px] font-black px-2 py-1 uppercase tracking-widest rounded-bl-lg">Más popular</div>
+                            <div className="absolute top-0 right-0 bg-primary text-black text-[8px] font-black px-2 py-1 uppercase tracking-widest rounded-bl-lg">{t('sub.most_popular')}</div>
                             <div className="flex justify-between items-start pt-2">
                                 <div>
-                                    <h5 className="font-black italic uppercase text-sm text-primary">Premium Anual</h5>
+                                    <h5 className="font-black italic uppercase text-sm text-primary">{t('sub.annual')}</h5>
                                     <p className="text-[10px] text-white/60 uppercase tracking-wide mt-1 leading-snug">{t('premium.cancel_anytime')}</p>
                                 </div>
                                 <div className="text-right shrink-0">
@@ -334,7 +334,7 @@ export const Subscription: React.FC = () => {
                                 disabled={processing}
                                 className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                             >
-                                {processing && selectedPlan === 'annual' ? <Loader2 className="animate-spin size-4" /> : "Elegir Anual"}
+                                {processing && selectedPlan === 'annual' ? <Loader2 className="animate-spin size-4" /> : t('sub.choose_annual')}
                             </button>
                         </div>
                     </div>
@@ -361,15 +361,15 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Incluye</h4>
+                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('sub.includes')}</h4>
                         {[
-                            "Premium completo para todos",
-                            "Rutas ilimitadas compartidas",
-                            "Cobertura en toda España",
-                            "Avisos si alguien no llega a su destino",
-                            "Alertas y seguimiento inteligente",
-                            "Protección para hijos, adolescentes y personas mayores",
-                            "Mejoras premium para todo el grupo"
+                            t('sub.f_all_for_all'),
+                            t('sub.f_shared_routes'),
+                            t('sub.coverage_spain'),
+                            t('sub.f_arrival'),
+                            t('sub.f_tracking'),
+                            t('sub.f_protect'),
+                            t('sub.f_premium_group')
                         ].map((feature, i) => (
                             <div key={i} className="flex items-start gap-2">
                                 <Check size={14} className="text-green-400 shrink-0 mt-0.5" />
@@ -379,13 +379,13 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <div className="space-y-3 pt-4 border-t border-white/10">
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Opciones</h4>
+                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('sub.options')}</h4>
                         
                         {/* Option: 1 persona */}
                         <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
                             <div>
                                 <h5 className="font-black italic uppercase text-sm">1 persona</h5>
-                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Suscripción Auto-renovable de 1 Mes</p>
+                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('sub.autorenew_1m')}</p>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-right shrink-0">
@@ -397,7 +397,7 @@ export const Subscription: React.FC = () => {
                                     disabled={processing}
                                     className="px-4 h-8 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-green-500/30 transition-all"
                                 >
-                                    {processing && selectedPlan === 'family1' ? <Loader2 className="animate-spin size-3" /> : "Elegir"}
+                                    {processing && selectedPlan === 'family1' ? <Loader2 className="animate-spin size-3" /> : t('sub.choose')}
                                 </button>
                             </div>
                         </div>
@@ -406,7 +406,7 @@ export const Subscription: React.FC = () => {
                         <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
                             <div>
                                 <h5 className="font-black italic uppercase text-sm">2 personas</h5>
-                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Suscripción Auto-renovable de 1 Mes</p>
+                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('sub.autorenew_1m')}</p>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-right shrink-0">
@@ -418,7 +418,7 @@ export const Subscription: React.FC = () => {
                                     disabled={processing}
                                     className="px-4 h-8 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-green-500/30 transition-all"
                                 >
-                                    {processing && selectedPlan === 'family2' ? <Loader2 className="animate-spin size-3" /> : "Elegir"}
+                                    {processing && selectedPlan === 'family2' ? <Loader2 className="animate-spin size-3" /> : t('sub.choose')}
                                 </button>
                             </div>
                         </div>
@@ -426,8 +426,8 @@ export const Subscription: React.FC = () => {
                         {/* Option: Hasta 6 personas */}
                         <div className="flex justify-between items-center bg-green-400/10 rounded-2xl p-4 border border-green-400/30">
                             <div>
-                                <h5 className="font-black italic uppercase text-sm text-green-400">Hasta 6 personas</h5>
-                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Suscripción Auto-renovable de 1 Mes</p>
+                                <h5 className="font-black italic uppercase text-sm text-green-400">{t('sub.up_to_6')}</h5>
+                                <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('sub.autorenew_1m')}</p>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-right shrink-0">
@@ -439,7 +439,7 @@ export const Subscription: React.FC = () => {
                                     disabled={processing}
                                     className="px-4 h-8 bg-green-500 text-black rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
                                 >
-                                    {processing && selectedPlan === 'family6' ? <Loader2 className="animate-spin size-3" /> : "Elegir"}
+                                    {processing && selectedPlan === 'family6' ? <Loader2 className="animate-spin size-3" /> : t('sub.choose')}
                                 </button>
                             </div>
                         </div>
@@ -468,13 +468,13 @@ export const Subscription: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Incluye</h4>
+                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('sub.includes')}</h4>
                             {[
-                                "Acceso completo Premium",
-                                "Rutas ilimitadas",
-                                "Cobertura en toda España",
-                                "SOS avanzado",
-                                "Máxima precisión y protección"
+                                t('sub.f_full_access'),
+                                t('sub.f_unlimited_routes'),
+                                t('sub.coverage_spain'),
+                                t('sub.f_sos'),
+                                t('sub.f_max_precision')
                             ].map((feature, i) => (
                                 <div key={i} className="flex items-start gap-2">
                                     <Check size={12} className="text-amber-500 shrink-0 mt-0.5" />
@@ -483,13 +483,13 @@ export const Subscription: React.FC = () => {
                             ))}
                         </div>
                         <div className="space-y-2">
-                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Perfecto para</h4>
+                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('sub.perfect_for')}</h4>
                             {[
-                                "Viajes",
-                                "Festivales",
-                                "Escapadas",
-                                "Emergencias",
-                                "Eventos nocturnos"
+                                t('sub.for_trips'),
+                                t('sub.for_festivals'),
+                                t('sub.for_getaways'),
+                                t('sub.for_emergencies'),
+                                t('sub.for_nightlife')
                             ].map((feature, i) => (
                                 <div key={i} className="flex items-start gap-2">
                                     <div className="size-1.5 rounded-full bg-amber-500/50 shrink-0 mt-1" />
@@ -501,7 +501,7 @@ export const Subscription: React.FC = () => {
 
                     <div className="bg-amber-500/10 rounded-2xl p-4 border border-amber-500/20 flex flex-col gap-3 mt-2">
                         <div className="flex justify-between items-center">
-                            <h5 className="font-black italic uppercase text-sm text-amber-500">Precio</h5>
+                            <h5 className="font-black italic uppercase text-sm text-amber-500">{t('sub.price')}</h5>
                             <span className="font-black italic text-xl text-amber-500">3,99 €</span>
                         </div>
                         <p className="text-[10px] text-amber-500/80 uppercase tracking-wide font-bold text-center">72 horas Premium</p>
@@ -510,7 +510,7 @@ export const Subscription: React.FC = () => {
                             disabled={processing}
                             className="w-full h-10 bg-amber-500 hover:bg-amber-400 text-black rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 mt-1"
                         >
-                            {processing && selectedPlan === '72h' ? <Loader2 className="animate-spin size-3" /> : "Activar Pase"}
+                            {processing && selectedPlan === '72h' ? <Loader2 className="animate-spin size-3" /> : t('sub.activate_pass')}
                         </button>
                     </div>
 
