@@ -128,7 +128,8 @@
     "contact_support_btn": "Contate o suporte",
     "placeholder": "Pergunte ao Vermelho...",
     "powered_by": "Tecnologia de IA RedCarpet",
-    "name": "REDE DE IA"
+    "name": "REDE DE IA",
+    "no_answer": "Não tenho uma resposta fiável para isso. Queres que o encaminhemos para a nossa equipa de suporte com o contexto da tua pergunta?"
   },
   "transit": {
     "loading": "Procurando opções de transporte...",

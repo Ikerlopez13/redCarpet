@@ -128,7 +128,8 @@
     "contact_support_btn": "Contatta l'assistenza",
     "placeholder": "Chiedi a Rosso...",
     "powered_by": "Tecnologia AI RedCarpet",
-    "name": "RETE AI"
+    "name": "RETE AI",
+    "no_answer": "Non ho una risposta affidabile per questo. Vuoi che lo inoltriamo al nostro team di supporto con il contesto della tua domanda?"
   },
   "transit": {
     "loading": "Alla ricerca di opzioni di trasporto...",

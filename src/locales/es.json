@@ -128,7 +128,8 @@
     "contact_support_btn": "Contactar Soporte",
     "placeholder": "Pregunta a Red...",
     "powered_by": "Tecnología de IA de RedCarpet",
-    "name": "RED IA"
+    "name": "RED IA",
+    "no_answer": "No tengo una respuesta fiable para eso. ¿Quieres que lo enviemos a nuestro equipo de soporte con el contexto de tu consulta?"
   },
   "transit": {
     "loading": "Buscando opciones de transporte...",

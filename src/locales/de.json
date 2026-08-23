@@ -128,7 +128,8 @@
     "contact_support_btn": "Kontaktieren Sie den Support",
     "placeholder": "Fragen Sie Rot...",
     "powered_by": "RedCarpet KI-Technologie",
-    "name": "KI-NETZWERK"
+    "name": "KI-NETZWERK",
+    "no_answer": "Darauf habe ich keine zuverlässige Antwort. Sollen wir es mit dem Kontext deiner Frage an unser Support-Team weiterleiten?"
   },
   "transit": {
     "loading": "Auf der Suche nach Transportmöglichkeiten...",

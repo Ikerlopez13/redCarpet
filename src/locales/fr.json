@@ -291,7 +291,8 @@
     "contact_support_btn": "Contacter le support",
     "placeholder": "Demandez à Red...",
     "powered_by": "Technologie d'IA de RedCarpet",
-    "name": "RED IA"
+    "name": "RED IA",
+    "no_answer": "Je n'ai pas de réponse fiable à cela. Voulez-vous que nous le transmettions à notre équipe de support avec le contexte de votre question ?"
   },
   "transit": {
     "loading": "Recherche d'options de transport...",

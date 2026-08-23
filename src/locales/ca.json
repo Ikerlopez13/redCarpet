@@ -80,7 +80,8 @@
     "contact_support_btn": "Contactar amb suport",
     "placeholder": "Pregunta a Red...",
     "powered_by": "Tecnologia d'IA de RedCarpet",
-    "name": "RED IA"
+    "name": "RED IA",
+    "no_answer": "No tinc una resposta fiable per a això. Vols que ho enviem al nostre equip de suport amb el context de la teva consulta?"
   },
   "transit": {
     "loading": "Buscant opcions de transport...",

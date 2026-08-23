@@ -291,7 +291,8 @@
     "contact_support_btn": "Contact Support",
     "placeholder": "Ask Red...",
     "powered_by": "Powered by RedCarpet AI Engine",
-    "name": "RED AI"
+    "name": "RED AI",
+    "no_answer": "I don't have a reliable answer for that. Want us to forward it to our support team with the context of your question?"
   },
   "transit": {
     "loading": "Looking for transport options...",
