@@ -131,6 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         // se vea siempre, aunque el usuario no sea premium.
                         BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
 
+                        // Vincular invitaciones pendientes: si alguien te invitó antes de
+                        // tener cuenta, ahora su solicitud pasa a pendiente automáticamente.
+                        supabase.rpc('link_pending_invites', { p_user_id: loggedUser.id }).catch(() => {});
+
                         // Initialize RevenueCat for native platform (non-blocking)
                         RevenueCatService.initialize(loggedUser.id)
                             .then(() => updatePremiumStatus(loggedUser))

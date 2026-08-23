@@ -32,8 +32,20 @@ export interface TrustedContact {
     share_location: boolean;
     notify_emergency: boolean;
     associated_user_id: string | null;
-    status: 'pending' | 'accepted' | 'rejected';
+    status: 'pending' | 'accepted' | 'rejected' | 'invited';
     created_at: string;
+}
+
+// Resultado inequívoco de intentar añadir/invitar un contacto:
+//  registered      → tiene cuenta; solicitud enviada (pending)
+//  invited         → no tiene cuenta; guardado como invitación pendiente
+//  already_pending → ya había una solicitud pendiente con esa cuenta
+//  already_invited → ya se le había enviado una invitación (ofrecer reenviar)
+//  error           → no se pudo comprobar (red/backend/rate-limit): NO se creó nada
+export interface AddContactResult {
+    status: 'registered' | 'invited' | 'already_pending' | 'already_invited' | 'error';
+    contact: TrustedContact | null;
+    error?: string;
 }
 
 export interface PendingRequest {
@@ -71,66 +83,72 @@ export class TrustedContactsService {
         phone: string,
         email?: string,
         relation: string = 'Familiar'
-    ): Promise<{ contact: TrustedContact | null; error: string | null; isPendingRequest: boolean }> {
+    ): Promise<AddContactResult> {
         if (!userId || userId.trim() === '') {
             throw new Error("Sesión no válida");
         }
-        
-        // 1. Look for an existing app user with this phone number or email using the secure RPC
-        let matchedId = null;
+
+        // 1. ¿Tiene cuenta en RedCarpet? RPC segura (normaliza teléfono/email).
+        //    CRÍTICO: distinguir "no tiene cuenta" (data null) de "no lo sabemos"
+        //    (fallo de red/backend/rate-limit) para no dar falsos negativos.
+        let matchedId: string | null = null;
         try {
             const { data, error: rpcError } = await (supabase.rpc as any)('match_user_for_contact', {
                 p_phone: phone || null,
                 p_email: email || null
             });
-            if (!rpcError) matchedId = data;
+            if (rpcError) {
+                // Fallo real de la comprobación: NO crear un contacto ambiguo.
+                const rl = /rate_limited/i.test(rpcError.message || '');
+                return { status: 'error', contact: null,
+                    error: rl ? 'Has hecho demasiadas comprobaciones. Espera un momento e inténtalo de nuevo.'
+                              : 'No se pudo comprobar si esta persona usa RedCarpet. Revisa tu conexión e inténtalo de nuevo.' };
+            }
+            matchedId = data || null;
         } catch (e) {
-            console.error('RPC match_user_for_contact failed or not available', e);
+            return { status: 'error', contact: null,
+                error: 'No se pudo comprobar si esta persona usa RedCarpet. Revisa tu conexión e inténtalo de nuevo.' };
         }
 
-        const associatedUserId = matchedId || null;
-        const initialStatus = associatedUserId ? 'pending' : 'accepted';
+        const isRegistered = !!matchedId;
+        const targetStatus = isRegistered ? 'pending' : 'invited';
 
-        // Check if contact already exists (by associated_user_id or phone)
-        const existingQuery = (supabase.from('trusted_contacts') as any).select('*').eq('user_id', userId);
-        const { data: existing } = associatedUserId
-            ? await existingQuery.eq('associated_user_id', associatedUserId).maybeSingle()
-            : await existingQuery.eq('phone', phone).maybeSingle();
+        // 2. ¿Ya existe este contacto? (por cuenta vinculada o por teléfono)
+        const baseQuery = (supabase.from('trusted_contacts') as any).select('*').eq('user_id', userId);
+        const { data: existing } = isRegistered
+            ? await baseQuery.eq('associated_user_id', matchedId).maybeSingle()
+            : await baseQuery.eq('phone', phone).maybeSingle();
 
         if (existing) {
             if (existing.status === 'pending') {
-                return { contact: existing as TrustedContact, error: 'Ya tienes una solicitud pendiente con este contacto.', isPendingRequest: true };
+                return { status: 'already_pending', contact: existing as TrustedContact,
+                    error: 'Ya tienes una solicitud pendiente con este contacto.' };
             }
-            // Re-activate (rejected or old accepted contact being re-added)
+            if (existing.status === 'invited') {
+                // No duplicar spam: avisar que ya se invitó (la UI ofrece reenviar).
+                return { status: 'already_invited', contact: existing as TrustedContact };
+            }
+            // Reactivar (rechazado / aceptado antiguo que se re-añade)
             const { data: updated, error: updateError } = await (supabase.from('trusted_contacts') as any)
-                .update({ status: initialStatus, name, phone, relation, associated_user_id: associatedUserId })
-                .eq('id', existing.id)
-                .select('*')
-                .single();
-            if (updateError) return { contact: null, error: updateError.message, isPendingRequest: false };
-            return { contact: updated as TrustedContact, error: null, isPendingRequest: initialStatus === 'pending' };
+                .update({ status: targetStatus, name, phone, relation, associated_user_id: matchedId })
+                .eq('id', existing.id).select('*').single();
+            if (updateError) return { status: 'error', contact: null, error: updateError.message };
+            return { status: isRegistered ? 'registered' : 'invited', contact: updated as TrustedContact };
         }
 
         const { data, error } = await (supabase.from('trusted_contacts') as any)
             .insert({
-                user_id: userId,
-                name,
-                phone,
-                relation,
-                share_location: true,
-                notify_emergency: true,
-                associated_user_id: associatedUserId,
-                status: initialStatus
+                user_id: userId, name, phone, relation,
+                share_location: true, notify_emergency: true,
+                associated_user_id: matchedId, status: targetStatus
             } as any)
-            .select('*')
-            .single();
+            .select('*').single();
 
         if (error) {
             console.error('Error adding trusted contact:', error);
-            return { contact: null, error: error.message, isPendingRequest: false };
+            return { status: 'error', contact: null, error: error.message };
         }
-
-        return { contact: data as TrustedContact, error: null, isPendingRequest: initialStatus === 'pending' };
+        return { status: isRegistered ? 'registered' : 'invited', contact: data as TrustedContact };
     }
 
     /**

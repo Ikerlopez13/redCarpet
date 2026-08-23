@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { TrustedContactsService, getShortId, findUserByShortId } from '../services/trustedContactsService';
-import type { TrustedContact, PendingRequest } from '../services/trustedContactsService';
+import type { TrustedContact, PendingRequest, AddContactResult } from '../services/trustedContactsService';
 import { sendFriendRequestNotification } from '../services/pushService';
 import { supabase } from '../services/supabaseClient';
 import { Capacitor } from '@capacitor/core';
@@ -125,6 +125,55 @@ export const TrustedContacts: React.FC = () => {
     };
 
     // Manual contact add handler
+    // Abre WhatsApp con un mensaje de invitación + enlace de descarga.
+    const sendInvite = (name: string, phone?: string) => {
+        const msg = `¡Hola${name ? ' ' + name : ''}! Te invito a RedCarpet, la app de seguridad para moverte por la ciudad. Descárgala y podremos cuidarnos: https://tryredcarpet.com`;
+        const digits = (phone || '').replace(/[^\d]/g, '');
+        const url = digits.length >= 9
+            ? `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`
+            : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+    };
+
+    // Feedback claro y acción según el resultado de addContact. El usuario NUNCA
+    // se queda sin saber qué ha pasado con su solicitud.
+    const handleAddResult = (res: AddContactResult, name: string, phone: string): boolean => {
+        const upsert = (c: TrustedContact) => setContacts(prev => {
+            const i = prev.findIndex(x => x.id === c.id);
+            return i >= 0 ? prev.map(x => x.id === c.id ? c : x) : [...prev, c];
+        });
+        switch (res.status) {
+            case 'registered':
+                if (res.contact) {
+                    upsert(res.contact);
+                    if (res.contact.associated_user_id) {
+                        const myName = user?.profile?.full_name?.split(' ')[0] || 'Alguien';
+                        sendFriendRequestNotification(res.contact.associated_user_id, user!.id, myName);
+                    }
+                }
+                alert(`Solicitud enviada a ${name}. Cuando acepte, aparecerá en tu lista.`);
+                return true;
+            case 'invited':
+                if (res.contact) upsert(res.contact);
+                if (confirm(`${name} todavía no usa RedCarpet.\n\n¿Quieres invitarle ahora por WhatsApp?`)) {
+                    sendInvite(name, phone);
+                }
+                return true;
+            case 'already_pending':
+                alert(`Ya tienes una solicitud pendiente con ${name}.`);
+                return true;
+            case 'already_invited':
+                if (confirm(`Ya invitaste a ${name} y aún no se ha registrado.\n\n¿Reenviar la invitación?`)) {
+                    sendInvite(name, phone);
+                }
+                return true;
+            case 'error':
+            default:
+                alert(res.error || 'No se pudo completar. Inténtalo de nuevo.');
+                return false;
+        }
+    };
+
     const handleManualSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -135,27 +184,16 @@ export const TrustedContacts: React.FC = () => {
         setManualLoading(true);
         setManualError(null);
 
-        const { contact, error, isPendingRequest } = await TrustedContactsService.addContact(
-            user.id,
-            name,
-            phone,
-            undefined,
-            'Familiar'
-        );
+        const res = await TrustedContactsService.addContact(user.id, name, phone, undefined, 'Familiar');
 
-        if (contact) {
-            setContacts(prev => [...prev, contact]);
+        if (res.status === 'error') {
+            setManualError(res.error || 'Error al añadir el contacto.');
+        } else {
             setManualName('');
             setManualPhone('');
             setShowManualForm(false);
             setShowAddContactSelector(false);
-            if (isPendingRequest) {
-                alert(t('contacts.sync_alert', { name }));
-            } else {
-                alert(`✅ Contacto ${name} añadido con éxito.`);
-            }
-        } else if (error) {
-            setManualError(error || 'Error al añadir el contacto.');
+            handleAddResult(res, name, phone);
         }
         setManualLoading(false);
     };
@@ -219,46 +257,15 @@ export const TrustedContacts: React.FC = () => {
     // Complete import contact writing to Supabase (Optimistic)
     const addContactFromPicker = async (name: string, phone: string) => {
         if (!user) return;
-        
-        // Optimistic update
-        const tempId = `temp_${Date.now()}`;
-        const tempContact: TrustedContact = {
-            id: tempId,
-            user_id: user.id,
-            name,
-            phone,
-            relation: 'Familiar',
-            share_location: true,
-            notify_emergency: true,
-            associated_user_id: null,
-            status: 'accepted',
-            created_at: new Date().toISOString()
-        };
-        
-        setContacts(prev => [...prev, tempContact]);
+
         setShowContactPicker(false);
         setShowNumberSelector(null);
         setShowAddContactSelector(false); // Close the Apple-style drawer!
-        
-        // Background sync
-        const { contact, error, isPendingRequest } = await TrustedContactsService.addContact(user.id, name, phone, undefined, 'Familiar');
-        
-        if (contact) {
-            setContacts(prev => prev.map(c => c.id === tempId ? contact : c));
-            if (isPendingRequest) {
-                alert(t('contacts.sync_alert', { name }));
-                // Notify recipient via push when they have the app
-                if (contact.associated_user_id && user) {
-                    const myName = user.profile?.full_name?.split(' ')[0] || 'Alguien';
-                    sendFriendRequestNotification(contact.associated_user_id, user.id, myName);
-                }
-            } else {
-                alert(`✅ Solicitud enviada a ${name}. Cuando acepte aparecerá en tu lista.`);
-            }
-        } else if (error) {
-            setContacts(prev => prev.filter(c => c.id !== tempId));
-            alert(t('contacts.add_error') + ': ' + error);
-        }
+
+        // Se comprueba PRIMERO si tiene cuenta (sin estado optimista ambiguo) y
+        // luego se da feedback claro según el resultado.
+        const res = await TrustedContactsService.addContact(user.id, name, phone, undefined, 'Familiar');
+        handleAddResult(res, name, phone);
     };
 
     const handleNativeAddContact = async () => {
@@ -490,8 +497,21 @@ export const TrustedContacts: React.FC = () => {
                                 {/* Contact Header */}
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="flex flex-col">
-                                        <h4 className="font-bold text-lg">{contact.name}</h4>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h4 className="font-bold text-lg">{contact.name}</h4>
+                                            {contact.status === 'invited' && (
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 rounded-full">Invitado · sin registrarse</span>
+                                            )}
+                                            {contact.status === 'pending' && (
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 bg-blue-400/15 border border-blue-400/30 px-2 py-0.5 rounded-full">Solicitud enviada</span>
+                                            )}
+                                        </div>
                                         <span className="text-sm text-white/60">{t('contacts.relation')}: {contact.relation} • {contact.phone}</span>
+                                        {contact.status === 'invited' && (
+                                            <button onClick={() => sendInvite(contact.name, contact.phone)} className="text-[11px] font-bold text-amber-400 mt-1 text-left">
+                                                ↗ Reenviar invitación por WhatsApp
+                                            </button>
+                                        )}
                                     </div>
                                     <button onClick={() => handleDelete(contact.id, contact.name)} className="text-white/40 hover:text-red-500 transition-colors mt-1">
                                         <span className="material-symbols-outlined text-sm">delete</span>
