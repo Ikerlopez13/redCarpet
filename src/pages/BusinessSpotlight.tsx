@@ -6,18 +6,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 
 const CATEGORIES = [
-  { id: 'restaurant', label: '🍽 Restaurante' },
-  { id: 'bar', label: '🍺 Bar / Café' },
-  { id: 'shop', label: '🛍 Tienda' },
-  { id: 'hotel', label: '🏨 Hotel / Alojamiento' },
-  { id: 'health', label: '⚕️ Salud / Farmacia' },
-  { id: 'services', label: '🔧 Servicios' },
-  { id: 'beauty', label: '💈 Belleza / Estética' },
-  { id: 'general', label: '📍 Otro' },
+  { id: 'restaurant', label: 'business.cat_restaurant' },
+  { id: 'bar', label: 'business.cat_bar' },
+  { id: 'shop', label: 'business.cat_shop' },
+  { id: 'hotel', label: 'business.cat_hotel' },
+  { id: 'health', label: 'business.cat_health' },
+  { id: 'services', label: 'business.cat_services' },
+  { id: 'beauty', label: 'business.cat_beauty' },
+  { id: 'general', label: 'business.cat_other' },
 ];
 
 export const BusinessSpotlight: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const [name, setName] = useState('');
@@ -45,7 +46,7 @@ export const BusinessSpotlight: React.FC = () => {
       setLat(pos.coords.latitude);
       setLng(pos.coords.longitude);
     } catch {
-      setError('No se pudo obtener la ubicación. Activa el GPS.');
+      setError(t('business.err_location'));
     } finally {
       setLocating(false);
     }
@@ -53,8 +54,8 @@ export const BusinessSpotlight: React.FC = () => {
 
   const handleSubmitAndPay = async () => {
     if (!user) return;
-    if (!name.trim()) { setError('El nombre del negocio es obligatorio.'); return; }
-    if (!lat || !lng) { setError('Necesitamos tu ubicación. Pulsa "Usar mi ubicación actual".'); return; }
+    if (!name.trim()) { setError(t('business.err_name')); return; }
+    if (!lat || !lng) { setError(t('business.err_no_loc')); return; }
 
     setSubmitting(true);
     setError(null);
@@ -78,7 +79,7 @@ export const BusinessSpotlight: React.FC = () => {
         .select('id')
         .single();
 
-      if (dbErr || !data) throw new Error(dbErr?.message || 'Error guardando el negocio');
+      if (dbErr || !data) throw new Error(dbErr?.message || t('business.err_save'));
 
       const listingId = data.id;
       setMyListingId(listingId);
@@ -91,7 +92,7 @@ export const BusinessSpotlight: React.FC = () => {
       });
       const session = await r.json();
 
-      if (!session.url) throw new Error(session.error || 'Error al crear el pago');
+      if (!session.url) throw new Error(session.error || t('business.err_pay'));
 
       // 3. Abrir Stripe Checkout
       await Browser.open({ url: session.url });
@@ -110,7 +111,7 @@ export const BusinessSpotlight: React.FC = () => {
         }
       });
     } catch (e: any) {
-      setError(e.message || 'Error inesperado');
+      setError(e.message || t('business.err_generic'));
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +126,7 @@ export const BusinessSpotlight: React.FC = () => {
       .eq('id', myListingId)
       .single();
     if (data?.is_active) setIsPaid(true);
-    else setError('El pago aún no se ha confirmado. Espera unos segundos y vuelve a intentarlo.');
+    else setError(t('business.err_payment'));
     setSubmitting(false);
   };
 
@@ -141,7 +142,7 @@ export const BusinessSpotlight: React.FC = () => {
         body: JSON.stringify({ userId: user.id, listingId: myListingId, promoTier: tier })
       });
       const session = await r.json();
-      if (!session.url) throw new Error(session.error || 'Error al crear el pago');
+      if (!session.url) throw new Error(session.error || t('business.err_pay'));
       await Browser.open({ url: session.url });
 
       // Al volver, comprobar si la promo quedó registrada (pendiente de publicar).
@@ -161,7 +162,7 @@ export const BusinessSpotlight: React.FC = () => {
         }
       });
     } catch (e: any) {
-      setError(e.message || 'Error inesperado');
+      setError(e.message || t('business.err_generic'));
     } finally {
       setPromoSubmitting(null);
     }
@@ -175,36 +176,36 @@ export const BusinessSpotlight: React.FC = () => {
           <div className="size-20 rounded-[2rem] bg-amber-400/20 flex items-center justify-center mb-5 shadow-[0_0_60px_rgba(251,191,36,0.3)]">
             <CheckCircle2 size={48} className="text-amber-400" />
           </div>
-          <h1 className="text-2xl font-black italic uppercase tracking-tighter mb-2">¡Negocio Activo!</h1>
-          <p className="text-white/60 text-sm mb-1">{name} ya aparece destacado en el mapa y en el buscador de RedCarpet.</p>
-          <p className="text-white/30 text-xs">Los usuarios lo verán al explorar el mapa y al buscarlo por su nombre.</p>
+          <h1 className="text-2xl font-black italic uppercase tracking-tighter mb-2">{t('business.active_title')}</h1>
+          <p className="text-white/60 text-sm mb-1">{t('business.active_map_msg', { name })}</p>
+          <p className="text-white/30 text-xs">{t('business.active_desc')}</p>
         </div>
 
         {/* Upsell: promoción en redes sociales */}
         <div className="px-6 pb-32 space-y-4">
           {alreadyContracted ? (
             <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 text-center">
-              <p className="text-green-400 font-black uppercase text-xs tracking-widest mb-1">Promo contratada</p>
+              <p className="text-green-400 font-black uppercase text-xs tracking-widest mb-1">{t('business.promo_contracted')}</p>
               <p className="text-white/70 text-sm">
-                {promoTier === 'plus_99' ? 'Promo Redes PLUS (99€)' : 'Promo Redes Sociales (49€)'} · {promoStatus === 'publicado' ? 'Publicada ✅' : 'Pendiente de publicar ⏳'}
+                {promoTier === 'plus_99' ? 'Promo Redes PLUS (99€)' : 'Promo Redes Sociales (49€)'} · {promoStatus === 'publicado' ? `${t('business.promo_published')} ✅` : `${t('business.promo_pending')} ⏳`}
               </p>
-              <p className="text-white/30 text-xs mt-2">Nuestro equipo la publicará en TikTok e Instagram muy pronto.</p>
+              <p className="text-white/30 text-xs mt-2">{t('business.promo_soon')}</p>
             </div>
           ) : (
             <>
               <div className="text-center">
-                <p className="text-white font-black uppercase text-sm tracking-widest">Multiplica tu visibilidad</p>
-                <p className="text-white/40 text-xs mt-1">Llega a nuestra comunidad en redes sociales. Pago único.</p>
+                <p className="text-white font-black uppercase text-sm tracking-widest">{t('business.boost_visibility')}</p>
+                <p className="text-white/40 text-xs mt-1">{t('business.boost_desc')}</p>
               </div>
 
               {/* Opción 49€ */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-black uppercase italic tracking-tight">Promo Redes Sociales</p>
+                  <p className="font-black uppercase italic tracking-tight">{t('business.promo_social')}</p>
                   <p className="text-amber-400 font-black text-lg">49€</p>
                 </div>
                 <div className="space-y-1.5 mb-4">
-                  {['Publicación en TikTok e Instagram de RedCarpet', 'Mayor visibilidad y presencia de marca', 'Tráfico y exposición ante nuestra comunidad'].map((f, i) => (
+                  {[t('business.feat_social_1'), t('business.feat_social_2'), t('business.feat_social_3')].map((f, i) => (
                     <div key={i} className="flex items-center gap-2"><div className="size-1.5 rounded-full bg-amber-400" /><p className="text-white/70 text-xs">{f}</p></div>
                   ))}
                 </div>
@@ -213,19 +214,19 @@ export const BusinessSpotlight: React.FC = () => {
                   disabled={!!promoSubmitting}
                   className="w-full h-11 bg-white/10 border border-white/15 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {promoSubmitting === 'social_49' ? <Loader2 size={16} className="animate-spin" /> : 'Contratar · 49€'}
+                  {promoSubmitting === 'social_49' ? <Loader2 size={16} className="animate-spin" /> : `${t('business.hire')} · 49€`}
                 </button>
               </div>
 
               {/* Opción 99€ (destacada) */}
               <div className="bg-amber-400/10 border-2 border-amber-400/50 rounded-2xl p-5 relative">
-                <span className="absolute -top-2.5 left-5 bg-amber-400 text-amber-900 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Máximo alcance</span>
+                <span className="absolute -top-2.5 left-5 bg-amber-400 text-amber-900 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">{t('business.max_reach')}</span>
                 <div className="flex items-center justify-between mb-2 mt-1">
-                  <p className="font-black uppercase italic tracking-tight">Promo Redes PLUS</p>
+                  <p className="font-black uppercase italic tracking-tight">{t('business.promo_plus')}</p>
                   <p className="text-amber-400 font-black text-lg">99€</p>
                 </div>
                 <div className="space-y-1.5 mb-4">
-                  {['Todo lo de la promo de 49€', 'Vídeo dedicado a tu negocio', 'Varias publicaciones (más alcance)', 'Prioridad y máxima exposición'].map((f, i) => (
+                  {[t('business.feat_plus_1'), t('business.feat_plus_2'), t('business.feat_plus_3'), t('business.feat_plus_4')].map((f, i) => (
                     <div key={i} className="flex items-center gap-2"><div className="size-1.5 rounded-full bg-amber-400" /><p className="text-white/80 text-xs">{f}</p></div>
                   ))}
                 </div>
@@ -234,7 +235,7 @@ export const BusinessSpotlight: React.FC = () => {
                   disabled={!!promoSubmitting}
                   className="w-full h-11 bg-amber-400 text-amber-900 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {promoSubmitting === 'plus_99' ? <Loader2 size={16} className="animate-spin" /> : 'Contratar · 99€'}
+                  {promoSubmitting === 'plus_99' ? <Loader2 size={16} className="animate-spin" /> : `${t('business.hire')} · 99€`}
                 </button>
               </div>
             </>
@@ -243,7 +244,7 @@ export const BusinessSpotlight: React.FC = () => {
           {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{error}</div>}
 
           <button onClick={() => navigate('/')} className="w-full h-12 bg-white/5 border border-white/10 text-white/60 rounded-xl font-bold text-sm">
-            Ver en el mapa
+            {t('business.ver_mapa')}
           </button>
         </div>
       </div>
@@ -258,8 +259,8 @@ export const BusinessSpotlight: React.FC = () => {
           <ChevronLeft size={24} />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black uppercase italic tracking-tighter">Destaca tu negocio</h1>
-          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Pin dorado en el mapa · 50€/mes</p>
+          <h1 className="text-xl font-black uppercase italic tracking-tighter">{t('business.headline')}</h1>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">{t('business.subtitle')}</p>
         </div>
         <div className="size-10 rounded-xl bg-amber-400/20 flex items-center justify-center">
           <Store size={20} className="text-amber-400" />
@@ -269,8 +270,8 @@ export const BusinessSpotlight: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar pb-32">
         {/* Propuesta de valor */}
         <div className="bg-amber-400/10 border border-amber-400/30 rounded-2xl p-4 space-y-2">
-          <p className="text-amber-400 font-black uppercase text-xs tracking-widest">¿Qué consigues?</p>
-          {['Pin dorado visible en el mapa para todos los usuarios', 'Tu nombre y descripción al tocar el pin', 'Enlace a tu web y teléfono directo', 'Actualizable en cualquier momento'].map((f, i) => (
+          <p className="text-amber-400 font-black uppercase text-xs tracking-widest">{t('business.what_you_get')}</p>
+          {[t('business.get_1'), t('business.get_2'), t('business.get_3'), t('business.get_4')].map((f, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="size-1.5 rounded-full bg-amber-400" />
               <p className="text-white/70 text-xs">{f}</p>
@@ -281,17 +282,17 @@ export const BusinessSpotlight: React.FC = () => {
         {/* Formulario */}
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">Nombre del negocio *</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">{t('business.name_label')}</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Ej: Bar El Rincón"
+              placeholder={t('business.name_ph')}
               className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder-white/20 text-sm focus:outline-none focus:border-amber-400/50"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">Categoría</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">{t('business.cat_label')}</label>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.map(cat => (
                 <button
@@ -299,29 +300,29 @@ export const BusinessSpotlight: React.FC = () => {
                   onClick={() => setCategory(cat.id)}
                   className={`h-10 rounded-xl text-xs font-bold border transition-all ${category === cat.id ? 'bg-amber-400/20 border-amber-400/50 text-amber-400' : 'bg-white/5 border-white/10 text-white/50'}`}
                 >
-                  {cat.label}
+                  {t(cat.label)}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">Descripción breve</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">{t('business.desc_label')}</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Ej: Cocina tradicional catalana, menú del día..."
+              placeholder={t('business.desc_ph')}
               rows={3}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-amber-400/50 resize-none"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">Dirección</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">{t('business.addr_label')}</label>
             <input
               value={address}
               onChange={e => setAddress(e.target.value)}
-              placeholder="Calle, número, ciudad"
+              placeholder={t('business.addr_ph')}
               className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder-white/20 text-sm focus:outline-none focus:border-amber-400/50"
             />
           </div>
@@ -362,7 +363,7 @@ export const BusinessSpotlight: React.FC = () => {
               <div className="h-12 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center px-4 gap-2">
                 <MapPin size={16} className="text-green-400 shrink-0" />
                 <span className="text-green-400 text-xs font-bold">{lat.toFixed(5)}, {lng.toFixed(5)}</span>
-                <button onClick={() => { setLat(null); setLng(null); }} className="ml-auto text-white/30 text-xs">Cambiar</button>
+                <button onClick={() => { setLat(null); setLng(null); }} className="ml-auto text-white/30 text-xs">{t('business.change')}</button>
               </div>
             ) : (
               <button
@@ -372,7 +373,7 @@ export const BusinessSpotlight: React.FC = () => {
               >
                 {locating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
                 <span className="text-xs font-bold uppercase tracking-widest">
-                  {locating ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+                  {locating ? t('business.getting_location') : t('business.use_location')}
                 </span>
               </button>
             )}
@@ -393,7 +394,7 @@ export const BusinessSpotlight: React.FC = () => {
           disabled={submitting}
           className="w-full h-14 bg-amber-400 hover:bg-amber-300 text-amber-900 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20"
         >
-          {submitting ? <Loader2 size={20} className="animate-spin" /> : <><Store size={18} /> Destacar negocio · 50€/mes</>}
+          {submitting ? <Loader2 size={20} className="animate-spin" /> : <><Store size={18} /> {t('business.headline')} · 50€/mes</>}
         </button>
         {myListingId && !isPaid && (
           <button onClick={verifyPayment} disabled={submitting} className="w-full h-10 bg-white/5 border border-white/10 rounded-xl text-white/40 font-bold text-xs uppercase tracking-widest">

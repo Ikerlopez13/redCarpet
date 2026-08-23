@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { createFamilyGroup, joinFamilyGroup, generateInviteLink, removeFamilyMemberByUserId } from '../../services/familyService';
 
@@ -21,6 +22,7 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
     members = [],
     onSuccess
 }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [mode, setMode] = useState<'menu' | 'create' | 'join' | 'invite'>('menu');
     const [isLoading, setIsLoading] = useState(false);
@@ -98,10 +100,10 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold">
-                        {mode === 'menu' && 'Gestionar Familia'}
-                        {mode === 'create' && 'Crear nueva familia'}
-                        {mode === 'join' && 'Unirse a una familia'}
-                        {mode === 'invite' && 'Invitar familiar'}
+                        {mode === 'menu' && t('family.manage')}
+                        {mode === 'create' && t('family.create_title')}
+                        {mode === 'join' && t('family.join_title')}
+                        {mode === 'invite' && t('family.invite_title')}
                     </h3>
                     <button onClick={onClose} className="size-8 rounded-full bg-white/10 flex items-center justify-center">
                         <span className="material-symbols-outlined">close</span>
@@ -127,8 +129,8 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                         <span className="material-symbols-outlined text-2xl">add_home</span>
                                     </div>
                                     <div className="text-left">
-                                        <p className="font-bold">Crear una familia</p>
-                                        <p className="text-sm text-white/50">Crea un grupo para compartir ubicación</p>
+                                        <p className="font-bold">{t('family.create_card')}</p>
+                                        <p className="text-sm text-white/50">{t('family.create_card_sub')}</p>
                                     </div>
                                     <span className="material-symbols-outlined ml-auto text-white/40">chevron_right</span>
                                 </button>
@@ -141,8 +143,8 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                         <span className="material-symbols-outlined text-2xl">group_add</span>
                                     </div>
                                     <div className="text-left">
-                                        <p className="font-bold">Unirme a una familia</p>
-                                        <p className="text-sm text-white/50">Usa un código de invitación</p>
+                                        <p className="font-bold">{t('family.join_card')}</p>
+                                        <p className="text-sm text-white/50">{t('family.join_card_sub')}</p>
                                     </div>
                                     <span className="material-symbols-outlined ml-auto text-white/40">chevron_right</span>
                                 </button>
@@ -151,7 +153,7 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                             <div className="flex flex-col gap-4 w-full animate-fade-in">
 
                                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                                    <h4 className="font-bold text-lg mb-3">Miembros de la familia</h4>
+                                    <h4 className="font-bold text-lg mb-3">{t('family.members')}</h4>
                                     <div className="flex flex-col gap-3">
                                         {members.map(member => (
                                             <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5">
@@ -164,7 +166,7 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm truncate">{member.name}</p>
-                                                    <p className="text-xs text-white/50">{member.id === adminId ? 'Administrador' : 'Familiar'}</p>
+                                                    <p className="text-xs text-white/50">{member.id === adminId ? t('family.admin') : t('family.relative')}</p>
                                                 </div>
 
                                                 {/* Kick button: visible only if current user is admin, AND the member is not the admin */}
@@ -191,8 +193,8 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                         <span className="material-symbols-outlined text-2xl">person_add</span>
                                     </div>
                                     <div className="text-left">
-                                        <p className="font-bold text-primary">Invitar familiar</p>
-                                        <p className="text-sm text-primary/70">Comparte tu código de acceso</p>
+                                        <p className="font-bold text-primary">{t('family.invite_title')}</p>
+                                        <p className="text-sm text-primary/70">{t('family.invite_sub')}</p>
                                     </div>
                                     <span className="material-symbols-outlined ml-auto text-primary">chevron_right</span>
                                 </button>
@@ -205,8 +207,8 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                         <span className="material-symbols-outlined text-2xl">add_home</span>
                                     </div>
                                     <div className="text-left">
-                                        <p className="font-bold">Crear una familia</p>
-                                        <p className="text-sm text-white/50">Crea un grupo para compartir ubicación</p>
+                                        <p className="font-bold">{t('family.create_card')}</p>
+                                        <p className="text-sm text-white/50">{t('family.create_card_sub')}</p>
                                     </div>
                                     <span className="material-symbols-outlined ml-auto text-white/40">chevron_right</span>
                                 </button>
@@ -219,8 +221,8 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                         <span className="material-symbols-outlined text-2xl">group_add</span>
                                     </div>
                                     <div className="text-left">
-                                        <p className="font-bold">Unirme a una familia</p>
-                                        <p className="text-sm text-white/50">Usa un código de invitación</p>
+                                        <p className="font-bold">{t('family.join_card')}</p>
+                                        <p className="text-sm text-white/50">{t('family.join_card_sub')}</p>
                                     </div>
                                     <span className="material-symbols-outlined ml-auto text-white/40">chevron_right</span>
                                 </button>
@@ -233,12 +235,12 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                 {mode === 'create' && (
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-white/70">Nombre de la familia</label>
+                            <label className="text-sm font-medium text-white/70">{t('family.name_label')}</label>
                             <input
                                 type="text"
                                 value={familyName}
                                 onChange={(e) => setFamilyName(e.target.value)}
-                                placeholder="Ej: Familia García"
+                                placeholder={t('family.name_ph')}
                                 className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-primary outline-none transition-all"
                             />
                         </div>
@@ -254,7 +256,7 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                 disabled={isLoading || !familyName.trim()}
                                 className="flex-1 py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
                             >
-                                {isLoading ? 'Creando...' : 'Crear Familia'}
+                                {isLoading ? t('family.creating') : t('family.create_btn')}
                             </button>
                         </div>
                     </div>
@@ -264,12 +266,12 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                 {mode === 'join' && (
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-white/70">Código de familia</label>
+                            <label className="text-sm font-medium text-white/70">{t('family.code_label')}</label>
                             <input
                                 type="text"
                                 value={inviteCode}
                                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                                placeholder="Ej: #6E4TRG"
+                                placeholder={t('family.code_ph')}
                                 maxLength={7}
                                 className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-primary outline-none transition-all font-mono text-center text-lg tracking-widest"
                             />
@@ -286,7 +288,7 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                                 disabled={isLoading || !inviteCode.trim()}
                                 className="flex-1 py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
                             >
-                                {isLoading ? 'Uniendo...' : 'Unirse'}
+                                {isLoading ? t('family.joining') : t('family.join_btn')}
                             </button>
                         </div>
                     </div>
@@ -300,12 +302,12 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                         </div>
 
                         <div>
-                            <p className="text-lg font-bold">Código de invitación</p>
-                            <p className="text-white/50 text-sm mt-1">Comparte este código con tus familiares para que se unan</p>
+                            <p className="text-lg font-bold">{t('family.invite_code_label')}</p>
+                            <p className="text-white/50 text-sm mt-1">{t('family.invite_code_sub')}</p>
                         </div>
 
                         {isLoading ? (
-                            <div className="py-4 text-white/40">Generando código...</div>
+                            <div className="py-4 text-white/40">{t('family.generating_code')}</div>
                         ) : (
                             <div className="p-4 bg-white/5 rounded-xl border border-white/10 break-all font-mono text-3xl font-bold tracking-widest text-primary">
                                 #{generatedLink}

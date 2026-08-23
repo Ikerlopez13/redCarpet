@@ -100,7 +100,7 @@ export const Security: React.FC = () => {
                     <Search size={18} className="text-white/20" />
                     <input 
                         type="text" 
-                        placeholder="Buscar en el círculo..." 
+                        placeholder={t('security.search_circle')} 
                         className="bg-transparent outline-none text-sm text-white placeholder-white/20 flex-1"
                     />
                 </div>
