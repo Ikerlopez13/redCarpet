@@ -41,7 +41,7 @@ interface UIMember {
     lng: number;
     status: 'moving' | 'stationary' | 'home';
     speed: string | null;
-    battery: number;
+    battery: number | null; // null = sin datos (no mostrar 0% falso)
     lastUpdate: string;
     isEmergency?: boolean;
     route: { from: string; to: string; eta: string; progress: number } | null;
@@ -59,6 +59,17 @@ export const Home: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'places' | 'alerts' | 'family'>('places');
     const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
+    // Punto al que centrar el mapa al pulsar una persona (ver ubicación, SIN ruta).
+    const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number; nonce: number } | null>(null);
+
+    // Pulsar una persona = VER su ubicación en el mapa (centra/zoom) + su ficha.
+    // NO calcula ninguna ruta; la ruta es una acción aparte ("Ir hasta aquí").
+    const viewMemberLocation = (memberId: string) => {
+        setShowSuggestions(false);
+        const m = familyMembers.find(x => x.id === memberId);
+        if (m && m.lat && m.lng) setMapFocus({ lat: m.lat, lng: m.lng, nonce: Date.now() });
+        setSelectedMember(memberId);
+    };
     // Ubicación GPS real del usuario, para priorizar por cercanía en el buscador
     const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [showSOSConfig, setShowSOSConfig] = useState(false);
@@ -240,7 +251,7 @@ export const Home: React.FC = () => {
                             lng: (!isLocationHidden && loc) ? loc.lng : 0,
                             status: loc && loc.speed && loc.speed > 5 ? 'moving' : 'stationary',
                             speed: loc?.speed ? `${Math.round(loc.speed)} km/h` : null,
-                            battery: loc?.battery_level || 0,
+                            battery: (typeof loc?.battery_level === 'number') ? loc.battery_level : null,
                             lastUpdate: timeString,
                             isEmergency: hasActiveAlert,
                             route: null
@@ -414,7 +425,7 @@ export const Home: React.FC = () => {
                             ...m, 
                             lat: newLoc.lat, 
                             lng: newLoc.lng,
-                            battery: newLoc.battery_level || m.battery,
+                            battery: (typeof newLoc.battery_level === 'number') ? newLoc.battery_level : m.battery,
                             speed: newLoc.speed ? `${Math.round(newLoc.speed)} km/h` : m.speed,
                             status: newLoc.speed > 5 ? 'moving' : 'stationary',
                             lastUpdate: t('common.now')
@@ -610,14 +621,12 @@ export const Home: React.FC = () => {
                     showIncidenceZones={true}
                     externalIncidenceZones={incidenceZones}
                     showPOIs={false}
+                    focusPoint={mapFocus}
                     onPOIClick={(poi) => {
                         setShowSuggestions(false);
                         setSelectedPOI(poi);
                     }}
-                    onMemberClick={(id) => {
-                        setShowSuggestions(false);
-                        setSelectedMember(id);
-                    }}
+                    onMemberClick={(id) => viewMemberLocation(id)}
                     onZoneClick={(id) => {
                         setShowSuggestions(false);
                         setSelectedZoneId(id);
@@ -807,7 +816,7 @@ export const Home: React.FC = () => {
                                 {familyMembers.map((member) => (
                                     <button
                                         key={member.id}
-                                        onClick={() => setSelectedMember(member.id)}
+                                        onClick={() => viewMemberLocation(member.id)}
                                         className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors"
                                     >
                                         <div className={clsx(
@@ -824,8 +833,8 @@ export const Home: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
                                             <div className="flex items-center gap-1 text-[10px] text-white/40">
-                                                <Battery size={12} className={member.battery < 20 ? 'text-red-500' : ''} />
-                                                {member.battery}%
+                                                <Battery size={12} className={member.battery !== null && member.battery < 20 ? 'text-red-500' : ''} />
+                                                {member.battery !== null ? `${member.battery}%` : 'sin datos'}
                                             </div>
                                             <p className="text-[10px] text-white/20">{member.lastUpdate}</p>
                                         </div>
@@ -1088,7 +1097,7 @@ export const Home: React.FC = () => {
                                             className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 transition-transform active:scale-95 text-sm"
                                         >
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
-                                            {t('common.go')}
+                                            Ir hasta aquí
                                         </button>
                                     </div>
                                 </>

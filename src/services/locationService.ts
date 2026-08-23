@@ -34,12 +34,27 @@ export async function updateLocation(
         return { error: null };
     }
 
+    // Batería REAL del dispositivo. Si el llamador no la pasa, se lee del
+    // sistema (UIDevice/BatteryManager vía @capacitor/device). Si no está
+    // disponible (web, sin permiso, no reporta), se guarda null → el resto del
+    // círculo lo mostrará como "sin datos", nunca como un 0% falso.
+    let battery = typeof batteryLevel === 'number' ? batteryLevel : null;
+    if (battery === null) {
+        try {
+            const { Device } = await import('@capacitor/device');
+            const info = await Device.getBatteryInfo();
+            if (typeof info.batteryLevel === 'number') {
+                battery = Math.round(info.batteryLevel * 100); // 0..1 → 0..100
+            }
+        } catch { /* sin dato de batería → null */ }
+    }
+
     const location: Omit<Location, 'id' | 'created_at'> = {
         user_id: userId,
         lat: position.coords.latitude,
         lng: position.coords.longitude,
         accuracy: position.coords.accuracy,
-        battery_level: batteryLevel || null,
+        battery_level: battery,
         speed: position.coords.speed,
         heading: position.coords.heading,
     };

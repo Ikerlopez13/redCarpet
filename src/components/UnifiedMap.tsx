@@ -66,6 +66,9 @@ interface UnifiedMapProps {
     origin?: { lat: number; lng: number };
     destination?: { lat: number; lng: number };
     onZoneClick?: (zoneId: string) => void;
+    // Centrar/zoom el mapa en un punto (p. ej. al pulsar una persona del círculo).
+    // El `nonce` fuerza el recentrado aunque el punto sea el mismo que antes.
+    focusPoint?: { lat: number; lng: number; nonce: number } | null;
 }
 
 export const UnifiedMap: React.FC<UnifiedMapProps> = ({
@@ -85,7 +88,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     routeGeometry,
     origin,
     destination,
-    onZoneClick
+    onZoneClick,
+    focusPoint
 }) => {
     const { t } = useTranslation();
     const [showTraffic, setShowTraffic] = useState(true);
@@ -93,6 +97,22 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     const [viewState, setViewState] = useState({ ...DEFAULT_VIEW, pitch: 0, bearing: 0 });
     const [busStops, setBusStops] = useState<BusStop[]>([]);
     const [metroStations, setMetroStations] = useState<MetroStation[]>([]);
+
+    // Centrar/zoom el mapa sobre un punto cuando cambia focusPoint (ver ubicación
+    // de una persona del círculo). No calcula ninguna ruta.
+    useEffect(() => {
+        if (focusPoint && focusPoint.lat && focusPoint.lng) {
+            setViewState(prev => ({
+                ...prev,
+                latitude: focusPoint.lat,
+                longitude: focusPoint.lng,
+                zoom: Math.max(prev.zoom, 16),
+                pitch: 0,
+                bearing: 0,
+            }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [focusPoint?.nonce]);
     const [pois, setPois] = useState<POI[]>([]);
     const [incidenceZones, setIncidenceZones] = useState<any[]>([]);
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
