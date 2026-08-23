@@ -4,7 +4,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { Navigation2, Settings } from 'lucide-react';
 import { requestSOSPermissions, requestNotificationPermission } from '../services/sosService';
-import { getForegroundState, syncForegroundConsent, recordAlwaysConsent } from '../services/locationPermissionService';
+import { getLocationLevel, syncForegroundConsent, recordAlwaysConsent } from '../services/locationPermissionService';
 import { useAuth } from '../contexts/AuthContext';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,11 +46,16 @@ export function PermissionsPrimer() {
             await syncForegroundConsent();
 
             if (Capacitor.getPlatform() === 'android') {
-                // CHECK-BEFORE-ASK: si el permiso en primer plano ni siquiera está
-                // concedido, no tiene sentido pedir "Siempre" todavía.
-                const fg = await getForegroundState();
+                // CHECK-BEFORE-ASK con detección EXACTA: solo mostramos la hoja de
+                // "Siempre" si tiene el permiso en primer plano pero NO "Siempre".
+                // Si ya tiene "always", no se le molesta. Si aún no tiene ni
+                // foreground, se deja que el diálogo nativo lo pida antes.
+                const level = await getLocationLevel();
+                if (level === 'always') {
+                    await Preferences.set({ key: ALWAYS_CONFIRMED_KEY, value: 'true' });
+                }
                 const { value } = await Preferences.get({ key: ALWAYS_CONFIRMED_KEY });
-                if (fg === 'granted' && value !== 'true') {
+                if (level === 'foreground' && value !== 'true') {
                     // En Android 10 el diálogo nativo de ubicación aún ofrece "Permitir
                     // siempre"; lo provocamos con un watcher efímero en segundo plano.
                     try {
@@ -81,8 +86,15 @@ export function PermissionsPrimer() {
         let remove: (() => void) | undefined;
         (async () => {
             const { App } = await import('@capacitor/app');
-            const handle = await App.addListener('appStateChange', ({ isActive }) => {
-                if (isActive) syncForegroundConsent().catch(() => {});
+            const handle = await App.addListener('appStateChange', async ({ isActive }) => {
+                if (!isActive) return;
+                // Al volver de Ajustes: re-detectar el nivel real y, si ya es
+                // "Siempre", cerrar la hoja automáticamente (sin reiniciar).
+                const level = await syncForegroundConsent();
+                if (level === 'always') {
+                    await Preferences.set({ key: ALWAYS_CONFIRMED_KEY, value: 'true' });
+                    setShowAlwaysSheet(false);
+                }
             });
             remove = () => handle.remove();
         })();
