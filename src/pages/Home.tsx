@@ -63,7 +63,7 @@ export const Home: React.FC = () => {
     const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number; nonce: number } | null>(null);
 
     // Pulsar una persona = VER su ubicación en el mapa (centra/zoom) + su ficha.
-    // NO calcula ninguna ruta; la ruta es una acción aparte ("Ir hasta aquí").
+    // NO calcula ninguna ruta; la ruta es una acción aparte ("{t('home.go_here')}").
     const viewMemberLocation = (memberId: string) => {
         setShowSuggestions(false);
         const m = familyMembers.find(x => x.id === memberId);
@@ -834,7 +834,7 @@ export const Home: React.FC = () => {
                                         <div className="flex flex-col items-end gap-1">
                                             <div className="flex items-center gap-1 text-[10px] text-white/40">
                                                 <Battery size={12} className={member.battery !== null && member.battery < 20 ? 'text-red-500' : ''} />
-                                                {member.battery !== null ? `${member.battery}%` : 'sin datos'}
+                                                {member.battery !== null ? `${member.battery}%` : t('common.no_data')}
                                             </div>
                                             <p className="text-[10px] text-white/20">{member.lastUpdate}</p>
                                         </div>
@@ -1097,7 +1097,7 @@ export const Home: React.FC = () => {
                                             className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 transition-transform active:scale-95 text-sm"
                                         >
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
-                                            Ir hasta aquí
+                                            {t('home.go_here')}
                                         </button>
                                     </div>
                                 </>

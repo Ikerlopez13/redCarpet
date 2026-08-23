@@ -97,7 +97,8 @@
     "poi_price": "Preço",
     "no_family_members": "Convide membros da família para vê-los no mapa",
     "report_danger": "Relatar Incidente",
-    "report_danger_desc": "Avise outros usuários sobre os perigos em sua localização atual."
+    "report_danger_desc": "Avise outros usuários sobre os perigos em sua localização atual.",
+    "go_here": "Ir até aqui"
   },
   "map": {
     "light_notice": "Aviso de iluminação",
@@ -674,5 +675,13 @@
     "pin_desc": "Digite o código para desativar o rastreamento de viagem com segurança.",
     "access_error": "A câmera frontal não pôde ser acessada.",
     "rec": "REC"
+  },
+  "safezone": {
+    "title": "Adicionar zona segura",
+    "name_label": "Nome do lugar",
+    "name_placeholder": "Ex. Casa, Escola, Parque...",
+    "address_label": "Procurar endereço",
+    "address_placeholder": "Escreve um endereço...",
+    "radius_label": "Raio de segurança"
   }
 }

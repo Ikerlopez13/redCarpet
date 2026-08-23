@@ -32,7 +32,8 @@
     "poi_price": "Prix",
     "no_family_members": "Invitez vos proches pour les voir sur la carte",
     "report_danger": "Signaler un incident",
-    "report_danger_desc": "Prévenez les autres utilisateurs des dangers à votre position actuelle."
+    "report_danger_desc": "Prévenez les autres utilisateurs des dangers à votre position actuelle.",
+    "go_here": "Y aller"
   },
   "settings": {
     "title": "Paramètres",
@@ -674,5 +675,13 @@
     "pin_desc": "Saisissez le code pour désactiver le suivi du trajet en toute sécurité.",
     "access_error": "Impossible d'accéder à la caméra avant.",
     "rec": "REC"
+  },
+  "safezone": {
+    "title": "Ajouter une zone sûre",
+    "name_label": "Nom du lieu",
+    "name_placeholder": "Ex. Maison, École, Parc...",
+    "address_label": "Rechercher une adresse",
+    "address_placeholder": "Saisissez une adresse...",
+    "radius_label": "Rayon de sécurité"
   }
 }

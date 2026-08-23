@@ -97,7 +97,8 @@
     "poi_price": "Preis",
     "no_family_members": "Laden Sie Familienmitglieder ein, sie auf der Karte zu sehen",
     "report_danger": "Vorfall melden",
-    "report_danger_desc": "Warnen Sie andere Benutzer vor Gefahren an Ihrem aktuellen Standort."
+    "report_danger_desc": "Warnen Sie andere Benutzer vor Gefahren an Ihrem aktuellen Standort.",
+    "go_here": "Dorthin"
   },
   "map": {
     "light_notice": "Beleuchtungshinweis",
@@ -674,5 +675,13 @@
     "pin_desc": "Geben Sie den Code ein, um die Fahrtverfolgung sicher zu deaktivieren.",
     "access_error": "Auf die Frontkamera konnte nicht zugegriffen werden.",
     "rec": "REC"
+  },
+  "safezone": {
+    "title": "Sichere Zone hinzufügen",
+    "name_label": "Name des Orts",
+    "name_placeholder": "z. B. Zuhause, Schule, Park...",
+    "address_label": "Adresse suchen",
+    "address_placeholder": "Adresse eingeben...",
+    "radius_label": "Sicherheitsradius"
   }
 }

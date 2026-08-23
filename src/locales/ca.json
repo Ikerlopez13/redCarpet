@@ -32,7 +32,8 @@
     "poi_open": "Obert",
     "poi_rating": "Valoració",
     "poi_price": "Preu",
-    "no_family_members": "Convida familiars per veure'ls al mapa"
+    "no_family_members": "Convida familiars per veure'ls al mapa",
+    "go_here": "Anar-hi"
   },
   "common": {
     "now": "Ara",
@@ -674,5 +675,13 @@
     "pin_desc": "Introdueix el codi per desactivar el seguiment del trajecte de manera segura.",
     "access_error": "No s'ha pogut accedir a la càmera frontal.",
     "rec": "REC"
+  },
+  "safezone": {
+    "title": "Afegir zona segura",
+    "name_label": "Nom del lloc",
+    "name_placeholder": "Ex. Casa, Escola, Parc...",
+    "address_label": "Cercar adreça",
+    "address_placeholder": "Escriu una adreça...",
+    "radius_label": "Radi de seguretat"
   }
 }

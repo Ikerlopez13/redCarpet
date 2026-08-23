@@ -97,7 +97,8 @@
     "poi_price": "Price",
     "no_family_members": "Invite family members to see them on the map",
     "report_danger": "Reportar Incidencia",
-    "report_danger_desc": "Avisa a otros usuarios sobre peligros en tu ubicación actual."
+    "report_danger_desc": "Avisa a otros usuarios sobre peligros en tu ubicación actual.",
+    "go_here": "Go here"
   },
   "map": {
     "light_notice": "Lighting notice",
@@ -674,5 +675,13 @@
     "pin_desc": "Enter the code to safely deactivate journey tracking.",
     "access_error": "Could not access front camera.",
     "rec": "REC"
+  },
+  "safezone": {
+    "title": "Add Safe Zone",
+    "name_label": "Place name",
+    "name_placeholder": "e.g. Home, School, Park...",
+    "address_label": "Search address",
+    "address_placeholder": "Type an address...",
+    "radius_label": "Safety radius"
   }
 }

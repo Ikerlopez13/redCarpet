@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../services/supabaseClient';
 import { getCurrentPosition } from '../../services/locationService';
 import { searchPlaces, type GeocodingResult } from '../../services/geocodingService';
@@ -12,6 +13,7 @@ interface AddSafeZoneModalProps {
 }
 
 export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSafeZoneModalProps) {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const [radius, setRadius] = useState(100);
     const [isLoading, setIsLoading] = useState(false);
@@ -136,7 +138,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#121212] border border-white/10 w-full max-w-md rounded-3xl p-6 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Agregar Zona Segura</h2>
+                    <h2 className="text-xl font-bold text-white tracking-tight">{t('safezone.title')}</h2>
                     <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
                         <span className="material-symbols-outlined text-white/60">close</span>
                     </button>
@@ -151,19 +153,19 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                 <div className="space-y-5 mb-8">
                     {/* Name Input */}
                     <div>
-                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Nombre del lugar</label>
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">{t('safezone.name_label')}</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Ej. Casa, Escuela, Parque..."
+                            placeholder={t('safezone.name_placeholder')}
                             className="w-full bg-zinc-900 border border-white/5 rounded-2xl p-4 text-white placeholder-zinc-600 focus:outline-none focus:border-primary/50 transition-all font-medium"
                         />
                     </div>
 
                     {/* Address Search Input */}
                     <div className="relative">
-                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Buscar Dirección</label>
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">{t('safezone.address_label')}</label>
                         <div className={clsx(
                             "flex items-center gap-3 bg-zinc-900 border rounded-2xl p-4 transition-all",
                             showSuggestions ? "border-primary/50 rounded-b-none" : "border-white/5",
@@ -183,7 +185,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                                     if (selectedLocation) setSelectedLocation(null);
                                 }}
                                 onFocus={() => !selectedLocation && addressQuery.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-                                placeholder="Escribe una dirección..."
+                                placeholder={t('safezone.address_placeholder')}
                                 className="flex-1 bg-transparent text-white placeholder-zinc-700 outline-none text-sm font-medium"
                             />
                             {isSearching && (
@@ -211,7 +213,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                     {/* Radius Slider */}
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Radio de seguridad</label>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">{t('safezone.radius_label')}</label>
                             <span className="text-primary font-black text-sm">{radius}m</span>
                         </div>
                         <input
