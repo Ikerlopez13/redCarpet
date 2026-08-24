@@ -4,11 +4,12 @@ import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadAvatar, deleteUserAccount } from '../services/authService';
 import { useTranslation } from 'react-i18next';
+import { Star } from 'lucide-react';
 import { App } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { initPushNotifications, getPushPermissionStatus } from '../services/pushService';
 import { SOSConfigSheet, type SOSConfigData } from '../components/SOSConfigSheet';
-import { Star } from 'lucide-react';
+import { ReviewPromptModal } from '../components/ReviewPromptModal';
 import clsx from 'clsx';
 
 export const Settings: React.FC = () => {
@@ -18,6 +19,7 @@ export const Settings: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [showLanguageSelector, setShowLanguageSelector] = useState(false);
     const [showSOSConfig, setShowSOSConfig] = useState(false);
+    const [showReview, setShowReview] = useState(false);
     const [fileInputRef] = [useRef<HTMLInputElement>(null)];
     const [notificationStatus, setNotificationStatus] = useState<string>('checker');
     const [useMiles, setUseMiles] = useState<boolean>(localStorage.getItem('use_miles') === 'true');
@@ -132,16 +134,16 @@ export const Settings: React.FC = () => {
                     isPremiumCTA: !isPremium
                 },
                 { 
-                    icon: "settings_suggest", 
-                    label: "Configuración SOS", 
-                    subLabel: "Ajustar protocolo y contactos", 
+                    icon: "settings_suggest",
+                    label: t('settings.items.sos_config'),
+                    subLabel: t('settings.items.sos_config_sub'),
                     action: "reconfigure-sos",
                     iconColor: "text-red-500"
                 },
                 {
                     icon: "widgets",
-                    label: "Widgets y SOS Discreto",
-                    subLabel: "Configuración y demo táctil",
+                    label: t('settings.items.widgets_discreet'),
+                    subLabel: t('settings.items.widgets_discreet_sub'),
                     path: "/widgets",
                     iconColor: "text-amber-500"
                 },
@@ -182,12 +184,12 @@ export const Settings: React.FC = () => {
             ]
         },
         {
-            title: 'Para negocios',
+            title: t('settings.groups.business'),
             items: [
                 {
                     icon: "store",
-                    label: "Destaca tu negocio en el mapa",
-                    subLabel: "Pin dorado visible para todos los usuarios · 50€/mes",
+                    label: t('settings.items.promote_business'),
+                    subLabel: t('settings.items.promote_business_sub'),
                     path: "/business-spotlight",
                     iconColor: "text-amber-400"
                 },
@@ -197,7 +199,6 @@ export const Settings: React.FC = () => {
             title: t('settings.groups.support_legal'),
             items: [
                 { icon: "mail", label: t('settings.items.contact'), subLabel: "soporte.redcarpet@gmail.com", email: "soporte.redcarpet@gmail.com" },
-                { icon: "chat_bubble", label: t('settings.items.feedback'), path: "/feedback" },
                 { icon: "help", label: t('settings.items.faq'), path: "/faq" },
                 { icon: "verified_user", label: t('settings.items.privacy_policy'), path: "/privacy" },
                 { icon: "description", label: t('settings.items.terms_of_use'), path: "/terms" },
@@ -316,22 +317,15 @@ export const Settings: React.FC = () => {
 
                 {/* Rating / Rate App */}
                 <div className="px-6 mt-8 flex flex-col gap-4">
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mb-[-8px]">Ayúdanos</p>
-                    <button 
-                        onClick={async () => {
-                            if (Capacitor.isNativePlatform()) {
-                                const url = Capacitor.getPlatform() === 'ios'
-                                    ? 'itms-apps://itunes.apple.com/app/id6755689618'
-                                    : 'market://details?id=com.vibecode.redcarpet';
-                                try { window.location.href = url; } catch (e) {}
-                            }
-                        }}
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mb-[-8px]">{t('settings.help_us')}</p>
+                    <button
+                        onClick={() => setShowReview(true)}
                         className="w-full h-14 bg-[#1c1c1e] rounded-xl flex items-center gap-4 px-4 hover:bg-white/5 active:bg-white/10 transition-colors"
                     >
                         <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
                             <Star size={18} />
                         </div>
-                        <span className="font-bold text-white flex-1 text-left">Valorar la aplicación</span>
+                        <span className="font-bold text-white flex-1 text-left">{t('settings.rate_app')}</span>
                         <span className="material-symbols-outlined text-white/20 text-sm">chevron_right</span>
                     </button>
                 </div>
@@ -448,6 +442,8 @@ export const Settings: React.FC = () => {
                     return undefined;
                 })()}
             />
+
+            <ReviewPromptModal isOpen={showReview} onClose={() => setShowReview(false)} />
         </div>
     );
 };

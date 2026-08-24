@@ -14,7 +14,7 @@
     "success": "Successo",
     "user": "Utente",
     "go": "VAI",
-    "report": "Rapporto"
+    "report": "Segnala"
   },
   "auth": {
     "login_tab": "Accedi",
@@ -97,8 +97,22 @@
     "poi_price": "Prezzo",
     "no_family_members": "Invita i membri della famiglia a vederli sulla mappa",
     "report_danger": "Segnala incidente",
-    "report_danger_desc": "Avvisa gli altri utenti dei pericoli nella tua posizione attuale.",
-    "go_here": "Vai qui"
+    "report_danger_desc": "Avvisa altri utenti sui pericoli nella tua posizione attuale.",
+    "go_here": "Vai qui",
+    "your_circle": "La tua cerchia",
+    "add_trusted_place": "Aggiungi luogo fidato",
+    "delete_place_confirm": "Eliminare questo luogo fidato?",
+    "delete_place": "Elimina luogo",
+    "safety_circle": "Cerchia di sicurezza",
+    "internal_detail": "Dettaglio interno",
+    "no_one_circle": "Non hai ancora nessuno nella tua cerchia.",
+    "add_contacts": "Aggiungi contatti",
+    "add_more_contacts": "Aggiungi altri contatti",
+    "verify_alert": "Verifica avviso",
+    "zone_check_desc": "Sei appena passato vicino a un incidente ({{type}}) segnalato tempo fa. È ancora attivo?",
+    "gone": "Non c'è più",
+    "still_here": "Ancora qui",
+    "pending_invite": "Invito in sospeso..."
   },
   "map": {
     "light_notice": "Avviso di illuminazione",
@@ -154,7 +168,8 @@
       "security_network": "RETE COMUNITARIA",
       "support_legal": "SUPPORTO E LEGALE",
       "privacy_data": "PRIVACY E DATI (GDPR)",
-      "debug": "🛠️ DEBUG (DEMO)"
+      "debug": "🛠️ DEBUG (DEMO)",
+      "business": "Per le attività"
     },
     "items": {
       "circle_management": "Gestione cerchi",
@@ -181,7 +196,13 @@
       "download_data": "Scarica i miei dati",
       "withdraw_consent": "Ritira il consenso",
       "view_onboarding": "Visualizza onboarding",
-      "reset_onboarding": "Ripristina onboarding"
+      "reset_onboarding": "Ripristina onboarding",
+      "sos_config": "Impostazioni SOS",
+      "sos_config_sub": "Regola protocollo e contatti",
+      "widgets_discreet": "Widget e SOS discreto",
+      "widgets_discreet_sub": "Configurazione e demo tattile",
+      "promote_business": "Metti in evidenza la tua attività sulla mappa",
+      "promote_business_sub": "Segnaposto dorato visibile a tutti · 50€/mese"
     },
     "version": "Versione",
     "build": "Compilazione",
@@ -222,7 +243,9 @@
     "language_selector_desc": "Seleziona la tua lingua preferita",
     "cancel": "Annulla",
     "account_actions": "Azioni dell'account",
-    "legal_notice": "Avviso legale e EULA"
+    "legal_notice": "Avviso legale e EULA",
+    "rate_app": "Valuta l'app",
+    "help_us": "Aiutaci"
   },
   "emergency": {
     "sos_title": "CENTRO AVVISI",
@@ -505,7 +528,7 @@
     "delete_error": "Errore durante l'eliminazione del contatto",
     "respond_error": "Errore nel rispondere alla richiesta",
     "sync_error": "Errore durante la sincronizzazione della marcia.",
-    "add_manual": "Aggiungi manuale",
+    "add_manual": "Aggiungi manualmente",
     "import_agenda": "Importa dall'agenda",
     "search_agenda": "Cerca nel tuo calendario...",
     "select_phone": "Seleziona telefono",
@@ -524,7 +547,26 @@
     "name_example_ph": "es. Mamma, Carlo...",
     "id_not_found": "Nessun utente trovato con quell'ID. Controlla che sia scritto bene.",
     "cant_add_self": "Non puoi aggiungere te stesso.",
-    "add_error_retry": "Errore nell'aggiunta del contatto. Riprova."
+    "add_error_retry": "Errore nell'aggiunta del contatto. Riprova.",
+    "invite_whatsapp": "Invita su WhatsApp",
+    "invited_badge": "Invitato · non registrato",
+    "add_manual_desc": "Inserisci nome e numero di telefono del contatto.",
+    "by_id": "Tramite ID RedCarpet",
+    "by_id_desc": "Inserisci l'ID univoco del contatto (es. #3925DD3).",
+    "from_agenda": "Dalla rubrica",
+    "from_agenda_desc": "Scegli un contatto direttamente dal telefono.",
+    "id_info": "Chiedi al tuo contatto di aprire RedCarpet e condividere il suo ID. Lo trova in alto in questa schermata.",
+    "id_label": "ID RedCarpet",
+    "nickname_label": "Come lo chiami (opzionale)",
+    "name_label": "Nome",
+    "phone_label": "Telefono",
+    "phone_example_ph": "es. +34 600 000 000",
+    "back": "Indietro",
+    "searching": "Ricerca...",
+    "send_request": "Invia richiesta",
+    "adding": "Aggiunta...",
+    "invite_id_msg": "Unisciti alla mia cerchia di sicurezza su RedCarpet! 🛡️🔴\n\nIl mio ID è: {{id}}\n\n📥 Scarica l'app e aggiungimi con il mio ID:\nhttps://apps.apple.com/app/id6755689618",
+    "add_contact": "Aggiungi contatto"
   },
   "feedback": {
     "title": "Feedback",
@@ -700,7 +742,11 @@
     "pin_desc": "Inserisci il codice per disattivare in sicurezza il tracciamento del viaggio.",
     "access_error": "Non è stato possibile accedere alla fotocamera anteriore.",
     "rec": "REC",
-    "capture_error": "Errore di acquisizione. Riprova."
+    "capture_error": "Errore di acquisizione. Riprova.",
+    "security_test": "PROVA DI SICUREZZA",
+    "dual_subtitle": "Verrà catturata un'immagine con entrambe le fotocamere per il registro di emergenza.",
+    "capturing": "ACQUISIZIONE...",
+    "press_capture": "PREMI PER CATTURARE"
   },
   "safezone": {
     "title": "Aggiungi zona sicura",
@@ -716,7 +762,7 @@
     "cat_shop": "🛍 Negozio",
     "cat_hotel": "🏨 Hotel / Alloggio",
     "cat_health": "⚕️ Salute / Farmacia",
-    "cat_services": "🔧 Servizi",
+    "cat_services": "Servizi",
     "cat_beauty": "💈 Bellezza / Estetica",
     "cat_other": "📍 Altro",
     "err_location": "Impossibile ottenere la posizione. Attiva il GPS.",
@@ -763,7 +809,14 @@
     "active_map_msg": "{{name}} ora è in evidenza sulla mappa e nella ricerca di RedCarpet.",
     "err_generic": "Errore imprevisto",
     "err_save": "Errore nel salvataggio",
-    "err_pay": "Errore nella creazione del pagamento"
+    "err_pay": "Errore nella creazione del pagamento",
+    "search_label": "La tua attività o indirizzo",
+    "search_ph": "Cerca per nome o indirizzo",
+    "searching": "Ricerca...",
+    "no_results": "Nessun risultato",
+    "use_current_optional": "Oppure usa la mia posizione attuale (opzionale)",
+    "location_ok": "Posizione selezionata",
+    "pick_location": "Cerca e seleziona la posizione della tua attività"
   },
   "family": {
     "manage": "Gestisci famiglia",
@@ -788,10 +841,27 @@
     "join_btn": "Unisciti",
     "invite_code_label": "Codice di invito",
     "invite_code_sub": "Condividi questo codice con i tuoi familiari per unirsi",
-    "generating_code": "Generazione codice..."
+    "generating_code": "Generazione codice...",
+    "protected": "La tua famiglia è protetta"
   },
   "security": {
-    "search_circle": "Cerca nel cerchio..."
+    "search_circle": "Cerca nel cerchio...",
+    "my_alarms": "I miei allarmi",
+    "see_all": "Vedi tutto",
+    "syncing": "Sincronizzazione...",
+    "no_active_alerts": "Nessun avviso attivo",
+    "circle_safe_now": "La tua cerchia è al sicuro adesso",
+    "circle_member": "Membro della cerchia",
+    "activated_journey": "Ha attivato un avviso di percorso",
+    "active_config": "Impostazioni attive",
+    "danger_zones": "Zone di pericolo",
+    "realtime_alerts": "Avvisi in tempo reale",
+    "safe_routes": "Percorsi sicuri",
+    "nav_ai": "IA di navigazione",
+    "contacts": "Contatti",
+    "manage_circle": "Gestisci cerchia",
+    "ai_shield_active": "Scudo IA attivo",
+    "predictive_on": "Protezione predittiva attivata"
   },
   "sub": {
     "err_no_active": "Nessun abbonamento attivo trovato. Controlla l'email di conferma.",
@@ -831,6 +901,74 @@
     "activate_pass": "Attiva pass"
   },
   "review": {
-    "placeholder": "Dicci come migliorare l'app per te..."
+    "placeholder": "Dicci come migliorare l'app per te...",
+    "title": "Cosa ne pensi di RedCarpet?",
+    "subtitle": "Il tuo parere ci aiuta a salvare più vite e a migliorare l'app.",
+    "improve_label": "Cosa possiamo migliorare?",
+    "submit": "Invia commenti",
+    "thanks_title": "Grazie!",
+    "thanks_sub": "Apprezziamo molto il tuo supporto e la tua fiducia."
+  },
+  "alert": {
+    "title": "Avviso: {{type}}",
+    "confirm_question": "Vuoi confermare questo avviso?",
+    "confirm": "Conferma",
+    "dismiss": "Ignora",
+    "cancel_alert": "Annulla avviso",
+    "close": "Chiudi",
+    "active_title": "Avviso attivo",
+    "confirm_still": "Conferma (C'è ancora)",
+    "false_alarm": "Falso allarme / Non c'è più",
+    "default_danger": "Pericolo segnalato in questa zona",
+    "load_error": "Impossibile caricare l'avviso",
+    "vote_error": "Impossibile registrare il voto."
+  },
+  "locperm": {
+    "always_title": "Posizione \"Sempre\"",
+    "always_desc": "RedCarpet ha bisogno dell'accesso \"sempre\" alla tua posizione per proteggerti anche quando l'app è in background.",
+    "always_hint": "Vai su Impostazioni → RedCarpet → Posizione → Sempre",
+    "later": "Non ora",
+    "go_settings": "Vai su Impostazioni",
+    "denied_title": "Autorizzazione negata",
+    "denied_desc": "Attiva l'accesso alla posizione nelle Impostazioni di sistema affinché RedCarpet possa proteggerti.",
+    "settings": "Impostazioni"
+  },
+  "permprimer": {
+    "title": "Attiva \"Posizione sempre\"",
+    "desc": "Affinché i tuoi contatti ti vedano sulla mappa in tempo reale e tu sia protetto in background, serve l'autorizzazione \"Sempre\".",
+    "how_to": "Come attivarlo:",
+    "step1": "1. Tocca \"Vai su Impostazioni\"",
+    "step2": "2. Tocca Posizione (Autorizzazioni)",
+    "step3": "3. Seleziona \"Consenti sempre\"",
+    "activated": "Fatto — Continua"
+  },
+  "report": {
+    "cat": {
+      "dark_light": "Poca luce",
+      "unsafe_env": "Ambiente insicuro",
+      "limited_mobility": "Accesso limitato",
+      "safe_mobility": "Accesso sicuro",
+      "inclusive_zone": "Zona inclusiva",
+      "street_closed": "Strada chiusa",
+      "street_damaged": "Strada dissestata",
+      "security": "Autorità presenti"
+    },
+    "sub": {
+      "low_visibility": "Scarsa visibilità",
+      "danger": "Pericolo",
+      "reduced_mobility": "Mobilità ridotta",
+      "inclusivity": "Inclusività",
+      "roadway": "Viabilità",
+      "safety": "Sicurezza"
+    },
+    "location_error": "Impossibile determinare la tua posizione.",
+    "danger_warning": "Avviso di pericolo"
+  },
+  "bizcard": {
+    "call": "Chiama",
+    "website": "Vai al sito",
+    "directions": "Indicazioni",
+    "featured": "Attività in evidenza",
+    "close": "Chiudi"
   }
 }

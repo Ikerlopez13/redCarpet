@@ -374,18 +374,6 @@ export const GreenCarpet: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Achievements */}
-                        <div className="bg-gradient-to-br from-[#10B981] to-[#059669] p-6.5 rounded-3xl text-black shadow-lg shadow-[#10B981]/25 relative overflow-hidden group">
-                            {/* Card Background Glow */}
-                            <div className="absolute -top-12 -right-12 size-36 bg-white/10 rounded-full filter blur-xl group-hover:scale-110 transition-transform duration-500" />
-                            
-                            <ShieldCheck size={36} className="mb-3 text-black animate-pulse" />
-                            <h3 className="text-xl font-black uppercase italic tracking-tighter mb-1.5">{t('greencarpet.eco_elite')}</h3>
-                            <p className="text-[11px] font-bold uppercase opacity-75 leading-snug">
-                                {t('greencarpet.eco_elite_desc')}
-                            </p>
-                        </div>
-
                         {/* Contribution Breakdowns */}
                         <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
                             <div className="flex items-center gap-2">

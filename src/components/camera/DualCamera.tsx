@@ -88,9 +88,9 @@ export const DualCamera: React.FC<DualCameraProps> = ({ className, onCaptureComp
                     </div>
 
                     <div className="space-y-2">
-                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">PRUEBA DE SEGURIDAD</h2>
+                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">{t('camera.security_test')}</h2>
                         <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed max-w-[200px] mx-auto">
-                            Se capturará una imagen con ambas cámaras para el registro de emergencia.
+                            {t('camera.dual_subtitle')}
                         </p>
                     </div>
 
@@ -113,7 +113,7 @@ export const DualCamera: React.FC<DualCameraProps> = ({ className, onCaptureComp
                             </div>
                         </button>
                         <p className="mt-4 text-white/20 font-black text-[9px] uppercase tracking-[0.3em]">
-                            {isCapturing ? 'CAPTURANDO...' : 'PULSA PARA CAPTURAR'}
+                            {isCapturing ? t('camera.capturing') : t('camera.press_capture')}
                         </p>
                     </div>
                 </div>

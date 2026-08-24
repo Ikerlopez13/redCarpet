@@ -29,4 +29,16 @@ android/keystore.properties
 *.sln
 *.sw?
 .env
+.env.local
+.env.*.local
 .valencia-demo-credentials
+
+# Secretos / credenciales (NUNCA versionar)
+*.p8
+*.pem
+*.p12
+*.mobileprovision
+android/app/upload_certificate.*
+SubscriptionKey_*.p8
+google-services.json
+GoogleService-Info.plist

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
@@ -20,6 +21,7 @@ const ALWAYS_CONFIRMED_KEY = 'location_always_confirmed';
  * partir de Android 11: hay que pasar por Ajustes).
  */
 export function PermissionsPrimer() {
+    const { t } = useTranslation();
     const location = useLocation();
     const { user } = useAuth();
     const [showAlwaysSheet, setShowAlwaysSheet] = useState(false);
@@ -124,30 +126,29 @@ export function PermissionsPrimer() {
                     <Navigation2 size={30} className="text-primary" />
                 </div>
                 <h2 className="text-white text-2xl font-black uppercase italic tracking-tighter mb-3 leading-tight">
-                    Activa "Ubicación Siempre"
+                    {t('permprimer.title')}
                 </h2>
                 <p className="text-white/70 text-sm leading-relaxed mb-5">
-                    Para que tus contactos te vean en el mapa en tiempo real y estés protegido en segundo plano,
-                    necesitamos permiso de ubicación <strong className="text-white">"Siempre"</strong>.
+                    {t('permprimer.desc')}
                 </p>
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-left mb-6">
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Cómo activarlo:</p>
-                    <p className="text-xs text-white/80 font-semibold mb-1">1. Toca <strong>"Ir a Ajustes"</strong></p>
-                    <p className="text-xs text-white/80 font-semibold mb-1">2. Toca <strong>Ubicación</strong> (Permisos)</p>
-                    <p className="text-xs text-white/80 font-semibold">3. Selecciona <strong>"Permitir siempre"</strong></p>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">{t('permprimer.how_to')}</p>
+                    <p className="text-xs text-white/80 font-semibold mb-1">{t('permprimer.step1')}</p>
+                    <p className="text-xs text-white/80 font-semibold mb-1">{t('permprimer.step2')}</p>
+                    <p className="text-xs text-white/80 font-semibold">{t('permprimer.step3')}</p>
                 </div>
                 <button
                     onClick={openLocationSettings}
                     className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/25 flex items-center justify-center gap-2 mb-3 active:scale-95 transition-all"
                 >
-                    <Settings size={18} /> Ir a Ajustes
+                    <Settings size={18} /> {t('locperm.go_settings')}
                 </button>
                 <div className="flex justify-between items-center px-2">
                     <button onClick={() => setShowAlwaysSheet(false)} className="text-white/40 text-xs font-bold py-3">
-                        Ahora no
+                        {t('locperm.later')}
                     </button>
                     <button onClick={confirmAlways} className="text-white text-xs font-black py-3 underline underline-offset-4">
-                        Ya lo he activado — Continuar
+                        {t('permprimer.activated')}
                     </button>
                 </div>
             </div>

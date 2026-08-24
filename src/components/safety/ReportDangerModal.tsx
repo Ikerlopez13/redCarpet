@@ -21,16 +21,17 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
 
     if (!isOpen) return null;
 
-    // Cada tipo tiene su color propio (se usa con estilos inline para que Tailwind no purgue las clases)
+    // Cada tipo tiene su color propio (se usa con estilos inline para que Tailwind no purgue las clases).
+    // labelKey/subKey son claves i18n; label/subtitle (español) se guardan como valor canónico en la BD.
     const types = [
-        { id: 'dark_light', dbType: 'dark', icon: 'lightbulb', label: 'Poca luz', subtitle: 'BAJA VISIBILIDAD', color: '#eab308' },
-        { id: 'unsafe_env', dbType: 'incident', icon: 'warning', label: 'Ambiente Inseguro', subtitle: 'PELIGRO', color: '#ef4444' },
-        { id: 'limited_mobility', dbType: 'incident', icon: 'accessible', label: 'Acceso limitado', subtitle: 'MOVILIDAD REDUCIDA', color: '#a855f7' },
-        { id: 'safe_mobility', dbType: 'incident', icon: 'wheelchair_pickup', label: 'Acceso seguro', subtitle: 'MOVILIDAD REDUCIDA', color: '#22c55e' },
-        { id: 'inclusive_zone', dbType: 'incident', icon: 'diversity_3', label: 'Zona inclusiva', subtitle: 'INCLUSIVIDAD', color: '#ec4899' },
-        { id: 'street_closed', dbType: 'incident', icon: 'block', label: 'Calle cortada', subtitle: 'VIALIDAD', color: '#f97316' },
-        { id: 'street_damaged', dbType: 'incident', icon: 'construction', label: 'Calle en mal estado', subtitle: 'VIALIDAD', color: '#14b8a6' },
-        { id: 'security', dbType: 'incident', icon: 'shield', label: 'Autoridades presentes', subtitle: 'SEGURIDAD', color: '#3b82f6' }
+        { id: 'dark_light', dbType: 'dark', icon: 'lightbulb', labelKey: 'report.cat.dark_light', subKey: 'report.sub.low_visibility', label: 'Poca luz', subtitle: 'BAJA VISIBILIDAD', color: '#eab308' },
+        { id: 'unsafe_env', dbType: 'incident', icon: 'warning', labelKey: 'report.cat.unsafe_env', subKey: 'report.sub.danger', label: 'Ambiente Inseguro', subtitle: 'PELIGRO', color: '#ef4444' },
+        { id: 'limited_mobility', dbType: 'incident', icon: 'accessible', labelKey: 'report.cat.limited_mobility', subKey: 'report.sub.reduced_mobility', label: 'Acceso limitado', subtitle: 'MOVILIDAD REDUCIDA', color: '#a855f7' },
+        { id: 'safe_mobility', dbType: 'incident', icon: 'wheelchair_pickup', labelKey: 'report.cat.safe_mobility', subKey: 'report.sub.reduced_mobility', label: 'Acceso seguro', subtitle: 'MOVILIDAD REDUCIDA', color: '#22c55e' },
+        { id: 'inclusive_zone', dbType: 'incident', icon: 'diversity_3', labelKey: 'report.cat.inclusive_zone', subKey: 'report.sub.inclusivity', label: 'Zona inclusiva', subtitle: 'INCLUSIVIDAD', color: '#ec4899' },
+        { id: 'street_closed', dbType: 'incident', icon: 'block', labelKey: 'report.cat.street_closed', subKey: 'report.sub.roadway', label: 'Calle cortada', subtitle: 'VIALIDAD', color: '#f97316' },
+        { id: 'street_damaged', dbType: 'incident', icon: 'construction', labelKey: 'report.cat.street_damaged', subKey: 'report.sub.roadway', label: 'Calle en mal estado', subtitle: 'VIALIDAD', color: '#14b8a6' },
+        { id: 'security', dbType: 'incident', icon: 'shield', labelKey: 'report.cat.security', subKey: 'report.sub.safety', label: 'Autoridades presentes', subtitle: 'SEGURIDAD', color: '#3b82f6' }
     ] as const;
 
     const handleSubmit = async () => {
@@ -56,7 +57,7 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
             }
 
             if (!lat || !lng) {
-                alert(t('common.error') || 'No se ha podido determinar tu ubicación.');
+                alert(t('report.location_error'));
                 setIsSubmitting(false);
                 return;
             }
@@ -93,7 +94,7 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
                         alertId: newZone.id,
                         userId: user.id,
                         config: {
-                            message: `⚠️ Aviso de peligro: ${typeObj.label} (${typeObj.subtitle})`,
+                            message: `⚠️ ${t('report.danger_warning')}: ${t(typeObj.labelKey)} (${t(typeObj.subKey)})`,
                             isDangerZone: true
                         }
                     }
@@ -151,8 +152,8 @@ export const ReportDangerModal: React.FC<ReportDangerModalProps> = ({ isOpen, on
                             </div>
                             
                             {/* Text Group */}
-                            <span className="text-sm font-bold text-white mb-0.5">{type.label}</span>
-                            <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/40">{type.subtitle}</span>
+                            <span className="text-sm font-bold text-white mb-0.5">{t(type.labelKey)}</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/40">{t(type.subKey)}</span>
                         </button>
                     ))}
                 </div>

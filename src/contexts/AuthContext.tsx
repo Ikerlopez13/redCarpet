@@ -76,9 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
 
                 const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', sessionUser.id)
+                    .rpc('get_my_profile')
                     .single();
 
                 // If profile does not exist (PGRST116), we create it automatically
@@ -90,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         avatar_url: sessionUser.user_metadata?.avatar_url || null,
                     });
                     
-                    const { data: newProfile } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
+                    const { data: newProfile } = await supabase.rpc('get_my_profile').single();
                     if (mounted) {
                         setUser({ ...sessionUser, profile: newProfile || undefined });
                     }
@@ -273,7 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const refreshProfile = async () => {
         if (!user) return;
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        const { data } = await supabase.rpc('get_my_profile').single();
         if (data) {
             setUser({ ...user, profile: data });
         }

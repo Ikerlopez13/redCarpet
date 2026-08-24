@@ -14,7 +14,7 @@
     "success": "Erfolg",
     "user": "Benutzer",
     "go": "GEHEN",
-    "report": "Bericht"
+    "report": "Melden"
   },
   "auth": {
     "login_tab": "Anmelden",
@@ -97,8 +97,22 @@
     "poi_price": "Preis",
     "no_family_members": "Laden Sie Familienmitglieder ein, sie auf der Karte zu sehen",
     "report_danger": "Vorfall melden",
-    "report_danger_desc": "Warnen Sie andere Benutzer vor Gefahren an Ihrem aktuellen Standort.",
-    "go_here": "Dorthin"
+    "report_danger_desc": "Warne andere Nutzer vor Gefahren an deinem aktuellen Standort.",
+    "go_here": "Dorthin",
+    "your_circle": "Dein Kreis",
+    "add_trusted_place": "Vertrauten Ort hinzufügen",
+    "delete_place_confirm": "Diesen vertrauten Ort löschen?",
+    "delete_place": "Ort löschen",
+    "safety_circle": "Sicherheitskreis",
+    "internal_detail": "Interne Details",
+    "no_one_circle": "Du hast noch niemanden in deinem Kreis.",
+    "add_contacts": "Kontakte hinzufügen",
+    "add_more_contacts": "Weitere Kontakte hinzufügen",
+    "verify_alert": "Warnung prüfen",
+    "zone_check_desc": "Du bist gerade an einem vor einiger Zeit gemeldeten Vorfall ({{type}}) vorbeigekommen. Ist er noch aktiv?",
+    "gone": "Nicht mehr da",
+    "still_here": "Immer noch da",
+    "pending_invite": "Einladung ausstehend..."
   },
   "map": {
     "light_notice": "Beleuchtungshinweis",
@@ -154,7 +168,8 @@
       "security_network": "GEMEINSCHAFTSNETZWERK",
       "support_legal": "SUPPORT & RECHTLICHES",
       "privacy_data": "DATENSCHUTZ & DATEN (DSGVO)",
-      "debug": "🛠️ DEBUG (DEMO)"
+      "debug": "🛠️ DEBUG (DEMO)",
+      "business": "Für Unternehmen"
     },
     "items": {
       "circle_management": "Kreisverwaltung",
@@ -181,7 +196,13 @@
       "download_data": "Meine Daten herunterladen",
       "withdraw_consent": "Einwilligung widerrufen",
       "view_onboarding": "Onboarding anzeigen",
-      "reset_onboarding": "Onboarding zurücksetzen"
+      "reset_onboarding": "Onboarding zurücksetzen",
+      "sos_config": "SOS-Einstellungen",
+      "sos_config_sub": "Protokoll und Kontakte anpassen",
+      "widgets_discreet": "Widgets & diskretes SOS",
+      "widgets_discreet_sub": "Einrichtung und Touch-Demo",
+      "promote_business": "Hebe dein Geschäft auf der Karte hervor",
+      "promote_business_sub": "Goldener Pin für alle sichtbar · 50€/Monat"
     },
     "version": "Version",
     "build": "Zusammenstellung",
@@ -222,7 +243,9 @@
     "language_selector_desc": "Wählen Sie Ihre bevorzugte Sprache",
     "cancel": "Abbrechen",
     "account_actions": "Kontoaktionen",
-    "legal_notice": "Rechtlicher Hinweis und EULA"
+    "legal_notice": "Rechtlicher Hinweis und EULA",
+    "rate_app": "App bewerten",
+    "help_us": "Hilf uns"
   },
   "emergency": {
     "sos_title": "GEMEINSCHAFTSALARM",
@@ -505,7 +528,7 @@
     "delete_error": "Fehler beim Löschen des Kontakts",
     "respond_error": "Fehler bei der Antwort auf die Anfrage",
     "sync_error": "Fehler beim Synchronisieren des Getriebes.",
-    "add_manual": "Handbuch hinzufügen",
+    "add_manual": "Manuell hinzufügen",
     "import_agenda": "Aus Agenda importieren",
     "search_agenda": "Durchsuchen Sie Ihren Kalender...",
     "select_phone": "Telefon auswählen",
@@ -524,7 +547,26 @@
     "name_example_ph": "z. B. Mama, Carlos...",
     "id_not_found": "Kein Nutzer mit dieser ID gefunden. Prüfe die Schreibweise.",
     "cant_add_self": "Du kannst dich nicht selbst hinzufügen.",
-    "add_error_retry": "Fehler beim Hinzufügen des Kontakts. Versuche es erneut."
+    "add_error_retry": "Fehler beim Hinzufügen des Kontakts. Versuche es erneut.",
+    "invite_whatsapp": "Über WhatsApp einladen",
+    "invited_badge": "Eingeladen · nicht registriert",
+    "add_manual_desc": "Gib Namen und Telefonnummer deines Kontakts ein.",
+    "by_id": "Über RedCarpet-ID",
+    "by_id_desc": "Gib die eindeutige ID deines Kontakts ein (z. B. #3925DD3).",
+    "from_agenda": "Aus dem Adressbuch",
+    "from_agenda_desc": "Wähle einen Kontakt direkt von deinem Telefon.",
+    "id_info": "Bitte deinen Kontakt, RedCarpet zu öffnen und seine ID zu teilen. Er findet sie oben auf diesem Bildschirm.",
+    "id_label": "RedCarpet-ID",
+    "nickname_label": "Wie du ihn nennst (optional)",
+    "name_label": "Name",
+    "phone_label": "Telefon",
+    "phone_example_ph": "z. B. +34 600 000 000",
+    "back": "Zurück",
+    "searching": "Suche...",
+    "send_request": "Anfrage senden",
+    "adding": "Wird hinzugefügt...",
+    "invite_id_msg": "Tritt meinem Sicherheitskreis auf RedCarpet bei! 🛡️🔴\n\nMeine ID: {{id}}\n\n📥 Lade die App herunter und füge mich mit meiner ID hinzu:\nhttps://apps.apple.com/app/id6755689618",
+    "add_contact": "Kontakt hinzufügen"
   },
   "feedback": {
     "title": "Rückmeldung",
@@ -700,7 +742,11 @@
     "pin_desc": "Geben Sie den Code ein, um die Fahrtverfolgung sicher zu deaktivieren.",
     "access_error": "Auf die Frontkamera konnte nicht zugegriffen werden.",
     "rec": "REC",
-    "capture_error": "Aufnahmefehler. Versuche es erneut."
+    "capture_error": "Aufnahmefehler. Versuche es erneut.",
+    "security_test": "SICHERHEITSNACHWEIS",
+    "dual_subtitle": "Für die Notfallaufzeichnung wird ein Bild mit beiden Kameras aufgenommen.",
+    "capturing": "AUFNAHME...",
+    "press_capture": "ZUM AUFNEHMEN DRÜCKEN"
   },
   "safezone": {
     "title": "Sichere Zone hinzufügen",
@@ -716,7 +762,7 @@
     "cat_shop": "🛍 Geschäft",
     "cat_hotel": "🏨 Hotel / Unterkunft",
     "cat_health": "⚕️ Gesundheit / Apotheke",
-    "cat_services": "🔧 Dienstleistungen",
+    "cat_services": "Dienstleistungen",
     "cat_beauty": "💈 Schönheit / Kosmetik",
     "cat_other": "📍 Andere",
     "err_location": "Standort konnte nicht ermittelt werden. Aktiviere GPS.",
@@ -763,7 +809,14 @@
     "active_map_msg": "{{name}} erscheint jetzt hervorgehoben auf RedCarpets Karte und Suche.",
     "err_generic": "Unerwarteter Fehler",
     "err_save": "Fehler beim Speichern",
-    "err_pay": "Fehler bei der Zahlung"
+    "err_pay": "Fehler bei der Zahlung",
+    "search_label": "Dein Geschäft oder Adresse",
+    "search_ph": "Nach Name oder Adresse suchen",
+    "searching": "Suche...",
+    "no_results": "Keine Ergebnisse",
+    "use_current_optional": "Oder meinen aktuellen Standort verwenden (optional)",
+    "location_ok": "Standort ausgewählt",
+    "pick_location": "Suche und wähle den Standort deines Geschäfts"
   },
   "family": {
     "manage": "Familie verwalten",
@@ -788,10 +841,27 @@
     "join_btn": "Beitreten",
     "invite_code_label": "Einladungscode",
     "invite_code_sub": "Teile diesen Code mit deiner Familie, damit sie beitreten",
-    "generating_code": "Code wird erstellt..."
+    "generating_code": "Code wird erstellt...",
+    "protected": "Deine Familie ist geschützt"
   },
   "security": {
-    "search_circle": "Im Kreis suchen..."
+    "search_circle": "Im Kreis suchen...",
+    "my_alarms": "Meine Alarme",
+    "see_all": "Alle ansehen",
+    "syncing": "Synchronisierung...",
+    "no_active_alerts": "Keine aktiven Warnungen",
+    "circle_safe_now": "Dein Kreis ist gerade sicher",
+    "circle_member": "Kreismitglied",
+    "activated_journey": "Hat eine Wegwarnung ausgelöst",
+    "active_config": "Aktive Einstellungen",
+    "danger_zones": "Gefahrenzonen",
+    "realtime_alerts": "Echtzeit-Warnungen",
+    "safe_routes": "Sichere Routen",
+    "nav_ai": "Navigations-KI",
+    "contacts": "Kontakte",
+    "manage_circle": "Kreis verwalten",
+    "ai_shield_active": "KI-Schutz aktiv",
+    "predictive_on": "Prädiktiver Schutz aktiviert"
   },
   "sub": {
     "err_no_active": "Kein aktives Abo gefunden. Prüfe deine Bestätigungs-E-Mail.",
@@ -831,6 +901,74 @@
     "activate_pass": "Pass aktivieren"
   },
   "review": {
-    "placeholder": "Sag uns, wie wir die App für dich verbessern können..."
+    "placeholder": "Sag uns, wie wir die App für dich verbessern können...",
+    "title": "Wie gefällt dir RedCarpet?",
+    "subtitle": "Dein Feedback hilft uns, mehr Leben zu retten und die App zu verbessern.",
+    "improve_label": "Was können wir verbessern?",
+    "submit": "Feedback senden",
+    "thanks_title": "Danke!",
+    "thanks_sub": "Wir schätzen deine Unterstützung und dein Vertrauen sehr."
+  },
+  "alert": {
+    "title": "Warnung: {{type}}",
+    "confirm_question": "Möchtest du diese Warnung bestätigen?",
+    "confirm": "Bestätigen",
+    "dismiss": "Verwerfen",
+    "cancel_alert": "Warnung abbrechen",
+    "close": "Schließen",
+    "active_title": "Aktive Warnung",
+    "confirm_still": "Bestätigen (Noch da)",
+    "false_alarm": "Fehlalarm / Nicht mehr da",
+    "default_danger": "Gefahr in diesem Bereich gemeldet",
+    "load_error": "Warnung konnte nicht geladen werden",
+    "vote_error": "Stimme konnte nicht erfasst werden."
+  },
+  "locperm": {
+    "always_title": "Standort „Immer\"",
+    "always_desc": "RedCarpet benötigt „Immer\"-Zugriff auf deinen Standort, um dich auch im Hintergrund zu schützen.",
+    "always_hint": "Gehe zu Einstellungen → RedCarpet → Standort → Immer",
+    "later": "Jetzt nicht",
+    "go_settings": "Zu den Einstellungen",
+    "denied_title": "Berechtigung verweigert",
+    "denied_desc": "Aktiviere den Standortzugriff in den Systemeinstellungen, damit RedCarpet dich schützen kann.",
+    "settings": "Einstellungen"
+  },
+  "permprimer": {
+    "title": "„Standort immer\" aktivieren",
+    "desc": "Damit deine Kontakte dich in Echtzeit auf der Karte sehen und du im Hintergrund geschützt bist, brauchen wir die Berechtigung „Immer\".",
+    "how_to": "So aktivierst du es:",
+    "step1": "1. Tippe auf „Zu den Einstellungen\"",
+    "step2": "2. Tippe auf Standort (Berechtigungen)",
+    "step3": "3. Wähle „Immer erlauben\"",
+    "activated": "Aktiviert — Weiter"
+  },
+  "report": {
+    "cat": {
+      "dark_light": "Wenig Licht",
+      "unsafe_env": "Unsichere Umgebung",
+      "limited_mobility": "Eingeschränkter Zugang",
+      "safe_mobility": "Sicherer Zugang",
+      "inclusive_zone": "Inklusive Zone",
+      "street_closed": "Straße gesperrt",
+      "street_damaged": "Beschädigte Straße",
+      "security": "Behörden anwesend"
+    },
+    "sub": {
+      "low_visibility": "Geringe Sicht",
+      "danger": "Gefahr",
+      "reduced_mobility": "Eingeschränkte Mobilität",
+      "inclusivity": "Inklusivität",
+      "roadway": "Verkehrsweg",
+      "safety": "Sicherheit"
+    },
+    "location_error": "Dein Standort konnte nicht ermittelt werden.",
+    "danger_warning": "Gefahrenwarnung"
+  },
+  "bizcard": {
+    "call": "Anrufen",
+    "website": "Website besuchen",
+    "directions": "Route",
+    "featured": "Empfohlenes Geschäft",
+    "close": "Schließen"
   }
 }

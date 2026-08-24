@@ -486,7 +486,7 @@ export async function activateSOS(
         };
 
         try {
-            const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+            const { data: profile } = await supabase.rpc('get_my_profile').single();
             const { data: recentLocations } = await supabase.from('locations').select('lat, lng, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5);
             alertData.context_payload = {
                 timestamp_ms: Date.now(), battery,

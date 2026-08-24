@@ -231,7 +231,7 @@ export const Home: React.FC = () => {
 
                         let displayLocation = t('home.no_location');
                         if (isPending) {
-                            displayLocation = 'Invitación pendiente...';
+                            displayLocation = t('home.pending_invite');
                         } else if (hasActiveAlert) {
                             displayLocation = `⚠️ ${t('home.emergency_active')}`;
                         } else if (isLocationHidden) {
@@ -702,7 +702,7 @@ export const Home: React.FC = () => {
                         )}
                     >
                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: activeTab === 'family' ? "'FILL' 1" : "" }}>group</span>
-                        Tu Círculo
+                        {t('home.your_circle')}
                     </button>
                 </div>
 
@@ -720,7 +720,7 @@ export const Home: React.FC = () => {
                                 className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl flex items-center justify-center gap-2 font-bold text-sm shadow-lg transition-all active:scale-[0.98] mb-2"
                             >
                                 <span className="material-symbols-outlined text-lg">add_location_alt</span>
-                                Añadir Lugar de Confianza
+                                {t('home.add_trusted_place')}
                             </button>
 
                             {/* Lugares guardados */}
@@ -747,13 +747,13 @@ export const Home: React.FC = () => {
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                if(window.confirm('¿Eliminar este lugar de confianza?')) {
+                                                if(window.confirm(t('home.delete_place_confirm'))) {
                                                     await supabase.from('safe_zones').delete().eq('id', zone.id);
                                                     loadData();
                                                 }
                                             }}
                                             className="p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all shrink-0"
-                                            title="Eliminar lugar"
+                                            title={t('home.delete_place')}
                                         >
                                             <span className="material-symbols-outlined text-lg">delete</span>
                                         </button>
@@ -793,8 +793,8 @@ export const Home: React.FC = () => {
                                         <Shield size={20} />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-black uppercase italic tracking-tight">Círculo de Seguridad</span>
-                                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Detalle Interno</span>
+                                        <span className="text-sm font-black uppercase italic tracking-tight">{t('home.safety_circle')}</span>
+                                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{t('home.internal_detail')}</span>
                                     </div>
                                 </div>
                                 <span className="material-symbols-outlined text-white/60">chevron_right</span>
@@ -803,12 +803,12 @@ export const Home: React.FC = () => {
                             {familyMembers.length === 0 ? (
                                 <div className="p-4 text-center text-white/40 text-sm flex flex-col items-center gap-3">
                                     <span className="material-symbols-outlined text-4xl text-white/20">group_add</span>
-                                    Aún no tienes a nadie en Tu Círculo.
-                                    <button 
+                                    {t('home.no_one_circle')}
+                                    <button
                                         onClick={() => navigate('/contacts')}
                                         className="mt-2 bg-primary text-white font-bold py-2 px-4 rounded-xl text-xs active:scale-95 transition-all"
                                     >
-                                        Añadir Contactos
+                                        {t('home.add_contacts')}
                                     </button>
                                 </div>
                             ) : (
@@ -848,7 +848,7 @@ export const Home: React.FC = () => {
                                         <span className="material-symbols-outlined">add</span>
                                     </div>
                                     <div className="flex-1">
-                                        <p className="font-semibold text-white/60">Añadir más contactos</p>
+                                        <p className="font-semibold text-white/60">{t('home.add_more_contacts')}</p>
                                     </div>
                                 </button>
                                 </>
@@ -900,9 +900,9 @@ export const Home: React.FC = () => {
                         <div className="size-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="material-symbols-outlined text-3xl">warning</span>
                         </div>
-                        <h3 className="text-xl font-black italic uppercase tracking-tighter mb-2">Verificar Alerta</h3>
+                        <h3 className="text-xl font-black italic uppercase tracking-tighter mb-2">{t('home.verify_alert')}</h3>
                         <p className="text-sm text-white/60 font-medium mb-8 leading-relaxed">
-                            Acabas de pasar por una incidencia ({pendingZoneCheck.type}) reportada hace tiempo. ¿Sigue estando activa?
+                            {t('home.zone_check_desc', { type: pendingZoneCheck.type })}
                         </p>
                         <div className="flex gap-3">
                             <button 
@@ -915,7 +915,7 @@ export const Home: React.FC = () => {
                                 }}
                                 className="flex-1 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-white/10 active:scale-95 transition-all"
                             >
-                                Ya no está
+                                {t('home.gone')}
                             </button>
                             <button 
                                 onClick={async () => {
@@ -927,7 +927,7 @@ export const Home: React.FC = () => {
                                 }}
                                 className="flex-1 py-4 bg-amber-500 text-black rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
                             >
-                                Sigue aquí
+                                {t('home.still_here')}
                             </button>
                         </div>
                     </div>

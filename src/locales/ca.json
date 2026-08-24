@@ -11,8 +11,8 @@
     "greeting": "Hola, {{name}}",
     "emergency_active": "RUTA RECOMANADA",
     "report_incident": "Compartir Trajecte",
-    "report_danger": "Reportar Incidència",
-    "report_danger_desc": "Avisa a altres usuaris sobre perills a la teva ubicació actual.",
+    "report_danger": "Reportar incidència",
+    "report_danger_desc": "Avisa altres usuaris sobre perills a la teva ubicació actual.",
     "me": "Tu",
     "current_location": "Ubicació actual",
     "no_location": "Sense ubicació",
@@ -33,7 +33,21 @@
     "poi_rating": "Valoració",
     "poi_price": "Preu",
     "no_family_members": "Convida familiars per veure'ls al mapa",
-    "go_here": "Anar-hi"
+    "go_here": "Anar-hi",
+    "your_circle": "El teu cercle",
+    "add_trusted_place": "Afegir lloc de confiança",
+    "delete_place_confirm": "Eliminar aquest lloc de confiança?",
+    "delete_place": "Eliminar lloc",
+    "safety_circle": "Cercle de seguretat",
+    "internal_detail": "Detall intern",
+    "no_one_circle": "Encara no tens ningú al teu cercle.",
+    "add_contacts": "Afegir contactes",
+    "add_more_contacts": "Afegir més contactes",
+    "verify_alert": "Verificar alerta",
+    "zone_check_desc": "Acabes de passar per una incidència ({{type}}) reportada fa temps. Segueix activa?",
+    "gone": "Ja no hi és",
+    "still_here": "Encara hi és",
+    "pending_invite": "Invitació pendent..."
   },
   "common": {
     "now": "Ara",
@@ -41,7 +55,7 @@
     "no_data": "Sense dades",
     "month": "Mes",
     "year": "Any",
-    "report": "Informar",
+    "report": "Reportar",
     "loading": "Carregant...",
     "error": "S'ha produït un error",
     "updated": "Actualitzat",
@@ -106,7 +120,8 @@
       "security_network": "EXPLORACIÓ URBANA",
       "support_legal": "SUPORT I LEGAL",
       "privacy_data": "PRIVACITAT I DADES (RGPD)",
-      "debug": "🛠️ DEBUG (DEMO)"
+      "debug": "🛠️ DEBUG (DEMO)",
+      "business": "Per a negocis"
     },
     "items": {
       "circle_management": "Gestió de Grups",
@@ -133,7 +148,13 @@
       "reset_onboarding": "Reiniciar guia",
       "circle_management_sub": "Els teus grups de confiança",
       "my_account_sub": "Dades i compte",
-      "greencarpet_sub": "Impacte CO2"
+      "greencarpet_sub": "Impacte CO2",
+      "sos_config": "Configuració SOS",
+      "sos_config_sub": "Ajustar protocol i contactes",
+      "widgets_discreet": "Widgets i SOS discret",
+      "widgets_discreet_sub": "Configuració i demo tàctil",
+      "promote_business": "Destaca el teu negoci al mapa",
+      "promote_business_sub": "Xinxeta daurada visible per a tothom · 50€/mes"
     },
     "status": {
       "granted": "Activa",
@@ -174,7 +195,9 @@
     "language_selector_desc": "Selecciona el teu idioma preferit",
     "cancel": "Cancel·lar",
     "account_actions": "Accions del compte",
-    "legal_notice": "Avís legal i EULA"
+    "legal_notice": "Avís legal i EULA",
+    "rate_app": "Valorar l'aplicació",
+    "help_us": "Ajuda'ns"
   },
   "emergency": {
     "sos_title": "NOTES DEL TRAJECTE",
@@ -524,7 +547,26 @@
     "name_example_ph": "ex. Mama, Carlos...",
     "id_not_found": "No s'ha trobat cap usuari amb aquest ID. Comprova que estigui ben escrit.",
     "cant_add_self": "No et pots afegir a tu mateix.",
-    "add_error_retry": "Error en afegir el contacte. Torna-ho a provar."
+    "add_error_retry": "Error en afegir el contacte. Torna-ho a provar.",
+    "invite_whatsapp": "Convidar per WhatsApp",
+    "invited_badge": "Convidat · sense registrar",
+    "add_manual_desc": "Escriu el nom i el número de telèfon del teu contacte.",
+    "by_id": "Per ID de RedCarpet",
+    "by_id_desc": "Introdueix l'ID únic del teu contacte (ex. #3925DD3).",
+    "from_agenda": "Des de l'agenda",
+    "from_agenda_desc": "Selecciona un contacte directament del teu telèfon.",
+    "id_info": "Demana al teu contacte que obri RedCarpet i comparteixi el seu ID. El trobarà a la part superior d'aquesta pantalla.",
+    "id_label": "ID de RedCarpet",
+    "nickname_label": "Com l'anomenes (opcional)",
+    "name_label": "Nom",
+    "phone_label": "Telèfon",
+    "phone_example_ph": "ex. +34 600 000 000",
+    "back": "Enrere",
+    "searching": "Cercant...",
+    "send_request": "Enviar sol·licitud",
+    "adding": "Afegint...",
+    "invite_id_msg": "Uneix-te al meu cercle de seguretat a RedCarpet! 🛡️🔴\n\nEl meu ID és: {{id}}\n\n📥 Descarrega't l'app i afegeix-me amb el meu ID:\nhttps://apps.apple.com/app/id6755689618",
+    "add_contact": "Afegir contacte"
   },
   "feedback": {
     "title": "Valora la nostra aplicació",
@@ -700,7 +742,11 @@
     "pin_desc": "Introdueix el codi per desactivar el seguiment del trajecte de manera segura.",
     "access_error": "No s'ha pogut accedir a la càmera frontal.",
     "rec": "REC",
-    "capture_error": "Error en capturar. Torna-ho a provar."
+    "capture_error": "Error en capturar. Torna-ho a provar.",
+    "security_test": "PROVA DE SEGURETAT",
+    "dual_subtitle": "Es capturarà una imatge amb les dues càmeres per al registre d'emergència.",
+    "capturing": "CAPTURANT...",
+    "press_capture": "PREM PER CAPTURAR"
   },
   "safezone": {
     "title": "Afegir zona segura",
@@ -716,7 +762,7 @@
     "cat_shop": "🛍 Botiga",
     "cat_hotel": "🏨 Hotel / Allotjament",
     "cat_health": "⚕️ Salut / Farmàcia",
-    "cat_services": "🔧 Serveis",
+    "cat_services": "Serveis",
     "cat_beauty": "💈 Bellesa / Estètica",
     "cat_other": "📍 Altre",
     "err_location": "No s'ha pogut obtenir la ubicació. Activa el GPS.",
@@ -763,7 +809,14 @@
     "active_map_msg": "{{name}} ja apareix destacat al mapa i al cercador de RedCarpet.",
     "err_generic": "Error inesperat",
     "err_save": "Error en desar el negoci",
-    "err_pay": "Error en crear el pagament"
+    "err_pay": "Error en crear el pagament",
+    "search_label": "El teu negoci o adreça",
+    "search_ph": "Cerca pel nom o adreça",
+    "searching": "Cercant...",
+    "no_results": "Sense resultats",
+    "use_current_optional": "O fer servir la meva ubicació actual (opcional)",
+    "location_ok": "Ubicació seleccionada",
+    "pick_location": "Cerca i selecciona la ubicació del teu negoci"
   },
   "family": {
     "manage": "Gestionar família",
@@ -788,10 +841,27 @@
     "join_btn": "Unir-se",
     "invite_code_label": "Codi d'invitació",
     "invite_code_sub": "Comparteix aquest codi amb els teus familiars perquè s'uneixin",
-    "generating_code": "Generant codi..."
+    "generating_code": "Generant codi...",
+    "protected": "La teva família està protegida"
   },
   "security": {
-    "search_circle": "Cercar al cercle..."
+    "search_circle": "Cercar al cercle...",
+    "my_alarms": "Les meves alarmes",
+    "see_all": "Veure-ho tot",
+    "syncing": "Sincronitzant...",
+    "no_active_alerts": "Sense alertes actives",
+    "circle_safe_now": "El teu cercle està segur ara mateix",
+    "circle_member": "Membre del cercle",
+    "activated_journey": "Ha activat un avís de trajecte",
+    "active_config": "Configuració activa",
+    "danger_zones": "Zones de perill",
+    "realtime_alerts": "Avisos en temps real",
+    "safe_routes": "Rutes segures",
+    "nav_ai": "IA de navegació",
+    "contacts": "Contactes",
+    "manage_circle": "Gestionar cercle",
+    "ai_shield_active": "Escut IA actiu",
+    "predictive_on": "Protecció predictiva activada"
   },
   "sub": {
     "err_no_active": "No s'ha trobat cap subscripció activa. Comprova el teu correu de confirmació.",
@@ -831,6 +901,74 @@
     "activate_pass": "Activar pase"
   },
   "review": {
-    "placeholder": "Digues-nos com podem millorar l'app per a tu..."
+    "placeholder": "Digues-nos com podem millorar l'app per a tu...",
+    "title": "Què et sembla RedCarpet?",
+    "subtitle": "La teva opinió ens ajuda a salvar més vides i millorar l'aplicació.",
+    "improve_label": "Què podem millorar?",
+    "submit": "Enviar comentaris",
+    "thanks_title": "Gràcies!",
+    "thanks_sub": "Agraïm molt el teu suport i la teva confiança."
+  },
+  "alert": {
+    "title": "Alerta: {{type}}",
+    "confirm_question": "Vols confirmar aquesta alerta?",
+    "confirm": "Confirmar",
+    "dismiss": "Descartar",
+    "cancel_alert": "Cancel·lar alerta",
+    "close": "Tancar",
+    "active_title": "Alerta activa",
+    "confirm_still": "Confirmar (Encara hi és)",
+    "false_alarm": "Falsa alarma / Ja no hi és",
+    "default_danger": "Perill reportat en aquesta zona",
+    "load_error": "No s'ha pogut carregar l'alerta",
+    "vote_error": "No s'ha pogut registrar el vot."
+  },
+  "locperm": {
+    "always_title": "Ubicació \"Sempre\"",
+    "always_desc": "RedCarpet necessita accés \"sempre\" a la teva ubicació per protegir-te també quan l'app està en segon pla.",
+    "always_hint": "Ves a Ajustos → RedCarpet → Ubicació → Sempre",
+    "later": "Ara no",
+    "go_settings": "Anar a Ajustos",
+    "denied_title": "Permís denegat",
+    "denied_desc": "Activa l'accés a la ubicació des dels Ajustos del sistema perquè RedCarpet pugui protegir-te.",
+    "settings": "Ajustos"
+  },
+  "permprimer": {
+    "title": "Activa \"Ubicació Sempre\"",
+    "desc": "Perquè els teus contactes et vegin al mapa en temps real i estiguis protegit en segon pla, necessitem el permís d'ubicació \"Sempre\".",
+    "how_to": "Com activar-ho:",
+    "step1": "1. Toca \"Anar a Ajustos\"",
+    "step2": "2. Toca Ubicació (Permisos)",
+    "step3": "3. Selecciona \"Permetre sempre\"",
+    "activated": "Ja ho he activat — Continuar"
+  },
+  "report": {
+    "cat": {
+      "dark_light": "Poca llum",
+      "unsafe_env": "Ambient insegur",
+      "limited_mobility": "Accés limitat",
+      "safe_mobility": "Accés segur",
+      "inclusive_zone": "Zona inclusiva",
+      "street_closed": "Carrer tallat",
+      "street_damaged": "Carrer en mal estat",
+      "security": "Autoritats presents"
+    },
+    "sub": {
+      "low_visibility": "Baixa visibilitat",
+      "danger": "Perill",
+      "reduced_mobility": "Mobilitat reduïda",
+      "inclusivity": "Inclusivitat",
+      "roadway": "Vialitat",
+      "safety": "Seguretat"
+    },
+    "location_error": "No s'ha pogut determinar la teva ubicació.",
+    "danger_warning": "Avís de perill"
+  },
+  "bizcard": {
+    "call": "Trucar",
+    "website": "Visitar web",
+    "directions": "Com arribar",
+    "featured": "Negoci destacat",
+    "close": "Tancar"
   }
 }

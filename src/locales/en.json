@@ -14,7 +14,7 @@
     "success": "Success",
     "user": "User",
     "go": "GO",
-    "report": "Reportar"
+    "report": "Report"
   },
   "auth": {
     "login_tab": "Login",
@@ -96,9 +96,23 @@
     "poi_rating": "Rating",
     "poi_price": "Price",
     "no_family_members": "Invite family members to see them on the map",
-    "report_danger": "Reportar Incidencia",
-    "report_danger_desc": "Avisa a otros usuarios sobre peligros en tu ubicación actual.",
-    "go_here": "Go here"
+    "report_danger": "Report Incident",
+    "report_danger_desc": "Warn other users about dangers at your current location.",
+    "go_here": "Go here",
+    "your_circle": "Your Circle",
+    "add_trusted_place": "Add Trusted Place",
+    "delete_place_confirm": "Delete this trusted place?",
+    "delete_place": "Delete place",
+    "safety_circle": "Safety Circle",
+    "internal_detail": "Internal Detail",
+    "no_one_circle": "You don't have anyone in Your Circle yet.",
+    "add_contacts": "Add Contacts",
+    "add_more_contacts": "Add more contacts",
+    "verify_alert": "Verify Alert",
+    "zone_check_desc": "You just passed an incident ({{type}}) reported a while ago. Is it still active?",
+    "gone": "It's gone",
+    "still_here": "Still here",
+    "pending_invite": "Invitation pending..."
   },
   "map": {
     "light_notice": "Lighting notice",
@@ -127,7 +141,8 @@
       "security_network": "URBAN EXPLORATION",
       "support_legal": "SUPPORT & LEGAL",
       "privacy_data": "PRIVACY & DATA (GDPR)",
-      "debug": "🛠️ DEBUG (DEMO)"
+      "debug": "🛠️ DEBUG (DEMO)",
+      "business": "For businesses"
     },
     "items": {
       "circle_management": "Group Management",
@@ -154,7 +169,13 @@
       "download_data": "Download my data",
       "withdraw_consent": "Withdraw consent",
       "view_onboarding": "View Onboarding",
-      "reset_onboarding": "Reset Onboarding"
+      "reset_onboarding": "Reset Onboarding",
+      "sos_config": "SOS Settings",
+      "sos_config_sub": "Adjust protocol and contacts",
+      "widgets_discreet": "Widgets & Discreet SOS",
+      "widgets_discreet_sub": "Setup and touch demo",
+      "promote_business": "Feature your business on the map",
+      "promote_business_sub": "Gold pin visible to all users · €50/month"
     },
     "version": "Version",
     "build": "Build",
@@ -195,7 +216,9 @@
     "language_selector_desc": "Select your preferred language",
     "cancel": "Cancel",
     "account_actions": "Account Actions",
-    "legal_notice": "Legal Notice & EULA"
+    "legal_notice": "Legal Notice & EULA",
+    "rate_app": "Rate the app",
+    "help_us": "Help us"
   },
   "emergency": {
     "sos_title": "JOURNEY NOTES",
@@ -505,7 +528,7 @@
     "delete_error": "Error deleting contact",
     "respond_error": "Error responding to request",
     "sync_error": "Error synchronizing change.",
-    "add_manual": "Add manually",
+    "add_manual": "Add Manually",
     "import_agenda": "Import Contacts",
     "search_agenda": "Search contacts...",
     "select_phone": "Select Phone",
@@ -524,7 +547,26 @@
     "name_example_ph": "e.g. Mom, Carlos...",
     "id_not_found": "No user found with that ID. Check it's written correctly.",
     "cant_add_self": "You can't add yourself.",
-    "add_error_retry": "Error adding the contact. Please try again."
+    "add_error_retry": "Error adding the contact. Please try again.",
+    "invite_whatsapp": "Invite via WhatsApp",
+    "invited_badge": "Invited · not registered",
+    "add_manual_desc": "Enter your contact's name and phone number.",
+    "by_id": "By RedCarpet ID",
+    "by_id_desc": "Enter your contact's unique ID (e.g. #3925DD3).",
+    "from_agenda": "From Contacts",
+    "from_agenda_desc": "Pick a contact directly from your phone.",
+    "id_info": "Ask your contact to open RedCarpet and share their ID with you. They'll find it at the top of this screen.",
+    "id_label": "RedCarpet ID",
+    "nickname_label": "What you call them (optional)",
+    "name_label": "Name",
+    "phone_label": "Phone",
+    "phone_example_ph": "e.g. +34 600 000 000",
+    "back": "Back",
+    "searching": "Searching...",
+    "send_request": "Send request",
+    "adding": "Adding...",
+    "invite_id_msg": "Join my safety circle on RedCarpet! 🛡️🔴\n\nMy ID is: {{id}}\n\n📥 Download the app and add me with my ID:\nhttps://apps.apple.com/app/id6755689618",
+    "add_contact": "Add Contact"
   },
   "feedback": {
     "title": "Rate our app",
@@ -700,7 +742,11 @@
     "pin_desc": "Enter the code to safely deactivate journey tracking.",
     "access_error": "Could not access front camera.",
     "rec": "REC",
-    "capture_error": "Capture error. Please try again."
+    "capture_error": "Capture error. Please try again.",
+    "security_test": "SECURITY PROOF",
+    "dual_subtitle": "An image will be captured with both cameras for the emergency record.",
+    "capturing": "CAPTURING...",
+    "press_capture": "PRESS TO CAPTURE"
   },
   "safezone": {
     "title": "Add Safe Zone",
@@ -716,7 +762,7 @@
     "cat_shop": "🛍 Shop",
     "cat_hotel": "🏨 Hotel / Lodging",
     "cat_health": "⚕️ Health / Pharmacy",
-    "cat_services": "🔧 Services",
+    "cat_services": "Services",
     "cat_beauty": "💈 Beauty",
     "cat_other": "📍 Other",
     "err_location": "Could not get your location. Turn on GPS.",
@@ -763,7 +809,14 @@
     "active_map_msg": "{{name}} now appears featured on RedCarpet's map and search.",
     "err_generic": "Unexpected error",
     "err_save": "Error saving the business",
-    "err_pay": "Error creating the payment"
+    "err_pay": "Error creating the payment",
+    "search_label": "Your business or address",
+    "search_ph": "Search your business by name or address",
+    "searching": "Searching...",
+    "no_results": "No results",
+    "use_current_optional": "Or use my current location (optional)",
+    "location_ok": "Location selected",
+    "pick_location": "Search and select your business location"
   },
   "family": {
     "manage": "Manage Family",
@@ -788,10 +841,27 @@
     "join_btn": "Join",
     "invite_code_label": "Invite code",
     "invite_code_sub": "Share this code with your family so they can join",
-    "generating_code": "Generating code..."
+    "generating_code": "Generating code...",
+    "protected": "Your family is protected"
   },
   "security": {
-    "search_circle": "Search in your circle..."
+    "search_circle": "Search in your circle...",
+    "my_alarms": "My Alarms",
+    "see_all": "See All",
+    "syncing": "Syncing...",
+    "no_active_alerts": "No active alerts",
+    "circle_safe_now": "Your circle is safe right now",
+    "circle_member": "Circle Member",
+    "activated_journey": "Started a journey alert",
+    "active_config": "Active Settings",
+    "danger_zones": "Danger Zones",
+    "realtime_alerts": "Real-time alerts",
+    "safe_routes": "Safe Routes",
+    "nav_ai": "Navigation AI",
+    "contacts": "Contacts",
+    "manage_circle": "Manage circle",
+    "ai_shield_active": "AI Shield Active",
+    "predictive_on": "Predictive protection enabled"
   },
   "sub": {
     "err_no_active": "No active subscription found. Check your confirmation email.",
@@ -831,6 +901,74 @@
     "activate_pass": "Activate Pass"
   },
   "review": {
-    "placeholder": "Tell us how we can make the app better for you..."
+    "placeholder": "Tell us how we can make the app better for you...",
+    "title": "How do you like RedCarpet?",
+    "subtitle": "Your feedback helps us save more lives and improve the app.",
+    "improve_label": "What can we improve?",
+    "submit": "Send Feedback",
+    "thanks_title": "Thank you!",
+    "thanks_sub": "We really appreciate your support and trust in us."
+  },
+  "alert": {
+    "title": "Alert: {{type}}",
+    "confirm_question": "Do you want to confirm this alert?",
+    "confirm": "Confirm",
+    "dismiss": "Dismiss",
+    "cancel_alert": "Cancel alert",
+    "close": "Close",
+    "active_title": "Active Alert",
+    "confirm_still": "Confirm (Still there)",
+    "false_alarm": "False alarm / It's gone",
+    "default_danger": "Danger reported in this area",
+    "load_error": "Could not load the alert",
+    "vote_error": "Could not register your vote."
+  },
+  "locperm": {
+    "always_title": "\"Always\" Location",
+    "always_desc": "RedCarpet needs \"always\" access to your location to protect you even when the app is in the background.",
+    "always_hint": "Go to Settings → RedCarpet → Location → Always",
+    "later": "Not now",
+    "go_settings": "Go to Settings",
+    "denied_title": "Permission denied",
+    "denied_desc": "Enable location access in the system Settings so RedCarpet can protect you.",
+    "settings": "Settings"
+  },
+  "permprimer": {
+    "title": "Enable \"Always Location\"",
+    "desc": "So your contacts can see you on the map in real time and you stay protected in the background, we need \"Always\" location permission.",
+    "how_to": "How to enable it:",
+    "step1": "1. Tap \"Go to Settings\"",
+    "step2": "2. Tap Location (Permissions)",
+    "step3": "3. Select \"Allow always\"",
+    "activated": "I've enabled it — Continue"
+  },
+  "report": {
+    "cat": {
+      "dark_light": "Low light",
+      "unsafe_env": "Unsafe area",
+      "limited_mobility": "Limited access",
+      "safe_mobility": "Safe access",
+      "inclusive_zone": "Inclusive zone",
+      "street_closed": "Street closed",
+      "street_damaged": "Damaged street",
+      "security": "Authorities present"
+    },
+    "sub": {
+      "low_visibility": "Low visibility",
+      "danger": "Danger",
+      "reduced_mobility": "Reduced mobility",
+      "inclusivity": "Inclusivity",
+      "roadway": "Roadway",
+      "safety": "Security"
+    },
+    "location_error": "Could not determine your location.",
+    "danger_warning": "Danger warning"
+  },
+  "bizcard": {
+    "call": "Call",
+    "website": "Visit website",
+    "directions": "Directions",
+    "featured": "Featured business",
+    "close": "Close"
   }
 }

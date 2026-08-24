@@ -3,6 +3,7 @@ import { supabase } from '../../services/supabaseClient';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import type { DangerZone } from '../../services/database.types';
+import { translateIncidentDescription } from '../../utils/incidentLabels';
 
 interface AlertDetailsModalProps {
     zoneId: string | null;
@@ -89,7 +90,7 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
             onClose();
         } catch (error) {
             console.error("Error voting:", error);
-            alert("No se pudo registrar el voto.");
+            alert(t('alert.vote_error'));
         } finally {
             setIsVoting(false);
         }
@@ -115,10 +116,10 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
                                 <span className="material-symbols-outlined text-3xl font-black">warning</span>
                             </div>
                             <h3 className="text-xl font-black italic uppercase tracking-tighter mb-2">
-                                Alerta Activa
+                                {t('alert.active_title')}
                             </h3>
                             <p className="text-sm text-white/70 font-medium leading-relaxed bg-white/5 rounded-xl p-3 border border-white/10">
-                                {zone.description || 'Peligro reportado en esta zona'}
+                                {translateIncidentDescription(zone.description, t) || t('alert.default_danger')}
                             </p>
                         </div>
 
@@ -129,7 +130,7 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
                                 className="w-full py-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-emerald-500/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-base">check_circle</span>
-                                Confirmar (Sigue ahí)
+                                {t('alert.confirm_still')}
                             </button>
                             <button 
                                 onClick={() => handleVote(false)}
@@ -137,20 +138,20 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
                                 className="w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-base">cancel</span>
-                                Falsa Alarma / Ya no está
+                                {t('alert.false_alarm')}
                             </button>
                             
                             <button 
                                 onClick={onClose}
                                 className="w-full py-3 text-white/40 text-xs uppercase tracking-widest font-bold mt-2"
                             >
-                                Cerrar
+                                {t('alert.close')}
                             </button>
                         </div>
                     </>
                 ) : (
                     <div className="text-center py-10 text-white/50">
-                        No se pudo cargar la alerta
+                        {t('alert.load_error')}
                     </div>
                 )}
             </div>

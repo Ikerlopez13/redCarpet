@@ -273,25 +273,27 @@ export const TrustedContacts: React.FC = () => {
         try {
             if (Capacitor.isNativePlatform()) {
                 const { Contacts } = await import('@capacitor-community/contacts');
-                // Android: requestPermissions() puede devolver un estado obsoleto
-                // justo tras conceder el permiso, dejando el botón "sin hacer nada".
-                // Comprobar primero, pedir si hace falta, y volver a comprobar.
-                let perm = await Contacts.checkPermissions();
-                if (perm.contacts !== 'granted') {
-                    perm = await Contacts.requestPermissions();
-                }
-                if (perm.contacts !== 'granted') {
-                    perm = await Contacts.checkPermissions();
-                }
-                if (perm.contacts !== 'granted') {
+                // Pedir permiso como preparación (necesario para leer el teléfono del
+                // contacto elegido). No bloqueamos la apertura del selector por el
+                // estado del permiso (en MIUI llega obsoleto tras concederlo).
+                try {
+                    const perm = await Contacts.checkPermissions();
+                    if (perm.contacts !== 'granted') {
+                        await Contacts.requestPermissions();
+                    }
+                } catch { /* seguimos e intentamos abrir el selector igualmente */ }
+
+                let contact: any;
+                try {
+                    contact = await Contacts.pickContact({
+                        projection: { name: true, phones: true }
+                    });
+                } catch (pickErr) {
+                    console.log('pickContact error', pickErr);
                     setIsPermissionsModalOpen(true);
                     return;
                 }
-                
-                const contact = await Contacts.pickContact({
-                    projection: { name: true, phones: true }
-                });
-                
+
                 if (contact && contact.contact) {
                     const c = contact.contact;
                     const name = c.displayName || c.name?.display || `${c.name?.given || ''} ${c.name?.family || ''}`.trim() || 'Contacto';
@@ -360,7 +362,7 @@ export const TrustedContacts: React.FC = () => {
 
     const handleWhatsAppInvite = () => {
         const shortId = myShortId;
-        const inviteText = `¡Únete a mi círculo de seguridad en RedCarpet! 🛡️🔴\n\nMi ID es: ${shortId}\n\n📥 Descárgate la app y añádeme con mi ID:\nhttps://apps.apple.com/app/id6755689618`;
+        const inviteText = t('contacts.invite_id_msg', { id: shortId });
         window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, '_blank');
     };
 
@@ -432,7 +434,7 @@ export const TrustedContacts: React.FC = () => {
                         <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
                         </svg>
-                        Invitar por WhatsApp
+                        {t('contacts.invite_whatsapp')}
                     </button>
                 </div>
 
@@ -500,7 +502,7 @@ export const TrustedContacts: React.FC = () => {
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <h4 className="font-bold text-lg">{contact.name}</h4>
                                             {contact.status === 'invited' && (
-                                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 rounded-full">Invitado · sin registrarse</span>
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 rounded-full">{t('contacts.invited_badge')}</span>
                                             )}
                                             {contact.status === 'pending' && (
                                                 <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 bg-blue-400/15 border border-blue-400/30 px-2 py-0.5 rounded-full">Solicitud enviada</span>
@@ -736,7 +738,7 @@ export const TrustedContacts: React.FC = () => {
                             <div className="w-12 h-1.5 bg-white/20 rounded-full mb-4" />
                             <div className="flex justify-between items-center w-full px-2">
                                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">
-                                    {showManualForm ? 'Añadir Manualmente' : 'Añadir Contacto'}
+                                    {showManualForm ? t('contacts.add_manual') : t('contacts.add_contact')}
                                 </h2>
                                 <button 
                                     onClick={() => {
@@ -762,8 +764,8 @@ export const TrustedContacts: React.FC = () => {
                                             <span className="material-symbols-outlined text-2xl">badge</span>
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="font-bold text-white text-base">Por ID de RedCarpet</h4>
-                                            <p className="text-white/40 text-xs mt-1">Introduce el ID único de tu contacto (ej. #3925DD3).</p>
+                                            <h4 className="font-bold text-white text-base">{t('contacts.by_id')}</h4>
+                                            <p className="text-white/40 text-xs mt-1">{t('contacts.by_id_desc')}</p>
                                         </div>
                                         <span className="material-symbols-outlined text-white/30 text-xl">chevron_right</span>
                                     </div>
@@ -778,8 +780,8 @@ export const TrustedContacts: React.FC = () => {
                                             <span className="material-symbols-outlined text-2xl">contacts</span>
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="font-bold text-white text-base">Desde la Agenda</h4>
-                                            <p className="text-white/40 text-xs mt-1">Selecciona un contacto directamente de tu teléfono.</p>
+                                            <h4 className="font-bold text-white text-base">{t('contacts.from_agenda')}</h4>
+                                            <p className="text-white/40 text-xs mt-1">{t('contacts.from_agenda_desc')}</p>
                                         </div>
                                         <span className="material-symbols-outlined text-white/30 text-xl">chevron_right</span>
                                     </div>
@@ -793,8 +795,8 @@ export const TrustedContacts: React.FC = () => {
                                             <span className="material-symbols-outlined text-2xl">edit_note</span>
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="font-bold text-white text-base">Añadir Manualmente</h4>
-                                            <p className="text-white/40 text-xs mt-1">Escribe el nombre y número de teléfono de tu contacto.</p>
+                                            <h4 className="font-bold text-white text-base">{t('contacts.add_manual')}</h4>
+                                            <p className="text-white/40 text-xs mt-1">{t('contacts.add_manual_desc')}</p>
                                         </div>
                                         <span className="material-symbols-outlined text-white/30 text-xl">chevron_right</span>
                                     </div>
@@ -804,13 +806,12 @@ export const TrustedContacts: React.FC = () => {
                                     {/* Info banner */}
                                     <div className="p-4 bg-primary/5 border border-primary/15 rounded-2xl">
                                         <p className="text-xs text-white/60 leading-relaxed">
-                                            Pide a tu contacto que abra RedCarpet y comparta su ID contigo.
-                                            Lo encontrará en la parte superior de esta pantalla.
+                                            {t('contacts.id_info')}
                                         </p>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">ID de RedCarpet</label>
+                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">{t('contacts.id_label')}</label>
                                         <input
                                             type="text"
                                             value={addByIdInput}
@@ -823,7 +824,7 @@ export const TrustedContacts: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">Cómo le llamas (opcional)</label>
+                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">{t('contacts.nickname_label')}</label>
                                         <input
                                             type="text"
                                             value={addByIdName}
@@ -843,21 +844,21 @@ export const TrustedContacts: React.FC = () => {
                                             onClick={() => { setShowIdForm(false); setAddByIdError(null); }}
                                             className="flex-1 h-14 bg-white/5 rounded-2xl font-bold text-sm text-white hover:bg-white/10 transition-colors"
                                         >
-                                            Atrás
+                                            {t('contacts.back')}
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={addByIdLoading || addByIdInput.length < 7}
                                             className="flex-1 h-14 bg-primary text-white rounded-2xl font-bold text-sm shadow-xl shadow-primary/20 hover:bg-primary/90 transition-colors disabled:opacity-50"
                                         >
-                                            {addByIdLoading ? 'Buscando...' : 'Enviar solicitud'}
+                                            {addByIdLoading ? t('contacts.searching') : t('contacts.send_request')}
                                         </button>
                                     </div>
                                 </form>
                             ) : (
                                 <form onSubmit={handleManualSubmit} className="space-y-5">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">Nombre</label>
+                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">{t('contacts.name_label')}</label>
                                         <input
                                             type="text"
                                             value={manualName}
@@ -869,12 +870,12 @@ export const TrustedContacts: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">Teléfono</label>
+                                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest pl-1">{t('contacts.phone_label')}</label>
                                         <input
                                             type="tel"
                                             value={manualPhone}
                                             onChange={(e) => setManualPhone(e.target.value)}
-                                            placeholder="ej. +34 600 000 000"
+                                            placeholder={t('contacts.phone_example_ph')}
                                             required
                                             className="w-full h-14 bg-white/5 rounded-2xl border border-white/5 px-4 text-base text-white focus:outline-none focus:border-primary/50 transition-colors placeholder:text-white/20"
                                         />
@@ -890,14 +891,14 @@ export const TrustedContacts: React.FC = () => {
                                             onClick={() => { setShowManualForm(false); setManualError(null); }}
                                             className="flex-1 h-14 bg-white/5 rounded-2xl font-bold text-sm text-white hover:bg-white/10 transition-colors"
                                         >
-                                            Atrás
+                                            {t('contacts.back')}
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={manualLoading || !manualName || !manualPhone}
                                             className="flex-1 h-14 bg-primary text-white rounded-2xl font-bold text-sm shadow-xl shadow-primary/20 hover:bg-primary/90 transition-colors disabled:opacity-50"
                                         >
-                                            {manualLoading ? 'Añadiendo...' : 'Añadir Contacto'}
+                                            {manualLoading ? t('contacts.adding') : t('contacts.add_contact')}
                                         </button>
                                     </div>
                                 </form>

@@ -5,8 +5,6 @@ import { isBlocked, track } from './mapboxBudget';
 import { allow, sanitizeQuery } from './rateLimiter';
 import { supabase } from './supabaseClient';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
 export interface GeocodingResult {
     id: string;
     name: string;
@@ -132,34 +130,29 @@ export async function searchPlaces(
     // usamos la última conocida o pedimos la posición actual.
     const prox = await resolveProximity(proximity);
 
-    const buildUrl = () => {
-        const url = new URL('https://api.mapbox.com/search/searchbox/v1/forward');
-        url.searchParams.append('q', clean);
-        url.searchParams.append('access_token', MAPBOX_TOKEN);
-        url.searchParams.append('limit', '10');
-        url.searchParams.append('language', 'es');
-        url.searchParams.append('country', 'es');
-        // POIs (cadenas y negocios), direcciones con número, calles, plazas/
-        // parques (poi), barrios, pueblos y ciudades.
-        url.searchParams.append('types', 'poi,address,street,place,locality,neighborhood');
-        if (prox) {
-            url.searchParams.append('proximity', `${prox.lng},${prox.lat}`);
-        }
-        return url.toString();
-    };
-
-    // 1 request con 1 reintento ante fallo de red (nunca quedarse vacío en
-    // silencio por un fallo transitorio).
+    // Llamada al PROXY autenticado (Edge Function). El token de Mapbox vive
+    // server-side y el rate limit / corte de presupuesto se aplican en backend.
+    // 1 request con 1 reintento ante fallo de red transitorio.
     let data: any = null;
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
-            const response = await fetch(buildUrl());
-            if (!response.ok) throw new Error(`Search Box forward HTTP ${response.status}`);
-            data = await response.json();
+            const { data: resp, error } = await supabase.functions.invoke('mapbox-search', {
+                body: {
+                    q: clean,
+                    language: 'es',
+                    proximity: prox ? `${prox.lng},${prox.lat}` : '',
+                },
+            });
+            if (error) throw error;
+            // El backend nos frenó (rate limit / presupuesto): devolvemos negocios.
+            if (resp?.error === 'rate_limited' || resp?.error === 'budget_blocked') {
+                return await businessesPromise;
+            }
+            data = resp;
             break;
         } catch (error) {
             if (attempt === 1) {
-                console.error('Error searching places (forward, tras reintento):', error);
+                console.error('Error searching places (proxy, tras reintento):', error);
                 return await businessesPromise; // al menos los negocios
             }
         }

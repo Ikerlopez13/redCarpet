@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Store, MapPin, Phone, Globe, Loader2, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Store, MapPin, Phone, Globe, Loader2, CheckCircle2, Search, X } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
+import { searchPlaces, type GeocodingResult } from '../services/geocodingService';
 
 const CATEGORIES = [
   { id: 'restaurant', label: 'business.cat_restaurant' },
@@ -32,12 +34,51 @@ export const BusinessSpotlight: React.FC = () => {
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [myListingId, setMyListingId] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [promoTier, setPromoTier] = useState<string>('none');   // none | social_49 | plus_99
   const [promoStatus, setPromoStatus] = useState<string>('none'); // none | pendiente | publicado
   const [promoSubmitting, setPromoSubmitting] = useState<string | null>(null);
 
+  // Buscador de dirección/negocio: al escribir, geocodifica (con debounce) y muestra sugerencias.
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    setLat(null);
+    setLng(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchPlaces(value);
+        setSuggestions(results);
+        setShowSuggestions(true);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+  };
+
+  const selectSuggestion = (s: GeocodingResult) => {
+    setAddress(s.address || s.name);
+    setLat(s.lat);
+    setLng(s.lng);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Ubicación actual: OPCIONAL, para quien esté físicamente en su negocio.
   const locateMe = async () => {
     setLocating(true);
     try {
@@ -45,6 +86,7 @@ export const BusinessSpotlight: React.FC = () => {
       const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 8000 });
       setLat(pos.coords.latitude);
       setLng(pos.coords.longitude);
+      setShowSuggestions(false);
     } catch {
       setError(t('business.err_location'));
     } finally {
@@ -317,14 +359,49 @@ export const BusinessSpotlight: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">{t('business.addr_label')}</label>
-            <input
-              value={address}
-              onChange={e => setAddress(e.target.value)}
-              placeholder={t('business.addr_ph')}
-              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder-white/20 text-sm focus:outline-none focus:border-amber-400/50"
-            />
+          {/* Buscador de negocio / dirección */}
+          <div className="relative">
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">
+              <Search size={10} className="inline mr-1" />{t('business.search_label')} *
+            </label>
+            <div className="relative">
+              <input
+                value={address}
+                onChange={e => handleAddressChange(e.target.value)}
+                placeholder={t('business.search_ph')}
+                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 pr-10 text-white placeholder-white/20 text-sm focus:outline-none focus:border-amber-400/50"
+              />
+              {searching ? (
+                <Loader2 size={16} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-white/40" />
+              ) : address ? (
+                <button
+                  onClick={() => { setAddress(''); setSuggestions([]); setShowSuggestions(false); setLat(null); setLng(null); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              ) : null}
+            </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-30 mt-1 w-full bg-[#1a1a1f] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-56 overflow-y-auto">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => selectSuggestion(s)}
+                    className="w-full text-left px-4 py-3 flex items-start gap-2 hover:bg-white/5 border-b border-white/5 last:border-0"
+                  >
+                    <MapPin size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-semibold truncate">{s.name}</p>
+                      {s.address && <p className="text-[11px] text-white/40 truncate">{s.address}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showSuggestions && !searching && suggestions.length === 0 && address.trim().length >= 3 && (
+              <p className="text-[11px] text-white/30 mt-1 px-1">{t('business.no_results')}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -354,29 +431,26 @@ export const BusinessSpotlight: React.FC = () => {
             </div>
           </div>
 
-          {/* Ubicación */}
+          {/* Estado de la ubicación + opción de ubicación actual */}
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">
-              <MapPin size={10} className="inline mr-1" />Ubicación en el mapa *
-            </label>
             {lat && lng ? (
               <div className="h-12 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center px-4 gap-2">
-                <MapPin size={16} className="text-green-400 shrink-0" />
-                <span className="text-green-400 text-xs font-bold">{lat.toFixed(5)}, {lng.toFixed(5)}</span>
-                <button onClick={() => { setLat(null); setLng(null); }} className="ml-auto text-white/30 text-xs">{t('business.change')}</button>
+                <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+                <span className="text-green-400 text-xs font-bold truncate">{t('business.location_ok')}</span>
+                <button onClick={() => { setLat(null); setLng(null); }} className="ml-auto text-white/30 text-xs shrink-0">{t('business.change')}</button>
               </div>
             ) : (
-              <button
-                onClick={locateMe}
-                disabled={locating}
-                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white/50 hover:text-white transition-colors"
-              >
-                {locating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  {locating ? t('business.getting_location') : t('business.use_location')}
-                </span>
-              </button>
+              <p className="text-[11px] text-white/30 px-1">{t('business.pick_location')}</p>
             )}
+            {/* Ubicación actual: opcional (para quien esté en su negocio) */}
+            <button
+              onClick={locateMe}
+              disabled={locating}
+              className="w-full mt-2 h-10 bg-transparent border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white/40 hover:text-white text-[11px] font-bold uppercase tracking-widest transition-colors"
+            >
+              {locating ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+              {locating ? t('business.getting_location') : t('business.use_current_optional')}
+            </button>
           </div>
         </div>
 

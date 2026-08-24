@@ -8,6 +8,7 @@ interface BusinessListing {
   name: string;
   description?: string;
   category?: string;
+  address?: string;
   lat: number;
   lng: number;
   phone?: string;
@@ -26,7 +27,7 @@ export const BusinessMarkers: React.FC<BusinessMarkersProps> = ({ onBusinessClic
     const fetchBusinesses = async () => {
       const { data } = await supabase
         .from('business_listings')
-        .select('id, name, description, category, lat, lng, phone, website')
+        .select('id, name, description, category, address, lat, lng, phone, website')
         .eq('is_active', true);
       if (data) setBusinesses(data);
     };

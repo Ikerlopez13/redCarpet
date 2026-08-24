@@ -60,8 +60,8 @@ export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, on
                 
                 {!submitted ? (
                     <>
-                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">¿Qué te parece RedCarpet?</h2>
-                        <p className="text-sm text-white/60 mb-8">Tu opinión nos ayuda a salvar más vidas y mejorar la aplicación.</p>
+                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">{t('review.title')}</h2>
+                        <p className="text-sm text-white/60 mb-8">{t('review.subtitle')}</p>
                         
                         {!showFeedback ? (
                             <div className="flex justify-center gap-2 mb-4">
@@ -84,7 +84,7 @@ export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, on
                             </div>
                         ) : (
                             <div className="animate-fade-in text-left">
-                                <label className="block text-xs font-bold uppercase tracking-widest text-white/60 mb-3">¿Qué podemos mejorar?</label>
+                                <label className="block text-xs font-bold uppercase tracking-widest text-white/60 mb-3">{t('review.improve_label')}</label>
                                 <textarea
                                     value={feedback}
                                     onChange={(e) => setFeedback(e.target.value)}
@@ -95,7 +95,7 @@ export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, on
                                     onClick={submitFeedback}
                                     className="w-full mt-4 bg-red-600 text-white font-black uppercase tracking-widest py-3.5 rounded-xl hover:bg-red-700 active:scale-95 transition-all shadow-lg shadow-red-900/50"
                                 >
-                                    Enviar Comentarios
+                                    {t('review.submit')}
                                 </button>
                             </div>
                         )}
@@ -105,8 +105,8 @@ export const ReviewPromptModal: React.FC<ReviewPromptModalProps> = ({ isOpen, on
                         <div className="size-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
                             <span className="material-symbols-outlined text-3xl font-black">favorite</span>
                         </div>
-                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">¡Gracias!</h2>
-                        <p className="text-sm text-white/60">Agradecemos mucho tu apoyo y confianza en nosotros.</p>
+                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">{t('review.thanks_title')}</h2>
+                        <p className="text-sm text-white/60">{t('review.thanks_sub')}</p>
                     </div>
                 )}
             </div>

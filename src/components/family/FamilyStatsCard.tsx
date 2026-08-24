@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../services/supabaseClient';
 import { ShieldCheck, MapPin, AlertTriangle, TrendingUp } from 'lucide-react';
 
@@ -13,6 +14,7 @@ interface FamilyStatsCardProps {
 }
 
 export function FamilyStatsCard({ familyId }: FamilyStatsCardProps) {
+    const { t } = useTranslation();
     const [stats, setStats] = useState<FamilyStats>({
         safe_arrivals_count: 0,
         risk_alerts_count: 0,
@@ -96,7 +98,7 @@ export function FamilyStatsCard({ familyId }: FamilyStatsCardProps) {
             <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
                 <div className="flex items-center gap-1.5">
                     <TrendingUp size={14} className="text-purple-400" />
-                    <span>Tu familia está protegida</span>
+                    <span>{t('family.protected')}</span>
                 </div>
                 {stats.risk_alerts_count === 0 && (
                     <span className="bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full font-medium text-[10px]">

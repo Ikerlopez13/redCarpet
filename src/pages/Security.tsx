@@ -86,7 +86,7 @@ export const Security: React.FC = () => {
                         <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white/40 hover:text-white active:scale-90 transition-transform">
                             <ChevronLeft size={24} />
                         </button>
-                        <h1 className="text-xl font-black uppercase italic tracking-tighter">Círculo de Seguridad</h1>
+                        <h1 className="text-xl font-black uppercase italic tracking-tighter">{t('home.safety_circle')}</h1>
                     </div>
                     <button 
                         onClick={() => navigate('/settings')}
@@ -110,15 +110,15 @@ export const Security: React.FC = () => {
                 {/* Alarms Section */}
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 italic">Mis Alarmas</h2>
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Ver Todo</span>
+                        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 italic">{t('security.my_alarms')}</h2>
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{t('security.see_all')}</span>
                     </div>
 
                     <div className="space-y-3">
                         {isLoading ? (
                             <div className="py-12 flex flex-col items-center gap-4 opacity-20">
                                 <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Sincronizando...</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest">{t('security.syncing')}</span>
                             </div>
                         ) : alarms.length === 0 ? (
                             <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center space-y-3">
@@ -126,8 +126,8 @@ export const Security: React.FC = () => {
                                     <Bell size={24} />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold">Sin alertas activas</p>
-                                    <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Tu círculo está seguro ahora mismo</p>
+                                    <p className="text-sm font-bold">{t('security.no_active_alerts')}</p>
+                                    <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">{t('security.circle_safe_now')}</p>
                                 </div>
                             </div>
                         ) : (
@@ -151,14 +151,14 @@ export const Security: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
                                             <p className="text-sm font-black italic uppercase tracking-tight truncate">
-                                                {alarm.profiles?.full_name || 'Miembro del Círculo'}
+                                                {alarm.profiles?.full_name || t('security.circle_member')}
                                             </p>
                                             <span className="text-[9px] font-bold text-white/20 uppercase">
                                                 {new Date(alarm.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-white/50 line-clamp-1 leading-relaxed">
-                                            {alarm.message || 'Ha activado un aviso de trayecto'}
+                                            {alarm.message || t('security.activated_journey')}
                                         </p>
                                     </div>
                                     <button 
@@ -175,7 +175,7 @@ export const Security: React.FC = () => {
 
                 {/* Bottom Block Grid */}
                 <section className="space-y-4">
-                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 italic px-2">Configuración Activa</h2>
+                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 italic px-2">{t('security.active_config')}</h2>
                     <div className="flex flex-col gap-3">
                         {/* Zonas Peligro */}
                         <div className="bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center justify-between">
@@ -184,8 +184,8 @@ export const Security: React.FC = () => {
                                     <AlertTriangle size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Zonas de Peligro</h3>
-                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Avisos en tiempo real</p>
+                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">{t('security.danger_zones')}</h3>
+                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('security.realtime_alerts')}</p>
                                 </div>
                             </div>
                             <button 
@@ -203,8 +203,8 @@ export const Security: React.FC = () => {
                                     <RouteIcon size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Rutas Seguras</h3>
-                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">IA de navegación</p>
+                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">{t('security.safe_routes')}</h3>
+                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('security.nav_ai')}</p>
                                 </div>
                             </div>
                             <button 
@@ -227,8 +227,8 @@ export const Security: React.FC = () => {
                                     <Users size={24} />
                                 </div>
                                 <div className="text-left">
-                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Contactos</h3>
-                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Gestionar círculo</p>
+                                    <h3 className="text-sm font-black uppercase italic tracking-tighter">{t('security.contacts')}</h3>
+                                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('security.manage_circle')}</p>
                                 </div>
                             </div>
                             <ChevronLeft size={20} className="text-white/40 rotate-180" />
@@ -246,8 +246,8 @@ export const Security: React.FC = () => {
                             <Shield size={20} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">IA Escudo Activo</p>
-                            <p className="text-xs font-bold text-white/70">Protección predictiva activada</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">{t('security.ai_shield_active')}</p>
+                            <p className="text-xs font-bold text-white/70">{t('security.predictive_on')}</p>
                         </div>
                     </div>
                 </div>

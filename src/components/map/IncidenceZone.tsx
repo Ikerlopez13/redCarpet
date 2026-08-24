@@ -48,9 +48,28 @@ const createGeoJSONCircle = (lat: number, lng: number, radiusInMeters: number, c
     };
 };
 
+// Etiquetas guardadas en español (canónico) → clave i18n, para traducir el pill del mapa.
+const CAT_LABEL_KEYS: Record<string, string> = {
+    'Poca luz': 'report.cat.dark_light',
+    'Ambiente Inseguro': 'report.cat.unsafe_env',
+    'Acceso limitado': 'report.cat.limited_mobility',
+    'Acceso seguro': 'report.cat.safe_mobility',
+    'Zona inclusiva': 'report.cat.inclusive_zone',
+    'Calle cortada': 'report.cat.street_closed',
+    'Calle en mal estado': 'report.cat.street_damaged',
+    'Autoridades presentes': 'report.cat.security',
+};
+
 export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
     const { t } = useTranslation();
-    
+
+    // Traduce el texto del pill. Si ya viene traducido (no coincide con el mapa ES), lo deja igual.
+    const trLabel = (s?: string) => {
+        if (!s) return '';
+        const key = CAT_LABEL_KEYS[s.trim()];
+        return key ? t(key) : s;
+    };
+
     // Generar la colección de polígonos (Escala real en metros)
     const geojson = useMemo(() => {
         return {
@@ -113,7 +132,7 @@ export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
                         {/* Etiqueta Pill Inferior */}
                         <div className="bg-zinc-900/90 backdrop-blur-md px-4 py-1 rounded-full shadow-lg border border-white/10 whitespace-nowrap text-center">
                             <span className="text-white text-[9px] font-bold uppercase tracking-wider">
-                                {zone.title || zone.label || t('map.active_zone_detected')}
+                                {trLabel(zone.title || zone.label) || t('map.active_zone_detected')}
                             </span>
                         </div>
                     </div>

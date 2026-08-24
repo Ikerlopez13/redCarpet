@@ -12,6 +12,7 @@ import { POILayer } from './map/POIMarker';
 import { SafeZones } from './map/SafeZone';
 import { AuthorityAlerts } from './map/AuthorityAlerts';
 import { BusinessMarkers } from './map/BusinessMarkers';
+import { BusinessDetailModal, type BusinessListing } from './map/BusinessDetailModal';
 import { LOCATIONS } from '../services/directionsService';
 import { getNearbyBusStops, getNearbyMetroStations, type BusStop, type MetroStation } from '../services/tmbService';
 import { getNearbyPOIs, type POI } from '../services/poiService';
@@ -115,6 +116,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     }, [focusPoint?.nonce]);
     const [pois, setPois] = useState<POI[]>([]);
     const [incidenceZones, setIncidenceZones] = useState<any[]>([]);
+    const [selectedBusiness, setSelectedBusiness] = useState<BusinessListing | null>(null);
     const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
     const [is3D, setIs3D] = useState(false);
     const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
@@ -152,8 +154,30 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                         
                         if (zone.description && zone.description.includes(' - ')) {
                             const parts = zone.description.split(' - ');
-                            title = parts[0];
-                            description = parts[1];
+                            // La descripción se guarda en español (canónico). La traducimos a
+                            // partir de las claves de categoría del reporte.
+                            const CAT: Record<string, string> = {
+                                'Poca luz': 'report.cat.dark_light',
+                                'Ambiente Inseguro': 'report.cat.unsafe_env',
+                                'Acceso limitado': 'report.cat.limited_mobility',
+                                'Acceso seguro': 'report.cat.safe_mobility',
+                                'Zona inclusiva': 'report.cat.inclusive_zone',
+                                'Calle cortada': 'report.cat.street_closed',
+                                'Calle en mal estado': 'report.cat.street_damaged',
+                                'Autoridades presentes': 'report.cat.security',
+                            };
+                            const SUB: Record<string, string> = {
+                                'BAJA VISIBILIDAD': 'report.sub.low_visibility',
+                                'PELIGRO': 'report.sub.danger',
+                                'MOVILIDAD REDUCIDA': 'report.sub.reduced_mobility',
+                                'INCLUSIVIDAD': 'report.sub.inclusivity',
+                                'VIALIDAD': 'report.sub.roadway',
+                                'SEGURIDAD': 'report.sub.safety',
+                            };
+                            const rawLabel = (parts[0] || '').trim();
+                            const rawSub = (parts[1] || '').trim();
+                            title = CAT[rawLabel] ? t(CAT[rawLabel]) : rawLabel;
+                            description = SUB[rawSub.toUpperCase()] ? t(SUB[rawSub.toUpperCase()]) : rawSub;
                         }
 
                         return {
@@ -441,7 +465,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 )}
 
                 {/* Negocios destacados — pin dorado (se encogen al desampliar) */}
-                <BusinessMarkers zoom={viewState.zoom} />
+                <BusinessMarkers zoom={viewState.zoom} onBusinessClick={setSelectedBusiness} />
 
                 {/* Route Lines from Directions API */}
                 {showRoutes && routeGeometry && (
@@ -540,6 +564,9 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     {children}
                 </div>
             </div>
+
+            {/* Ficha del negocio al tocar su pin */}
+            <BusinessDetailModal business={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
         </div>
     );
 };
