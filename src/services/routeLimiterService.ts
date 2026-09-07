@@ -1,31 +1,37 @@
-// Service to manage daily route limits for free users
+// Límite de rutas para usuarios GRATIS: 3 rutas al MES (se reinicia cada mes).
+// Premium = ilimitado.
 
-const FREE_DAILY_LIMIT = 3;
-const STORAGE_KEY = 'redcarpet_daily_routes';
+const FREE_MONTHLY_LIMIT = 3;
+const STORAGE_KEY = 'redcarpet_monthly_routes';
 
 interface RouteStats {
-    date: string;
+    period: string; // 'YYYY-MM'
     count: number;
+}
+
+// Periodo actual (año-mes), p.ej. "2026-08".
+function currentPeriod(): string {
+    return new Date().toISOString().slice(0, 7);
 }
 
 export function getRemainingRoutes(isPremium: boolean): number | 'unlimited' {
     if (isPremium) return 'unlimited';
 
-    const today = new Date().toISOString().split('T')[0];
+    const period = currentPeriod();
     const stored = localStorage.getItem(STORAGE_KEY);
 
     if (stored) {
         try {
             const stats: RouteStats = JSON.parse(stored);
-            if (stats.date === today) {
-                return Math.max(0, FREE_DAILY_LIMIT - stats.count);
+            if (stats.period === period) {
+                return Math.max(0, FREE_MONTHLY_LIMIT - stats.count);
             }
         } catch (e) {
             console.error('Error parsing route stats', e);
         }
     }
 
-    return FREE_DAILY_LIMIT;
+    return FREE_MONTHLY_LIMIT;
 }
 
 export function canStartRoute(isPremium: boolean): boolean {
@@ -35,16 +41,16 @@ export function canStartRoute(isPremium: boolean): boolean {
 }
 
 export function recordRouteStart(isPremium: boolean): void {
-    if (isPremium) return; // Don't track if premium
+    if (isPremium) return; // Premium = ilimitado, no se cuenta
 
-    const today = new Date().toISOString().split('T')[0];
+    const period = currentPeriod();
     const stored = localStorage.getItem(STORAGE_KEY);
-    let stats: RouteStats = { date: today, count: 0 };
+    let stats: RouteStats = { period, count: 0 };
 
     if (stored) {
         try {
             const parsed: RouteStats = JSON.parse(stored);
-            if (parsed.date === today) {
+            if (parsed.period === period) {
                 stats = parsed;
             }
         } catch (e) {

@@ -167,7 +167,7 @@ export const Emergency: React.FC = () => {
                         <div className="space-y-2">
                             <p className="text-sm font-bold text-white/90">{t('emergency.protocol')}</p>
                             <p className="text-[10px] text-white/40 font-medium leading-relaxed uppercase tracking-widest">
-                                En un solo clic se avisará al 112 y a tu círculo de seguridad compartiendo tu ubicación real.
+                                {t('i18nfix.emergency_112')}
                             </p>
                         </div>
                     )}

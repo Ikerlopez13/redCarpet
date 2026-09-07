@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import type { DangerZone } from '../../services/database.types';
 import { translateIncidentDescription } from '../../utils/incidentLabels';
+import { getCurrentPosition } from '../../services/locationService';
 
 interface AlertDetailsModalProps {
     zoneId: string | null;
@@ -12,11 +13,26 @@ interface AlertDetailsModalProps {
     onAlertDeleted: () => void;
 }
 
+// Distancia máxima para poder marcar "falsa alarma": si el usuario está más
+// lejos que esto, no ha podido comprobar la zona en persona.
+const FALSE_ALARM_MAX_DISTANCE_M = 5000;
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371e3;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, isOpen, onClose, onAlertDeleted }) => {
     const { t } = useTranslation();
     const [zone, setZone] = useState<DangerZone | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isVoting, setIsVoting] = useState(false);
+    const [distanceM, setDistanceM] = useState<number | null>(null);
 
     useEffect(() => {
         if (isOpen && zoneId) {
@@ -62,9 +78,36 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
         }
     }, [zoneId, isOpen]);
 
+    // Al abrir una zona real, mide a qué distancia está el usuario para decidir
+    // si puede marcar "falsa alarma" (solo si la ha podido comprobar de cerca).
+    useEffect(() => {
+        setDistanceM(null);
+        if (!isOpen || !zone || zone.id.startsWith('zone-bcn')) return;
+        if (zone.lat == null || zone.lng == null) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const pos = await getCurrentPosition();
+                if (cancelled) return;
+                const { latitude, longitude } = pos.coords;
+                setDistanceM(haversineMeters(latitude, longitude, zone.lat, zone.lng));
+            } catch {
+                // Sin ubicación no podemos verificar cercanía → bloqueamos por seguridad.
+                if (!cancelled) setDistanceM(Infinity);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [zone?.id, isOpen]);
+
     const handleVote = async (isUpvote: boolean) => {
         if (!zone || zone.id.startsWith('zone-bcn')) {
             onClose();
+            return;
+        }
+
+        if (!isUpvote && distanceM != null && distanceM > FALSE_ALARM_MAX_DISTANCE_M) {
+            // Demasiado lejos para haber comprobado la zona en persona.
+            alert(t('alert.false_alarm_too_far'));
             return;
         }
 
@@ -95,6 +138,14 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
             setIsVoting(false);
         }
     };
+
+    // Zonas verificadas (sembradas por RedCarpet / fuentes oficiales) no se
+    // pueden marcar como "falsa alarma" ni borrar desde la app. RLS lo impide
+    // en el servidor; aquí ocultamos el botón y mostramos un sello.
+    const origen = (zone as any)?.origen as string | null | undefined;
+    const isVerified = !!origen && origen !== 'usuario';
+    // Demasiado lejos para poder desmentir la alerta (no la ha comprobado).
+    const tooFar = distanceM != null && distanceM > FALSE_ALARM_MAX_DISTANCE_M;
 
     if (!isOpen) return null;
 
@@ -132,16 +183,28 @@ export const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ zoneId, is
                                 <span className="material-symbols-outlined text-base">check_circle</span>
                                 {t('alert.confirm_still')}
                             </button>
-                            <button 
-                                onClick={() => handleVote(false)}
-                                disabled={isVoting}
-                                className="w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                <span className="material-symbols-outlined text-base">cancel</span>
-                                {t('alert.false_alarm')}
-                            </button>
-                            
-                            <button 
+                            {isVerified ? (
+                                <div className="w-full py-3 bg-sky-500/10 text-sky-300 border border-sky-500/25 rounded-2xl font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-2">
+                                    <span className="material-symbols-outlined text-base">verified</span>
+                                    {t('alert.verified_official')}
+                                </div>
+                            ) : tooFar ? (
+                                <div className="w-full py-3 px-3 bg-white/5 text-white/40 border border-white/10 rounded-2xl font-medium text-[11px] flex items-center justify-center gap-2 text-center">
+                                    <span className="material-symbols-outlined text-base shrink-0">location_off</span>
+                                    {t('alert.false_alarm_too_far')}
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => handleVote(false)}
+                                    disabled={isVoting}
+                                    className="w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-base">cancel</span>
+                                    {t('alert.false_alarm')}
+                                </button>
+                            )}
+
+                            <button
                                 onClick={onClose}
                                 className="w-full py-3 text-white/40 text-xs uppercase tracking-widest font-bold mt-2"
                             >

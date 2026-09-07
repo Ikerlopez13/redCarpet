@@ -50,6 +50,12 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Foreground service de ubicación (estilo Life360): mantiene vivo el servicio
+         en 2º plano para que el sistema no lo mate. El <service> lo declara el plugin
+         background-geolocation; aquí ponemos los permisos explícitos (Android 14+/SDK 34
+         exige FOREGROUND_SERVICE_LOCATION). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

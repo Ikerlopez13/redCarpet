@@ -27,7 +27,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>27</string>
+	<string>29</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -40,7 +40,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>28</string>
+	<string>30</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -55,6 +55,8 @@
 	<string>We need your location to show you on the map and recommend comfortable routes.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need microphone access to record audio during your journey stream.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>RedCarpet usa el sensor de movimiento para detectar cuándo te desplazas y optimizar el seguimiento de tu ubicación en segundo plano, ahorrando batería.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>We need permission to save photos and videos from your journey to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

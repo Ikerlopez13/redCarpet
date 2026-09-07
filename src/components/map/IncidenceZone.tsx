@@ -17,6 +17,7 @@ interface IncidenceZoneProps {
 
 interface IncidenceZonesProps {
     zones: IncidenceZoneProps[];
+    zoom?: number;
 }
 
 import { getIncidentColor } from '../../utils/incidentColors';
@@ -60,8 +61,13 @@ const CAT_LABEL_KEYS: Record<string, string> = {
     'Autoridades presentes': 'report.cat.security',
 };
 
-export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
+export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones, zoom = 16 }) => {
     const { t } = useTranslation();
+
+    // Escala por zoom (igual que los negocios destacados): de lejos se ven
+    // pequeñitas para no resultar alarmantes; de cerca, tamaño normal.
+    const scale = Math.max(0.4, Math.min(1, (zoom - 10) / 5)); // zoom 10 → 0.4, 15+ → 1
+    const showLabel = zoom >= 13;
 
     // Traduce el texto del pill. Si ya viene traducido (no coincide con el mapa ES), lo deja igual.
     const trLabel = (s?: string) => {
@@ -115,6 +121,7 @@ export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
                 >
                     <div
                         className="flex flex-col items-center gap-2 pointer-events-auto cursor-pointer group"
+                        style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
                         onClick={(e) => {
                             e.stopPropagation();
                             zone.onClick?.(zone.id);
@@ -129,12 +136,14 @@ export const IncidenceZones: React.FC<IncidenceZonesProps> = ({ zones }) => {
                             <div className="absolute inset-0 rounded-full border animate-pulse opacity-20 pointer-events-none" style={{ borderColor: color }} />
                         </div>
 
-                        {/* Etiqueta Pill Inferior */}
-                        <div className="bg-zinc-900/90 backdrop-blur-md px-4 py-1 rounded-full shadow-lg border border-white/10 whitespace-nowrap text-center">
-                            <span className="text-white text-[9px] font-bold uppercase tracking-wider">
-                                {trLabel(zone.title || zone.label) || t('map.active_zone_detected')}
-                            </span>
-                        </div>
+                        {/* Etiqueta Pill Inferior (oculta al desampliar para no saturar) */}
+                        {showLabel && (
+                            <div className="bg-zinc-900/90 backdrop-blur-md px-4 py-1 rounded-full shadow-lg border border-white/10 whitespace-nowrap text-center">
+                                <span className="text-white text-[9px] font-bold uppercase tracking-wider">
+                                    {trLabel(zone.title || zone.label) || t('map.active_zone_detected')}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </Marker>
                 );

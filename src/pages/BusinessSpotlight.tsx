@@ -407,7 +407,7 @@ export const BusinessSpotlight: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-1">
-                <Phone size={10} className="inline mr-1" />Teléfono
+                <Phone size={10} className="inline mr-1" />{t('i18nfix.business_phone')}
               </label>
               <input
                 value={phone}
@@ -468,15 +468,15 @@ export const BusinessSpotlight: React.FC = () => {
           disabled={submitting}
           className="w-full h-14 bg-amber-400 hover:bg-amber-300 text-amber-900 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20"
         >
-          {submitting ? <Loader2 size={20} className="animate-spin" /> : <><Store size={18} /> {t('business.headline')} · 50€/mes</>}
+          {submitting ? <Loader2 size={20} className="animate-spin" /> : <><Store size={18} /> {t('business.headline')} · {t('i18nfix.business_price_month')}</>}
         </button>
         {myListingId && !isPaid && (
           <button onClick={verifyPayment} disabled={submitting} className="w-full h-10 bg-white/5 border border-white/10 rounded-xl text-white/40 font-bold text-xs uppercase tracking-widest">
-            Ya pagué · Verificar activación
+            {t('i18nfix.business_verify_paid')}
           </button>
         )}
         <p className="text-center text-white/20 text-[9px] uppercase tracking-widest">
-          Pago seguro con Stripe · Cancela en cualquier momento
+          {t('i18nfix.business_secure_pay')}
         </p>
       </div>
     </div>

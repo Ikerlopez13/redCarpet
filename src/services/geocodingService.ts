@@ -190,13 +190,20 @@ export async function searchPlaces(
         );
     }
 
-    // Negocios destacados PRIMERO (han pagado visibilidad), sin duplicar los
-    // que Mapbox ya devuelva con el mismo nombre.
+    // Negocios destacados PRIMERO (han pagado visibilidad). Solo descartamos de
+    // Mapbox el resultado que sea EL MISMO local (mismo nombre + a <60 m), no
+    // todos los de la cadena: si buscas "mercadona" y hay uno destacado, deben
+    // seguir apareciendo el resto de Mercadonas cercanos.
     const businesses = await businessesPromise;
-    const bizNames = new Set(businesses.map(b => b.name.toLowerCase()));
+    const isSamePlace = (r: GeocodingResult) =>
+        businesses.some(
+            b =>
+                b.name.toLowerCase() === r.name.toLowerCase() &&
+                haversine(b.lat, b.lng, r.lat, r.lng) < 60
+        );
     const merged = [
         ...businesses,
-        ...results.filter(r => !bizNames.has(r.name.toLowerCase())),
+        ...results.filter(r => !isSamePlace(r)),
     ];
 
     _searchCache.set(cacheKey, { results: merged, expiresAt: Date.now() + SEARCH_TTL_MS });

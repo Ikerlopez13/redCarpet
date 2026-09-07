@@ -119,15 +119,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setIsLoading(false);
                         fetchAndSetProfile(loggedUser);
 
-                        // Start location tracking for all users so contacts always see fresh data
-                        startLocationTracking(loggedUser.id)
-                            .then(tracker => { locationTrackingStop = tracker.stop; })
-                            .catch(err => console.warn('[AuthContext] Location tracking start error (non-fatal):', err));
+                        // El panel de administración (/dashboard, /god) NO debe rastrear la
+                        // ubicación del operador: pedir geolocalización en Safari de escritorio
+                        // cuelga el arranque (getCurrentPosition sin GPS/permiso). Solo la app.
+                        const onDashboard = window.location.pathname.startsWith('/dashboard');
+                        if (!onDashboard) {
+                            // Start location tracking for all users so contacts always see fresh data
+                            startLocationTracking(loggedUser.id)
+                                .then(tracker => { locationTrackingStop = tracker.stop; })
+                                .catch(err => console.warn('[AuthContext] Location tracking start error (non-fatal):', err));
 
-                        // Rastreo en segundo plano para TODOS los usuarios (seguridad tipo Life360).
-                        // Desacoplado de RevenueCat/premium para que la ubicación en 2º plano
-                        // se vea siempre, aunque el usuario no sea premium.
-                        BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+                            // Rastreo en segundo plano para TODOS los usuarios (seguridad tipo Life360).
+                            BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+                        }
 
                         // Vincular invitaciones pendientes: si alguien te invitó antes de
                         // tener cuenta, ahora su solicitud pasa a pendiente automáticamente.
@@ -157,9 +161,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setIsLoading(false);
                     fetchAndSetProfile(loggedUser);
                     updatePremiumStatus(loggedUser);
-                    // Rastreo en 2º plano para TODOS también en login nuevo
-                    // (idempotente: el servicio ignora si ya está activo)
-                    BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+                    // Rastreo en 2º plano también en login nuevo (idempotente), salvo en
+                    // el panel de administración, que no rastrea al operador.
+                    if (!window.location.pathname.startsWith('/dashboard')) {
+                        BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+                    }
                 } else {
                     setUser(null);
                     setIsLoading(false);

@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Star, Heart, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Capacitor } from '@capacitor/core';
+
+const IS_ANDROID = Capacitor.getPlatform() === 'android';
+const STORE_NAME = IS_ANDROID ? 'Google Play' : 'App Store';
 
 export const Feedback: React.FC = () => {
     const navigate = useNavigate();
@@ -14,13 +18,13 @@ export const Feedback: React.FC = () => {
     const currentLang = i18n.language?.split('-')[0] || 'es';
 
     const redirectingText: Record<string, string> = {
-        es: 'Redirigiéndote a la App Store...',
-        ca: 'Redirigint-te a l\'App Store...',
-        en: 'Redirecting you to the App Store...',
-        fr: 'Redirection vers l\'App Store...',
-        pt: 'Redirecionando para a App Store...',
-        de: 'Weiterleitung zum App Store...',
-        it: 'Reindirizzamento all\'App Store...'
+        es: `Redirigiéndote a ${STORE_NAME}...`,
+        ca: `Redirigint-te a ${STORE_NAME}...`,
+        en: `Redirecting you to ${STORE_NAME}...`,
+        fr: `Redirection vers ${STORE_NAME}...`,
+        pt: `Redirecionando para ${STORE_NAME}...`,
+        de: `Weiterleitung zu ${STORE_NAME}...`,
+        it: `Reindirizzamento a ${STORE_NAME}...`
     };
 
     const handleStarClick = async (stars: number) => {
@@ -28,9 +32,11 @@ export const Feedback: React.FC = () => {
         if (stars >= 4) {
             setIsRedirecting(true);
             setTimeout(async () => {
-                const { Capacitor } = await import('@capacitor/core');
-                const storeUrl = 'https://apps.apple.com/es/app/redcarpet/id6755689618?action=write-review';
-                
+                // Tienda según plataforma (en Android NO enviar a la App Store de Apple).
+                const storeUrl = IS_ANDROID
+                    ? 'https://play.google.com/store/apps/details?id=com.vibecode.redcarpet'
+                    : 'https://apps.apple.com/es/app/redcarpet/id6755689618?action=write-review';
+
                 try {
                     window.open(storeUrl, '_system');
                 } catch (e) {

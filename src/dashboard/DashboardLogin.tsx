@@ -5,9 +5,15 @@ import { getDashboardProfile } from './dashboardService';
 import { dt } from './i18n';
 import { ShieldAlert } from 'lucide-react';
 
+// Cuentas del panel. El usuario solo escribe la CONTRASEÑA; ésta determina la
+// cuenta (identidad interna). Por dentro sigue siendo Supabase Auth + RLS.
+const GOD_ACCOUNTS = [
+    'god@redcarpet.app',            // CEO — superadmin (mundial)
+    'demo.valencia@redcarpet.app',  // València — city_admin
+];
+
 export default function DashboardLogin() {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -16,13 +22,19 @@ export default function DashboardLogin() {
         e.preventDefault();
         setBusy(true);
         setError(false);
-        const { error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (authErr) {
+
+        // Probamos la contraseña contra cada cuenta; la correcta entra.
+        let signedIn = false;
+        for (const email of GOD_ACCOUNTS) {
+            const { error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+            if (!authErr) { signedIn = true; break; }
+        }
+        if (!signedIn) {
             setError(true);
             setBusy(false);
             return;
         }
-        // only users with a dashboard_users row may enter
+        // solo usuarios con fila en dashboard_users pueden entrar
         const profile = await getDashboardProfile();
         if (!profile) {
             await supabase.auth.signOut();
@@ -42,7 +54,7 @@ export default function DashboardLogin() {
                         <ShieldAlert className="w-8 h-8 text-white" />
                     </div>
                     <h1 className="text-3xl font-black italic uppercase tracking-tight text-white">
-                        RedCarpet <span className="text-red-500">València</span>
+                        Red<span className="text-red-500">Carpet</span>
                     </h1>
                     <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500 font-bold mt-1">
                         {dt('login_title')}
@@ -50,18 +62,11 @@ export default function DashboardLogin() {
                 </div>
 
                 <label className="block text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-2">
-                    {dt('login_email')}
-                </label>
-                <input
-                    type="email" required value={email} autoComplete="username"
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#131316] border border-white/10 rounded-xl px-4 py-3 mb-5 text-white font-semibold placeholder-zinc-600 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                />
-                <label className="block text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-2">
                     {dt('login_password')}
                 </label>
                 <input
                     type="password" required value={password} autoComplete="current-password"
+                    autoFocus
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-[#131316] border border-white/10 rounded-xl px-4 py-3 mb-5 text-white font-semibold placeholder-zinc-600 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600"
                 />

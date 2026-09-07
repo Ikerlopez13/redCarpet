@@ -21,7 +21,10 @@ import {
     Sun,
     Heart,
     Users,
-    Clock
+    Clock,
+    Star,
+    ChevronRight,
+    RotateCcw
 } from 'lucide-react';
 import clsx from 'clsx';
 // Alert system imports
@@ -33,8 +36,48 @@ import { TrustedContactsService } from '../services/trustedContactsService';
 export const Subscription: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { user, setIsPremium } = useAuth();
+    const { user, setIsPremium, isPremium } = useAuth();
     const isAndroid = Capacitor.getPlatform() === 'android';
+    const isIOS = Capacitor.getPlatform() === 'ios';
+
+    // ---- Gestión de suscripción (solo si ya es premium) ----
+    const [subInfo, setSubInfo] = useState<{ plan_id: string; expires_at: string | null; granted: boolean } | null>(null);
+    const [hasFamily, setHasFamily] = useState(false);
+
+    useEffect(() => {
+        if (!isPremium || !user) return;
+        (async () => {
+            const { supabase } = await import('../services/supabaseClient');
+            const { data } = await supabase
+                .from('subscriptions')
+                .select('plan_id, expires_at, granted_by')
+                .eq('user_id', user.id).eq('status', 'active')
+                .order('expires_at', { ascending: false }).limit(1).maybeSingle();
+            if (data) setSubInfo({ plan_id: data.plan_id, expires_at: data.expires_at, granted: !!data.granted_by });
+            const { data: fam } = await supabase.rpc('has_active_family_plan', { p_uid: user.id });
+            setHasFamily(!!fam);
+        })();
+    }, [isPremium, user]);
+
+    const planLabel = (id?: string) => {
+        const p = (id || '').toLowerCase();
+        if (p === 'family_member') return t('mgmt.plan_family_member');
+        if (p === 'family' || p.includes('familiar') || p.includes('premium.family')) return t('mgmt.plan_family');
+        if (p.includes('anual') || p.includes('annual') || p.includes('1y')) return t('mgmt.plan_annual');
+        if (p.includes('72h')) return t('mgmt.plan_72h');
+        return t('mgmt.plan_monthly');
+    };
+
+    // La cancelación / gestión real vive en la tienda (Apple/Google no permiten
+    // cancelar dentro de la app). Deep-link a la gestión de suscripciones.
+    const openStoreSubscriptions = async () => {
+        const url = isAndroid
+            ? 'https://play.google.com/store/account/subscriptions'
+            : isIOS
+                ? 'https://apps.apple.com/account/subscriptions'
+                : 'https://tryredcarpet.com/account';
+        await Browser.open({ url });
+    };
 
     const openWebPaywall = async (planId: string = 'monthly') => {
         if (!user) return;
@@ -216,6 +259,172 @@ export const Subscription: React.FC = () => {
                 >
                     {t('premium.success.start')}
                 </button>
+                {/* Si el plan es familiar, permite repartir premium a la familia */}
+                {selectedPlan?.toLowerCase().includes('famil') && (
+                    <button
+                        onClick={() => navigate('/family-plan')}
+                        className="w-full max-w-xs h-14 mt-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all"
+                    >
+                        {t('familyplan.manage')}
+                    </button>
+                )}
+            </div>
+        );
+    }
+
+    // ============ PANEL DE GESTIÓN (usuario ya premium) ============
+    if (isPremium && !showSuccess) {
+        const isGranted = subInfo?.granted;
+        const renewDate = subInfo?.expires_at
+            ? new Date(subInfo.expires_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+            : null;
+
+        const benefits = [
+            { icon: Sparkles, label: t('sub.f_routes_unlimited') },
+            { icon: Shield, label: t('sub.f_sos') },
+            { icon: Eye, label: t('sub.f_smart_alerts') },
+            { icon: Cloud, label: t('sub.coverage_spain') },
+            { icon: Heart, label: t('sub.f_priority') },
+            { icon: Users, label: t('mgmt.plan_family') },
+        ];
+
+        return (
+            <div className="flex flex-col h-full w-full bg-[#080808] text-white overflow-hidden font-display relative animate-fade-in">
+                {/* Glows premium */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-primary/20 rounded-full blur-[150px] -z-10" />
+                <div className="absolute -top-10 right-0 w-64 h-64 bg-amber-400/10 rounded-full blur-[120px] -z-10" />
+
+                <div className="flex-1 overflow-y-auto no-scrollbar pb-16">
+                    {/* HERO celebratorio */}
+                    <div className="relative flex flex-col items-center px-6 pt-16 pb-8 text-center">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="absolute right-6 top-16 size-11 flex items-center justify-center text-white/50 hover:text-white bg-white/5 rounded-2xl border border-white/10 active:scale-90 transition-all"
+                            aria-label={t('sub.close')}
+                        >
+                            <X size={22} />
+                        </button>
+
+                        <div className="relative mb-5">
+                            <div className="size-24 rounded-[2rem] bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center shadow-[0_0_60px_rgba(255,49,49,0.45)] animate-scale-in">
+                                <Crown size={48} className="text-white drop-shadow-lg" />
+                            </div>
+                            <div className="absolute -inset-2 rounded-[2.5rem] border-2 border-primary/30 animate-ping opacity-40" />
+                        </div>
+
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 border border-primary/30 mb-3">
+                            <Star size={12} className="text-primary" fill="currentColor" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{t('mgmt.badge')}</span>
+                        </div>
+
+                        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-tight">
+                            {t('mgmt.hero')}
+                        </h1>
+                        <p className="text-sm text-white/50 font-semibold mt-2 max-w-[280px]">
+                            {t('mgmt.thanks')}
+                        </p>
+                    </div>
+
+                    {/* Tarjeta plan + renovación */}
+                    <div className="px-6">
+                        <div className="rounded-[1.75rem] bg-gradient-to-b from-zinc-900/90 to-zinc-950 border border-primary/20 p-5 shadow-2xl shadow-primary/5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{t('mgmt.plan')}</p>
+                                    <p className="text-lg font-black italic uppercase tracking-tight text-white mt-0.5">{planLabel(subInfo?.plan_id)}</p>
+                                </div>
+                                <div className="size-11 rounded-2xl bg-primary/15 flex items-center justify-center border border-primary/25">
+                                    <Crown size={22} className="text-primary" />
+                                </div>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2">
+                                <Clock size={14} className="text-white/40" />
+                                <p className="text-xs font-semibold text-white/60">
+                                    {isGranted
+                                        ? t('mgmt.plan_family_member')
+                                        : renewDate
+                                            ? `${t('mgmt.renews')} ${renewDate}`
+                                            : t('mgmt.no_expiry')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Beneficios desbloqueados */}
+                    <div className="px-6 mt-8">
+                        <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3">{t('mgmt.benefits')}</h3>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            {benefits.map((b, i) => (
+                                <div key={i} className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-2xl px-3.5 py-3">
+                                    <div className="size-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                                        <b.icon size={16} />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-white/80 leading-tight">{b.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Acciones principales (visibles y atractivas) */}
+                    <div className="px-6 mt-8 space-y-3">
+                        {hasFamily && (
+                            <button
+                                onClick={() => navigate('/family-plan')}
+                                className="w-full flex items-center gap-3 bg-primary hover:bg-primary/90 text-white rounded-2xl px-5 h-14 font-black uppercase tracking-widest text-xs active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                            >
+                                <Users size={18} />
+                                <span className="flex-1 text-left">{t('mgmt.manage_family')}</span>
+                                <ChevronRight size={18} />
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => RevenueCatService.restorePurchases().then(() => navigate('/'))}
+                            className="w-full flex items-center gap-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl px-5 h-14 font-black uppercase tracking-widest text-xs active:scale-[0.98] transition-all"
+                        >
+                            <RotateCcw size={18} className="text-white/70" />
+                            <span className="flex-1 text-left">{t('premium.restore_purchases')}</span>
+                            <ChevronRight size={18} className="text-white/40" />
+                        </button>
+
+                        {!isGranted && (
+                            <button
+                                onClick={openStoreSubscriptions}
+                                className="w-full flex items-center gap-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl px-5 h-14 font-black uppercase tracking-widest text-xs active:scale-[0.98] transition-all"
+                            >
+                                <Crown size={18} className="text-white/70" />
+                                <span className="flex-1 text-left">{t('mgmt.manage_store')}</span>
+                                <ChevronRight size={18} className="text-white/40" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Nota para miembros de plan familiar */}
+                    {isGranted && (
+                        <p className="px-8 mt-6 text-center text-[11px] text-white/40 font-medium leading-relaxed">
+                            {t('mgmt.granted_note')}
+                        </p>
+                    )}
+
+                    {/* Legales discretos */}
+                    <div className="flex flex-wrap justify-center gap-3 px-6 mt-8">
+                        <button onClick={() => navigate('/privacy')} className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60 underline underline-offset-4">Privacy</button>
+                        <button onClick={() => navigate('/eula')} className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60 underline underline-offset-4">EULA</button>
+                    </div>
+
+                    {/* ⬇️ EL BOTÓN MENOS VISIBLE DE TODOS: cancelar suscripción.
+                        Solo si es titular (los miembros de plan familiar no cancelan). */}
+                    {!isGranted && (
+                        <div className="flex justify-center mt-6">
+                            <button
+                                onClick={openStoreSubscriptions}
+                                className="text-[10px] font-medium text-white/15 hover:text-white/35 transition-colors tracking-wide"
+                            >
+                                {t('mgmt.cancel')}
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }
@@ -301,8 +510,8 @@ export const Subscription: React.FC = () => {
                                     <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('premium.cancel_anytime')}</p>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <span className="font-black italic text-lg text-primary">9,99 €</span>
-                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                    <span className="font-black italic text-lg text-primary">{monthlyPkg?.product?.priceString ?? '9,99 €'}</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">{t('i18nfix.per_month')}</span>
                                 </div>
                             </div>
                             <button
@@ -325,8 +534,8 @@ export const Subscription: React.FC = () => {
                                     <p className="text-[10px] text-white/60 uppercase tracking-wide mt-1 leading-snug">{t('premium.cancel_anytime')}</p>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <span className="font-black italic text-xl text-primary">79,99 €</span>
-                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ año</span>
+                                    <span className="font-black italic text-xl text-primary">{annualPkg?.product?.priceString ?? '79,99 €'}</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">{t('i18nfix.per_year')}</span>
                                 </div>
                             </div>
                             <button
@@ -340,7 +549,7 @@ export const Subscription: React.FC = () => {
                     </div>
                     
                     <p className="text-center text-primary/80 font-bold italic text-xs mt-4">
-                        Cuando nadie pueda acompañarte, Red Carpet siempre estará contigo.
+                        {t('i18nfix.tagline_individual')}
                     </p>
                 </div>
 
@@ -384,13 +593,13 @@ export const Subscription: React.FC = () => {
                         {/* Option: 1 persona */}
                         <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
                             <div>
-                                <h5 className="font-black italic uppercase text-sm">1 persona</h5>
+                                <h5 className="font-black italic uppercase text-sm">{t('i18nfix.one_person')}</h5>
                                 <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('sub.autorenew_1m')}</p>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-right shrink-0">
-                                    <span className="font-black italic text-lg text-green-400">9,99 €</span>
-                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                    <span className="font-black italic text-lg text-green-400">{family1Pkg?.product?.priceString ?? '9,99 €'}</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">{t('i18nfix.per_month')}</span>
                                 </div>
                                 <button
                                     onClick={() => handlePurchase('family1', family1Pkg?.identifier || 'rc_familiar_1p_1m')}
@@ -405,13 +614,13 @@ export const Subscription: React.FC = () => {
                         {/* Option: 2 personas */}
                         <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
                             <div>
-                                <h5 className="font-black italic uppercase text-sm">2 personas</h5>
+                                <h5 className="font-black italic uppercase text-sm">{t('i18nfix.two_people')}</h5>
                                 <p className="text-[10px] text-white/50 uppercase tracking-wide mt-1">{t('sub.autorenew_1m')}</p>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-right shrink-0">
-                                    <span className="font-black italic text-lg text-green-400">14,99 €</span>
-                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                    <span className="font-black italic text-lg text-green-400">{family2Pkg?.product?.priceString ?? '14,99 €'}</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">{t('i18nfix.per_month')}</span>
                                 </div>
                                 <button
                                     onClick={() => handlePurchase('family2', family2Pkg?.identifier || 'rc_familiar_2p_1m')}
@@ -431,8 +640,8 @@ export const Subscription: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-right shrink-0">
-                                    <span className="font-black italic text-lg text-green-400">19,99 €</span>
-                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">/ mes</span>
+                                    <span className="font-black italic text-lg text-green-400">{family6Pkg?.product?.priceString ?? '19,99 €'}</span>
+                                    <span className="text-[9px] text-white/40 uppercase tracking-widest block">{t('i18nfix.per_month')}</span>
                                 </div>
                                 <button
                                     onClick={() => handlePurchase('family6', family6Pkg?.identifier || 'rc_familiar_6p_1m')}
@@ -446,7 +655,7 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <p className="text-center text-green-400/80 font-bold italic text-xs mt-4">
-                        La verdadera tranquilidad es saber que todos están bien.
+                        {t('i18nfix.tagline_family')}
                     </p>
                 </div>
 
@@ -502,7 +711,7 @@ export const Subscription: React.FC = () => {
                     <div className="bg-amber-500/10 rounded-2xl p-4 border border-amber-500/20 flex flex-col gap-3 mt-2">
                         <div className="flex justify-between items-center">
                             <h5 className="font-black italic uppercase text-sm text-amber-500">{t('sub.price')}</h5>
-                            <span className="font-black italic text-xl text-amber-500">3,99 €</span>
+                            <span className="font-black italic text-xl text-amber-500">{pass72hPkg?.product?.priceString ?? '3,99 €'}</span>
                         </div>
                         <p className="text-[10px] text-amber-500/80 uppercase tracking-wide font-bold text-center">72 horas Premium</p>
                         <button
@@ -515,24 +724,29 @@ export const Subscription: React.FC = () => {
                     </div>
 
                     <p className="text-center text-amber-500/80 font-bold italic text-xs mt-4">
-                        Hay momentos donde sentirte segur@ lo cambia todo.
+                        {t('i18nfix.tagline_72h')}
                     </p>
                 </div>
 
                 {/* Subscription Legal Terms for Apple Review */}
                 <div className="p-4 rounded-3xl bg-zinc-950/30 border border-white/5 text-left mt-8 space-y-4">
                     <div className="space-y-2 text-[9px] text-white/60 leading-relaxed font-medium">
-                        <p><strong>Auto-Renewable Subscriptions:</strong></p>
-                        <p>• Monthly Premium: Auto-renews monthly</p>
-                        <p>• Annual Premium: Auto-renews annually</p>
-                        <p>• 72-Hour Pass: One-time purchase (non-renewing)</p>
-                        <p>Renewal can be managed in Account Settings. Cancel anytime before renewal.</p>
+                        <p><strong>{t('i18nfix.sub_terms_title')}</strong></p>
+                        <p>• {t('i18nfix.sub_terms_monthly')}</p>
+                        <p>• {t('i18nfix.sub_terms_annual')}</p>
+                        <p>• {t('i18nfix.sub_terms_72h')}</p>
+                        <p>{t('i18nfix.sub_terms_manage')}</p>
                     </div>
                     <p className="text-[10px] text-white/40 leading-relaxed font-medium border-t border-white/5 pt-3">
-                        {t('premium.legal.iap_disclaimer')}
+                        {Capacitor.getPlatform() === 'android'
+                            ? t('premium.legal.iap_disclaimer_android')
+                            : t('premium.legal.iap_disclaimer')}
                     </p>
                     <div className="flex flex-wrap justify-center gap-3 pt-4 border-t border-white/5">
-                        <button onClick={() => window.open('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/', '_blank')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Terms of Use (EULA)</button>
+                        {/* Enlace al EULA de Apple SOLO en iOS (en Android referenciar Apple = rechazo de Google Play) */}
+                        {Capacitor.getPlatform() === 'ios' && (
+                            <button onClick={() => window.open('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/', '_blank')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Terms of Use (EULA)</button>
+                        )}
                         <button onClick={() => navigate('/privacy')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Privacy Policy</button>
                         <button onClick={() => navigate('/eula')} className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-4">Full EULA</button>
                         <button

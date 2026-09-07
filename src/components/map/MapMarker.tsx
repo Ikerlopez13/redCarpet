@@ -16,23 +16,29 @@ interface FamilyMember {
 interface MapMarkerProps {
     member: FamilyMember;
     onClick?: () => void;
+    highlighted?: boolean;
 }
 
-export const MapMarker: React.FC<MapMarkerProps> = ({ member, onClick }) => {
+export const MapMarker: React.FC<MapMarkerProps> = ({ member, onClick, highlighted = false }) => {
     return (
         <Marker
             latitude={member.lat}
             longitude={member.lng}
             anchor="bottom"
+            style={highlighted ? { zIndex: 10 } : undefined}
             onClick={(e) => {
                 e.originalEvent.stopPropagation();
                 onClick?.();
             }}
         >
-            <div className="flex flex-col items-center cursor-pointer group">
+            <div className={`flex flex-col items-center cursor-pointer group transition-transform duration-300 ${highlighted ? 'scale-[1.18]' : ''}`}>
                 <div className="relative">
                     {/* Apple Maps Style Pin Shape */}
                     <div className="relative">
+                        {/* Halo de selección (miembro resaltado desde la lista) */}
+                        {highlighted && !member.isEmergency && (
+                            <div className="absolute inset-0 bg-primary/30 rounded-full animate-ping -z-10" />
+                        )}
                         {/* Pulse effect for emergency */}
                         {member.isEmergency && (
                             <div className="absolute inset-0 bg-primary/40 rounded-full animate-ping -z-10" />
@@ -43,7 +49,9 @@ export const MapMarker: React.FC<MapMarkerProps> = ({ member, onClick }) => {
                             relative size-12 rounded-full border-[3px] flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-110
                             ${member.isEmergency
                                 ? 'border-primary bg-background-dark shadow-[0_4px_20px_rgba(255,49,49,0.4)]'
-                                : 'border-white bg-[#2c2c2c] shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
+                                : highlighted
+                                    ? 'border-primary bg-[#2c2c2c] shadow-[0_4px_20px_rgba(255,49,49,0.5)]'
+                                    : 'border-white bg-[#2c2c2c] shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
                             }
                         `}>
                             {/* Inner Circle / Image Area */}

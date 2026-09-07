@@ -1,8 +1,6 @@
 // Mapbox Directions API Service for RedCarpet
 // Calculates routes between two points with different profiles
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const DIRECTIONS_API_BASE = 'https://api.mapbox.com/directions/v5/mapbox';
 import { supabase } from './supabaseClient';
 import { isBlocked, track } from './mapboxBudget';
 import { allow } from './rateLimiter';
@@ -13,6 +11,7 @@ import {
     isNightTime,
     type AuthorityAlert
 } from './citySafetyService';
+import { isPositiveIncident } from '../utils/incidentLabels';
 
 export interface Coordinate {
     lat: number;
@@ -25,6 +24,7 @@ export interface RouteManeuver {
     modifier?: string;
     bearing_after?: number;
     bearing_before?: number;
+    location?: [number, number]; // [lng, lat] del punto de giro (turn-by-turn)
 }
 
 export interface RouteStep {
@@ -43,6 +43,27 @@ export interface RouteResult {
 }
 
 export type TransportMode = 'walking' | 'cycling' | 'driving-traffic';
+
+// Llama a Directions a través del PROXY autenticado (token server-side + rate
+// limit + tope global). Reenvía la petición idéntica → geometría/tiempos iguales.
+// Devuelve el JSON de Mapbox (o null si falla / la para el backend).
+async function fetchDirectionsProxy(
+    profile: string,
+    coords: string,
+    alternatives: boolean
+): Promise<any | null> {
+    try {
+        const { data, error } = await supabase.functions.invoke('mapbox-directions', {
+            body: { profile, coords, alternatives, language: 'es' },
+        });
+        if (error) throw error;
+        if (data?.error === 'rate_limited' || data?.error === 'budget_blocked') return null;
+        return data;
+    } catch (e) {
+        console.warn('[directions proxy] error:', e);
+        return null;
+    }
+}
 
 // Map our app's transport modes to Mapbox profiles
 const PROFILE_MAP: Record<string, string> = {
@@ -63,22 +84,13 @@ export async function getRoute(
     if (isBlocked() || !allow('directions', 15)) return null;
 
     const profile = PROFILE_MAP[mode] || 'walking';
-
-    const url = `${DIRECTIONS_API_BASE}/${profile}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?` +
-        new URLSearchParams({
-            access_token: MAPBOX_TOKEN,
-            geometries: 'geojson',
-            steps: 'true',
-            overview: 'full',
-            language: 'es'
-        });
+    const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
 
     try {
-        const response = await fetch(url);
         track('directions');
-        const data = await response.json();
+        const data = await fetchDirectionsProxy(profile, coords, false);
 
-        if (data.routes && data.routes.length > 0) {
+        if (data && data.routes && data.routes.length > 0) {
             const route = data.routes[0];
             return {
                 distance: route.distance,
@@ -94,7 +106,8 @@ export async function getRoute(
                         instruction: step.maneuver.instruction || 'Continúa recto',
                         modifier: step.maneuver.modifier,
                         bearing_after: step.maneuver.bearing_after,
-                        bearing_before: step.maneuver.bearing_before
+                        bearing_before: step.maneuver.bearing_before,
+                        location: step.maneuver.location
                     }
                 }))
             };
@@ -280,6 +293,48 @@ export function computeRouteSafetyMetrics(
     };
 }
 
+/**
+ * Builds detour waypoints that force the route to go AROUND danger zones sitting
+ * on the direct corridor. For each blocking zone we drop a waypoint just past its
+ * edge, on the far side from where the zone leans, so Mapbox routes around it.
+ * Capped to the 2 worst blockers to bound the number of proxy calls.
+ */
+function avoidanceWaypoints(
+    origin: Coordinate,
+    destination: Coordinate,
+    zones: Array<{ lat: number; lng: number; radius: number }>
+): Coordinate[] {
+    const mPerDegLat = 111320;
+    const latRef = (origin.lat + destination.lat) / 2;
+    const mPerDegLng = 111320 * Math.cos((latRef * Math.PI) / 180);
+    const toXY = (p: Coordinate) => ({ x: p.lng * mPerDegLng, y: p.lat * mPerDegLat });
+    const toLatLng = (x: number, y: number): Coordinate => ({ lat: y / mPerDegLat, lng: x / mPerDegLng });
+
+    const O = toXY(origin), D = toXY(destination);
+    const dx = D.x - O.x, dy = D.y - O.y;
+    const segLen = Math.hypot(dx, dy);
+    if (segLen < 1) return [];
+    const ux = dx / segLen, uy = dy / segLen;   // unit vector along the route
+    const nx = -uy, ny = ux;                     // unit perpendicular (left of travel)
+
+    const blocking: Array<{ wp: Coordinate; block: number }> = [];
+    for (const z of zones) {
+        const Z = toXY({ lat: z.lat, lng: z.lng });
+        const t = (Z.x - O.x) * ux + (Z.y - O.y) * uy;   // projection along the route
+        if (t < 0 || t > segLen) continue;                // zone is not between O and D
+        const perp = (Z.x - O.x) * nx + (Z.y - O.y) * ny; // signed perpendicular distance
+        const clearance = (z.radius || 100) + 70;         // clear the edge + margin
+        if (Math.abs(perp) > clearance) continue;          // corridor already skirts it
+        // Steer to the opposite side of where the zone sits (default left if on the line).
+        const dir = perp > 0 ? -1 : 1;
+        blocking.push({
+            wp: toLatLng(Z.x + nx * dir * clearance, Z.y + ny * dir * clearance),
+            block: clearance - Math.abs(perp)   // deeper intrusion → higher priority
+        });
+    }
+    return blocking.sort((a, b) => b.block - a.block).slice(0, 2).map(b => b.wp);
+}
+
 export async function getAlternativeRoutes(
     origin: Coordinate,
     destination: Coordinate,
@@ -297,21 +352,10 @@ export async function getAlternativeRoutes(
             ? `${origin.lng},${origin.lat};${waypoint.lng},${waypoint.lat};${destination.lng},${destination.lat}`
             : `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
 
-        const url = `${DIRECTIONS_API_BASE}/${profile}/${coords}?` +
-            new URLSearchParams({
-                access_token: MAPBOX_TOKEN,
-                geometries: 'geojson',
-                steps: 'true',
-                overview: 'full',
-                alternatives: 'true',
-                language: 'es'
-            });
-
         try {
-            const response = await fetch(url);
             track('directions');
-            const data = await response.json();
-            if (!data.routes || data.routes.length === 0) return [];
+            const data = await fetchDirectionsProxy(profile, coords, true);
+            if (!data || !data.routes || data.routes.length === 0) return [];
             return data.routes.map((route: any) => ({
                 distance: route.distance,
                 duration: route.duration,
@@ -332,15 +376,18 @@ export async function getAlternativeRoutes(
     try {
         const isWalking = baseMode === 'walking';
 
-        // 6 waypoints: 3 left-side + 3 right-side offsets, scaled to trip
-        // length so short hops get proportionate detours (fixed offsets made
-        // every alternative fail validation on sub-500m trips)
+        // Waypoints laterales SUAVES para pedir alternativas. Offsets grandes
+        // forzaban rodeos artificiales (la ruta salía y volvía cruzando pasos de
+        // peatones sin ganar nada). Con offsets menores las alternativas se
+        // parecen a las nativas de Mapbox (siguen la calle) y el trazado es
+        // fluido. Las alternativas limpias de `directRoutes` (alternatives:true)
+        // siguen siendo la fuente principal.
         const midLat = (origin.lat + destination.lat) / 2;
         const midLng = (origin.lng + destination.lng) / 2;
         const directDeg = Math.hypot(destination.lat - origin.lat, destination.lng - origin.lng);
         const scale = Math.max(0.15, Math.min(1, directDeg / 0.02));
-        const offsets = [0.0020 * scale, 0.0030 * scale, 0.0040 * scale];
-        const waypoints: Coordinate[] = [
+        const offsets = [0.0014 * scale, 0.0024 * scale];
+        const genericWaypoints: Coordinate[] = [
             ...offsets.map(d => ({ lat: midLat + d, lng: midLng - d })),
             ...offsets.map(d => ({ lat: midLat - d, lng: midLng + d })),
         ];
@@ -354,12 +401,12 @@ export async function getAlternativeRoutes(
             maxLat: Math.max(origin.lat, destination.lat) + pad
         };
 
+        // STEP 1 — fetch the safety data FIRST so we can build waypoints that
+        // actively route AROUND the danger zones on the direct corridor.
         const [
             { data: dangerZones },
             authorityAlerts,
             scoreFeatures,
-            directRoutes,
-            ...waypointRouteSets
         ] = await Promise.all([
             // mirrored authority alerts (authority_alert_id set) are already
             // penalised via authorityPenalty — exclude them here to avoid
@@ -367,6 +414,24 @@ export async function getAlternativeRoutes(
             isWalking ? supabase.from('danger_zones').select('*').is('authority_alert_id', null).or(`expires_at.gte.${new Date().toISOString()},expires_at.is.null`) : Promise.resolve({ data: [] }),
             isWalking ? getLiveAuthorityAlerts(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat) : Promise.resolve([]),
             isWalking ? loadNeighborhoodScores() : Promise.resolve([]),
+        ]);
+
+        // STEP 2 — targeted detours around blocking danger zones (walking only).
+        // Solo rodeamos alertas MALAS; las buenas (acceso seguro, zona inclusiva,
+        // autoridades) no se esquivan.
+        const avoidanceWps = (isWalking && dangerZones)
+            ? avoidanceWaypoints(
+                origin,
+                destination,
+                (dangerZones as any[])
+                    .filter(z => !isPositiveIncident(z.description))
+                    .map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius || 100 }))
+            )
+            : [];
+        const waypoints = [...genericWaypoints, ...avoidanceWps];
+
+        // STEP 3 — fetch the direct route + every waypoint variant in parallel.
+        const [directRoutes, ...waypointRouteSets] = await Promise.all([
             fetchWithWaypoint(null),
             ...waypoints.map(wp => fetchWithWaypoint(wp))
         ]);
@@ -379,26 +444,31 @@ export async function getAlternativeRoutes(
             (min, r) => Math.min(min, r.distance),
             Infinity
         );
-        const maxDetour = Number.isFinite(directDistance) ? directDistance * 1.8 : Infinity;
+        const maxDetour = Number.isFinite(directDistance) ? directDistance * 1.5 : Infinity;
         const allRoutes = allRawRoutes.filter(
             r => isValidRoute(r, origin, destination) && r.distance <= maxDetour
         );
 
-        const countDangerIntersections = (route: RouteResult) => {
-            if (!route.geometry || !dangerZones) return 0;
-            let count = 0;
+        // Cuenta zonas cruzadas separando MALAS (a evitar) de BUENAS (a preferir).
+        // La ruta segura solo esquiva las malas; las buenas (acceso seguro, zona
+        // inclusiva, autoridades presentes) suman un pequeño bonus, no penalizan.
+        const countZoneIntersections = (route: RouteResult) => {
+            const result = { bad: 0, good: 0 };
+            if (!route.geometry || !dangerZones) return result;
             const coords = route.geometry.coordinates;
             dangerZones.forEach((zone: any) => {
                 const hit = coords.some((c: any) =>
                     getHaversineDistance(c[1], c[0], zone.lat, zone.lng) < (zone.radius || 100)
                 );
-                if (hit) count++;
+                if (!hit) return;
+                if (isPositiveIncident(zone.description)) result.good++;
+                else result.bad++;
             });
-            return count;
+            return result;
         };
 
         // Deduplicate: two routes are "same" if their midpoint is within 20m
-        type ScoredRoute = RouteResult & { dangerCount: number; safety: RouteSafetyMetrics };
+        type ScoredRoute = RouteResult & { dangerCount: number; goodCount: number; safety: RouteSafetyMetrics };
         const uniqueRoutes: ScoredRoute[] = [];
         for (const route of allRoutes) {
             const mid = route.geometry.coordinates[Math.floor(route.geometry.coordinates.length / 2)];
@@ -407,9 +477,11 @@ export async function getAlternativeRoutes(
                 return getHaversineDistance(mid[1], mid[0], uMid[1], uMid[0]) < 20;
             });
             if (!isDuplicate) {
+                const zc = countZoneIntersections(route);
                 uniqueRoutes.push({
                     ...route,
-                    dangerCount: countDangerIntersections(route),
+                    dangerCount: zc.bad,
+                    goodCount: zc.good,
                     safety: computeRouteSafetyMetrics(route, authorityAlerts, scoreFeatures)
                 });
             }
@@ -427,45 +499,56 @@ export async function getAlternativeRoutes(
             console.warn('[Routing] All routes cross an active closure — returning best effort.');
         }
 
-        // Fastest = shortest duration among passable routes
-        const byDuration = [...candidates].sort((a, b) => a.duration - b.duration);
-        const fastestRoute = byDuration[0];
-        const remaining = byDuration.slice(1);
-
         // Composite danger for the Safest choice:
-        //   user reports + authority penalties + barrio exposure − punto violeta
-        //   bonus (doubled at night: attended safe points matter most then).
+        //   BAD user reports + authority penalties + barrio exposure
+        //   − punto violeta bonus (doubled at night: attended safe points matter
+        //     most then) − GOOD zone bonus (acceso seguro / inclusiva / autoridades).
+        // Las alertas BUENAS nunca penalizan: restan (la ruta puede preferirlas).
         const violetaWeight = isNightTime() ? 4 : 2;
         const compositeDanger = (r: ScoredRoute) =>
             r.dangerCount * 5
             + r.safety.authorityPenalty
             + r.safety.barrioExposure / 10
-            - r.safety.violetaCount * violetaWeight;
+            - r.safety.violetaCount * violetaWeight
+            - r.goodCount * 2;
 
-        // Safest is picked among `remaining` (all ≥ fastest duration), so the
-        // existing guarantee "Safest is never shorter than Fastest" holds.
-        const safeRoute = remaining.length > 0
-            ? [...remaining].sort((a, b) => {
-                const d = compositeDanger(a) - compositeDanger(b);
-                if (Math.abs(d) > 0.01) return d;
-                return a.distance - b.distance;
-            })[0]
+        // SAFEST = the passable route with the LOWEST danger, full stop. This is
+        // the whole promise of the app: the safe route must AVOID danger zones
+        // even when the safest route happens to also be the shortest one.
+        //
+        // ⚠️ Previously the safe route was chosen only among the NON-fastest
+        // routes (to force "safe ≥ fastest duration"). That inverted reality:
+        // when the fastest route was the one dodging a danger zone, it got
+        // excluded and the safe slot was handed a longer route going STRAIGHT
+        // THROUGH the zone. Safety correctness beats that cosmetic guarantee.
+        const byDanger = [...candidates].sort((a, b) => {
+            const d = compositeDanger(a) - compositeDanger(b);
+            if (Math.abs(d) > 0.01) return d;
+            return a.duration - b.duration; // tie on danger → prefer the quicker
+        });
+        const safeRoute = byDanger[0];
+
+        // FASTEST = shortest duration among passable routes (may equal Safe —
+        // that's the ideal case: the safest route is also the quickest, and both
+        // cards honestly show it; RouteSelection already dedupes client-side).
+        const byDuration = [...candidates].sort((a, b) => a.duration - b.duration);
+        const fastestRoute = byDuration[0];
+
+        // BALANCED = best-by-danger among whatever routes are left, so it always
+        // sits between Safe and Fast (never safer than Safe, never faster than
+        // Fast). Falls back to Safe on short hops with a single valid route.
+        const balancedPool = candidates.filter(r => r !== safeRoute && r !== fastestRoute);
+        const balancedRoute = balancedPool.length > 0
+            ? balancedPool.sort((a, b) => compositeDanger(a) - compositeDanger(b))[0]
             : null;
 
-        // Balanced route: between fast and safe, sorted by combined score
-        const remainingForBalanced = remaining.filter(r => r !== safeRoute);
-        const balancedRoute = remainingForBalanced.length > 0
-            ? remainingForBalanced[0]
-            : (remaining[0] !== safeRoute ? remaining[0] : null);
-
-        // Contract: when a fast route exists the caller always gets 3 routes.
-        // If no meaningful alternative survived validation (typical on very
-        // short hops) the fastest route doubles as safe/balanced — the same
-        // fallback RouteSelection already applies client-side.
+        // Contract: when a route exists the caller always gets 3 routes. If no
+        // meaningful alternative survived validation (typical on very short
+        // hops) the routes collapse to the same geometry — handled downstream.
         return {
             fast: fastestRoute,
             balanced: balancedRoute || fastestRoute,
-            safe: safeRoute || fastestRoute
+            safe: safeRoute
         };
 
     } catch (error) {

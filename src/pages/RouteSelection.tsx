@@ -60,6 +60,13 @@ export const RouteSelection: React.FC = () => {
 
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Secuencia de búsqueda: descarta respuestas de geocoding que lleguen tarde
+    // (una búsqueda antigua "Balmes" no debe pisar los resultados de "Lepanto").
+    const searchSeqRef = useRef(0);
+    // Rutas COMPLETAS (con steps + geometría) ya calculadas, para pasárselas a la
+    // navegación y NO volver a llamar a Directions (evita fallo silencioso por
+    // rate-limit y garantiza que tiempos/geometría coincidan con lo seleccionado).
+    const rawRoutesRef = useRef<{ safe: any; balanced: any; fast: any }>({ safe: null, balanced: null, fast: null });
 
     const [transportMode, setTransportMode] = useState<'walking' | 'cycling' | 'transit' | 'driving'>(initialTransportMode as any);
     const [selectedRoute, setSelectedRoute] = useState<'safe' | 'balanced' | 'fast'>('safe');
@@ -112,16 +119,23 @@ export const RouteSelection: React.FC = () => {
         }
 
         if (searchQuery.length < 2) {
+            // Al vaciar/acortar la búsqueda, invalidamos cualquier respuesta en
+            // vuelo y limpiamos sugerencias (no dejamos resultados viejos).
+            searchSeqRef.current++;
             setSuggestions([]);
             setShowSuggestions(false);
+            setIsSearching(false);
             return;
         }
 
         setIsSearching(true);
+        const seq = ++searchSeqRef.current; // id de ESTA búsqueda
         debounceRef.current = setTimeout(async () => {
             // Use user location for better search results if available
             const center = userLocation || { lat: 41.3851, lng: 2.1734 }; // Barcelona center
             const results = await searchPlaces(searchQuery, center);
+            // Si ya se lanzó una búsqueda más nueva, descartamos esta respuesta.
+            if (seq !== searchSeqRef.current) return;
             setSuggestions(results);
             setShowSuggestions(results.length > 0);
             setIsSearching(false);
@@ -208,6 +222,8 @@ export const RouteSelection: React.FC = () => {
                     geometry: fastBase.geometry.coordinates as [number, number][]
                 };
 
+                // Guardamos los objetos completos (con steps) para la navegación.
+                rawRoutesRef.current = { safe: safeBase, balanced: balancedBase, fast: fastBase };
                 setRoutes({ safe: safeRoute, balanced: balancedRoute, fast: fastRoute });
                 setRouteGeometry({
                     safe: safeRoute.geometry || null,
@@ -264,6 +280,7 @@ export const RouteSelection: React.FC = () => {
 
     // Handle suggestion selection
     const handleSelectSuggestion = (suggestion: GeocodingResult) => {
+        searchSeqRef.current++; // invalida cualquier búsqueda en vuelo
         setSelectedDestination(suggestion.name);
         setDestinationCoords({ lat: suggestion.lat, lng: suggestion.lng });
         setSearchQuery('');
@@ -286,7 +303,10 @@ export const RouteSelection: React.FC = () => {
                     <div
                         onClick={() => {
                             if (selectedDestination) {
+                                searchSeqRef.current++;
                                 setSelectedDestination(null);
+                                setDestinationCoords(null);
+                                rawRoutesRef.current = { safe: null, balanced: null, fast: null };
                                 setRoutes({ safe: null, balanced: null, fast: null });
                             } else {
                                 navigate(-1);
@@ -318,7 +338,10 @@ export const RouteSelection: React.FC = () => {
                             <div
                                 className="flex-1 flex items-center justify-between cursor-pointer"
                                 onClick={() => {
+                                    searchSeqRef.current++;
                                     setSelectedDestination(null);
+                                    setDestinationCoords(null);
+                                    rawRoutesRef.current = { safe: null, balanced: null, fast: null };
                                     setRoutes({ safe: null, balanced: null, fast: null });
                                     setTimeout(() => searchInputRef.current?.focus(), 100);
                                 }}
@@ -671,12 +694,22 @@ export const RouteSelection: React.FC = () => {
                                                     recordGreenRoute(originCoords, destinationCoords, selectedMeters);
                                                 }
 
+                                                // Pasamos la ruta ya calculada (misma que se ve
+                                                // seleccionada) para que la navegación no re-pida
+                                                // Directions y no falle en silencio.
+                                                const sel = rawRoutesRef.current[selectedRoute];
                                                 navigate('/navigate', {
                                                     state: {
                                                         origin: originCoords,
                                                         destination: destinationCoords,
                                                         destinationName: selectedDestination,
-                                                        transportMode
+                                                        transportMode,
+                                                        precomputed: sel ? {
+                                                            geometry: sel.geometry?.coordinates,
+                                                            steps: sel.steps,
+                                                            duration: sel.duration,
+                                                            distance: sel.distance,
+                                                        } : undefined,
                                                     }
                                                 });
                                             }}

@@ -8,6 +8,23 @@ import type { TrustedContact, PendingRequest, AddContactResult } from '../servic
 import { sendFriendRequestNotification } from '../services/pushService';
 import { supabase } from '../services/supabaseClient';
 import { Capacitor } from '@capacitor/core';
+import type { TFunction } from 'i18next';
+
+// La relación se guarda en español canónico ('Familiar', 'Amigo', 'Pareja').
+// La traducimos al idioma del usuario al mostrarla; si es un valor libre
+// desconocido, se muestra tal cual.
+const REL_KEYS: Record<string, string> = {
+    familiar: 'i18nfix.rel_family',
+    amigo: 'i18nfix.rel_friend',
+    amiga: 'i18nfix.rel_friend',
+    pareja: 'i18nfix.rel_partner',
+};
+function translateRelation(rel: string | null | undefined, t: TFunction): string {
+    if (!rel) return '';
+    const key = REL_KEYS[rel.trim().toLowerCase()];
+    return key ? t(key) : rel;
+}
+
 interface DeviceContact {
     displayName?: string;
     phoneNumbers?: { number: string; type?: string }[];
@@ -388,7 +405,7 @@ export const TrustedContacts: React.FC = () => {
             {myShortId && (
                 <div className="mx-4 mb-2 px-4 py-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Tu ID de RedCarpet</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">{t('i18nfix.contacts_your_id')}</p>
                         <p className="text-xl font-black text-primary tracking-wider">{myShortId}</p>
                     </div>
                     <button
@@ -399,7 +416,7 @@ export const TrustedContacts: React.FC = () => {
                         className="h-10 px-4 bg-primary/10 border border-primary/20 rounded-xl text-primary text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
                     >
                         <span className="material-symbols-outlined text-base">content_copy</span>
-                        Copiar
+                        {t('i18nfix.copy')}
                     </button>
                 </div>
             )}
@@ -508,7 +525,7 @@ export const TrustedContacts: React.FC = () => {
                                                 <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 bg-blue-400/15 border border-blue-400/30 px-2 py-0.5 rounded-full">Solicitud enviada</span>
                                             )}
                                         </div>
-                                        <span className="text-sm text-white/60">{t('contacts.relation')}: {contact.relation} • {contact.phone}</span>
+                                        <span className="text-sm text-white/60">{t('contacts.relation')}: {translateRelation(contact.relation, t)}{contact.phone ? ` • ${contact.phone}` : ''}</span>
                                         {contact.status === 'invited' && (
                                             <button onClick={() => sendInvite(contact.name, contact.phone)} className="text-[11px] font-bold text-amber-400 mt-1 text-left">
                                                 {t('contacts.resend_whatsapp')}

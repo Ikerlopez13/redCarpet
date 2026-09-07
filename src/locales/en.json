@@ -1,4 +1,22 @@
 {
+  "mgmt": {
+    "badge": "Premium Active",
+    "hero": "You're protected to the max",
+    "thanks": "Thanks for trusting RedCarpet",
+    "plan": "Your plan",
+    "renews": "Renews on",
+    "no_expiry": "No expiry",
+    "benefits": "What you've unlocked",
+    "manage_family": "Manage Family Plan",
+    "manage_store": "Manage subscription",
+    "cancel": "Cancel subscription",
+    "granted_note": "You have Premium through a Family Plan",
+    "plan_monthly": "Monthly Premium",
+    "plan_annual": "Annual Premium",
+    "plan_family": "Family Plan",
+    "plan_family_member": "Family Plan member",
+    "plan_72h": "72h Pass"
+  },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
@@ -67,7 +85,7 @@
   "nav": {
     "map": "Map",
     "contacts": "Contacts",
-    "sos": "Travel",
+    "sos": "Alert",
     "premium": "Premium",
     "family": "Family",
     "settings": "Settings"
@@ -289,7 +307,8 @@
     "restore_purchases": "Restore Purchases",
     "legal": {
       "title": "Legal Information",
-      "iap_disclaimer": "Payment will be charged to iTunes Account at confirmation of purchase. Subscription automatically renews unless auto-renew is turned off at least 24-hours before the end of the current period. Account will be charged for renewal within 24-hours prior to the end of the current period, and identify the cost of the renewal. Subscriptions may be managed by the user and auto-renewal may be turned off by going to the user's Account Settings after purchase."
+      "iap_disclaimer": "Payment will be charged to iTunes Account at confirmation of purchase. Subscription automatically renews unless auto-renew is turned off at least 24-hours before the end of the current period. Account will be charged for renewal within 24-hours prior to the end of the current period, and identify the cost of the renewal. Subscriptions may be managed by the user and auto-renewal may be turned off by going to the user's Account Settings after purchase.",
+      "iap_disclaimer_android": "Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period. You can manage and cancel renewal in your Google Play account settings after purchase."
     },
     "success": {
       "title": "Congratulations.",
@@ -405,7 +424,7 @@
     "caution": "Caution",
     "start_nav": "Start Navigation",
     "remaining": "remaining",
-    "limit_reached": "Daily route limit reached (3/3).",
+    "limit_reached": "Monthly route limit reached (3/3). Go Premium for unlimited routes.",
     "recommended": "(Recommended)",
     "more_direct": "(More direct)",
     "transit_desc": "Stops with high footfall and lighting",
@@ -579,7 +598,7 @@
     "store_review_confirm": "Thank you very much for your rating! Would you like to spend 1 minute and leave us a positive review in the store? It would help us a lot."
   },
   "notifications": {
-    "title": "Notifications Center",
+    "title": "Security Center",
     "just_now": "Just now",
     "mins_ago": "{{count}} min ago",
     "hours_ago": "{{count}} h ago",
@@ -919,6 +938,8 @@
     "active_title": "Active Alert",
     "confirm_still": "Confirm (Still there)",
     "false_alarm": "False alarm / It's gone",
+    "verified_official": "Verified alert · Official source",
+    "false_alarm_too_far": "You're too far from this alert to mark it as a false alarm",
     "default_danger": "Danger reported in this area",
     "load_error": "Could not load the alert",
     "vote_error": "Could not register your vote."
@@ -970,5 +991,76 @@
     "directions": "Directions",
     "featured": "Featured business",
     "close": "Close"
+  },
+  "familyplan": {
+    "title": "Your Family Plan",
+    "subtitle": "Activate premium for your family. Enter up to 5 emails (only the ones you want).",
+    "email_ph": "family member email",
+    "activate": "Activate premium",
+    "seat_active": "Premium active",
+    "seat_pending": "Pending · not registered yet",
+    "remove": "Remove",
+    "no_family": "You need an active Family Plan to assign seats.",
+    "seats_used": "{{used}} of 5 seats used",
+    "err_not_owner": "This account has no active family plan.",
+    "err_bad_email": "Invalid email.",
+    "err_no_seats": "No seats left (max 5).",
+    "err_self": "You can't assign a seat to yourself.",
+    "subtitle_contacts": "Choose who gets premium from your trusted contacts.",
+    "pick_contacts": "Your trusted contacts",
+    "select_contact": "Select a trusted contact",
+    "no_contacts": "You don't have any registered trusted contacts yet.",
+    "add_contacts": "Add contacts",
+    "err_not_contact": "Must be one of your trusted contacts.",
+    "err_seat": "Could not assign (check the email or remaining seats).",
+    "manage": "Manage Family Plan"
+  },
+  "parental": {
+    "title": "Parental consent",
+    "desc": "You are a minor. To use RedCarpet we need consent from your parent or legal guardian, since your location and safety data will be processed.",
+    "guardian_name": "Parent/guardian name",
+    "guardian_email": "Parent/guardian email",
+    "checkbox": "I am the parent or legal guardian of this minor and I consent to their use of RedCarpet and the processing of their location and safety data.",
+    "confirm": "Confirm consent",
+    "err": "Fill in the guardian name and email and check the box."
+  },
+  "i18nfix": {
+    "safezone_hint": "Your current location will be used if you don't select an address.",
+    "safezone_will_create": "The zone will be created at: {{name}}",
+    "safezone_save": "Save Zone",
+    "emergency_112": "With a single tap, 112 and your safety circle will be alerted, sharing your real location.",
+    "contacts_your_id": "Your RedCarpet ID",
+    "copy": "Copy",
+    "copy_code": "Copy Code",
+    "business_phone": "Phone",
+    "business_secure_pay": "Secure payment with Stripe · Cancel anytime",
+    "business_price_month": "€50/mo",
+    "per_month": "/ mo",
+    "per_year": "/ yr",
+    "tagline_individual": "When no one can walk with you, Red Carpet is always by your side.",
+    "tagline_family": "True peace of mind is knowing everyone is safe.",
+    "tagline_72h": "There are moments when feeling safe changes everything.",
+    "one_person": "1 person",
+    "two_people": "2 people",
+    "business_verify_paid": "Already paid · Verify activation",
+    "member_status_home": "At home",
+    "member_status_moving": "On the move",
+    "member_status_stationary": "Stopped",
+    "member_since": "Since",
+    "no_location_title": "Location unavailable",
+    "no_location_desc": "This person isn't sharing their location right now.",
+    "action_call": "Call",
+    "action_message": "Message",
+    "action_greet": "Say hi",
+    "action_save_place": "Save place",
+    "greeting_text": "Good morning! 👋",
+    "rel_family": "Family",
+    "rel_friend": "Friend",
+    "rel_partner": "Partner",
+    "sub_terms_title": "Auto-Renewable Subscriptions:",
+    "sub_terms_monthly": "Monthly Premium: auto-renews monthly",
+    "sub_terms_annual": "Annual Premium: auto-renews annually",
+    "sub_terms_72h": "72-Hour Pass: one-time purchase (non-renewing)",
+    "sub_terms_manage": "Renewal can be managed in Account Settings. Cancel anytime before renewal."
   }
 }

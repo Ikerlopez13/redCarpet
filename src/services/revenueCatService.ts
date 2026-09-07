@@ -19,7 +19,7 @@ export class RevenueCatService {
     static readonly ENTITLEMENT_ID = 'Urban Guide Pro';
 
     static async initialize(appUserId?: string) {
-        if (!Capacitor.isNativePlatform()) {
+        if (Capacitor.getPlatform() !== 'ios') {
             console.warn('RevenueCat is not supported on web. Running empty stub.');
             return;
         }
@@ -55,7 +55,7 @@ export class RevenueCatService {
     }
 
     static async getOfferings(): Promise<PurchasesPackage[]> {
-        if (!Capacitor.isNativePlatform()) {
+        if (Capacitor.getPlatform() !== 'ios') {
             console.warn('⚠️ Web Mock: Simulando paquetes de RevenueCat para el navegador');
             return [
                 { identifier: 'redcarpet.premium.onemonths', product: { identifier: 'redcarpet.premium.onemonths', priceString: '12,99 €', title: 'Mensual' } } as any,
@@ -96,7 +96,7 @@ export class RevenueCatService {
         return [];
     }
     static async getProductsByIds(identifiers: string[]): Promise<any[]> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) return [];
+        if (Capacitor.getPlatform() !== 'ios' || !this.isConfigured) return [];
         try {
             const { products } = await Purchases.getProducts({ productIdentifiers: identifiers });
             return products || [];
@@ -107,7 +107,7 @@ export class RevenueCatService {
     }
 
     static async purchasePackage(rcPackage: PurchasesPackage): Promise<{ customerInfo: CustomerInfo; productIdentifier: string; } | null> {
-        if (!Capacitor.isNativePlatform()) {
+        if (Capacitor.getPlatform() !== 'ios') {
             console.log('🌐 Web Mock: Simulando compra exitosa de', rcPackage.product.identifier);
             // Simulate native purchase modal delay
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -142,7 +142,7 @@ export class RevenueCatService {
     }
 
     static async purchaseProductById(productIdentifier: string): Promise<{ customerInfo: CustomerInfo; productIdentifier: string; } | null> {
-        if (!Capacitor.isNativePlatform()) {
+        if (Capacitor.getPlatform() !== 'ios') {
             console.log('🌐 Web Mock: Simulando compra exitosa del producto', productIdentifier);
             await new Promise(resolve => setTimeout(resolve, 2000));
             return {
@@ -180,7 +180,7 @@ export class RevenueCatService {
     }
 
     static async checkEntitlement(entitlementId: string = RevenueCatService.ENTITLEMENT_ID): Promise<boolean> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) return false;
+        if (Capacitor.getPlatform() !== 'ios' || !this.isConfigured) return false;
 
         try {
             const { customerInfo } = await Purchases.getCustomerInfo();
@@ -194,7 +194,7 @@ export class RevenueCatService {
     }
 
     static async getCustomerInfo(): Promise<CustomerInfo | null> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) return null;
+        if (Capacitor.getPlatform() !== 'ios' || !this.isConfigured) return null;
 
         try {
             const { customerInfo } = await Purchases.getCustomerInfo();
@@ -206,7 +206,7 @@ export class RevenueCatService {
     }
 
     static async checkIntroEligibility(productIdentifiers: string[]): Promise<Record<string, any>> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) return {};
+        if (Capacitor.getPlatform() !== 'ios' || !this.isConfigured) return {};
 
         try {
             const eligibilityMap = await Purchases.checkTrialOrIntroductoryPriceEligibility({
@@ -220,7 +220,7 @@ export class RevenueCatService {
     }
 
     static async restorePurchases(): Promise<CustomerInfo | null> {
-        if (!Capacitor.isNativePlatform() || !this.isConfigured) return null;
+        if (Capacitor.getPlatform() !== 'ios' || !this.isConfigured) return null;
 
         try {
             const { customerInfo } = await Purchases.restorePurchases();

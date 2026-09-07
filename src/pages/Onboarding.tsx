@@ -11,7 +11,20 @@ import { PrivacyPolicy } from './PrivacyPolicy';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 
-type Step = 'welcome' | 'profile' | 'habits' | 'permissions' | 'privacy';
+type Step = 'welcome' | 'profile' | 'parental' | 'habits' | 'permissions' | 'privacy';
+
+// Edad mínima sin consentimiento parental (España, LOPDGDD art. 7 → 14 años).
+const MINOR_AGE = 14;
+function ageFromDob(dob: string): number | null {
+    if (!dob) return null;
+    const d = new Date(dob);
+    if (isNaN(d.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age;
+}
 
 export const Onboarding: React.FC = () => {
     const navigate = useNavigate();
@@ -31,6 +44,14 @@ export const Onboarding: React.FC = () => {
     const shouldAskName = !hasNameFromProvider && !isAppleUser;
     const [habitualCity, setHabitualCity] = useState('');
 
+    // Consentimiento parental (solo si es menor)
+    const [guardianName, setGuardianName] = useState('');
+    const [guardianEmail, setGuardianEmail] = useState('');
+    const [parentalConsent, setParentalConsent] = useState(false);
+    const [parentalError, setParentalError] = useState('');
+    const age = ageFromDob(dob);
+    const isMinor = age !== null && age < MINOR_AGE;
+
     // Habits State
     const [walkingAlone, setWalkingAlone] = useState<'daily' | 'occasional' | 'rarely' | ''>('');
     const [riskExposure, setRiskExposure] = useState<'high' | 'medium' | 'low' | ''>('');
@@ -41,6 +62,14 @@ export const Onboarding: React.FC = () => {
             setStep('profile');
         } else if (step === 'profile') {
             if (!fullName || !dob || !habitualCity) return; // Prevent next if empty
+            // Si es menor, exigir consentimiento parental antes de continuar.
+            setStep(isMinor ? 'parental' : 'habits');
+        } else if (step === 'parental') {
+            if (!guardianName.trim() || !guardianEmail.trim() || !guardianEmail.includes('@') || !parentalConsent) {
+                setParentalError(t('parental.err'));
+                return;
+            }
+            setParentalError('');
             setStep('habits');
         } else if (step === 'habits') {
             if (!walkingAlone || !riskExposure) return;
@@ -88,7 +117,12 @@ export const Onboarding: React.FC = () => {
                         risk_exposure_level: riskExposure,
                         habitual_zones: habitualZones ? [habitualZones] : [],
                         privacy_policy_accepted: true,
-                        onboarding_completed: true
+                        onboarding_completed: true,
+                        // Registro legal del consentimiento parental (menores)
+                        is_minor: isMinor,
+                        guardian_name: isMinor ? guardianName.trim() : null,
+                        guardian_email: isMinor ? guardianEmail.trim().toLowerCase() : null,
+                        parental_consent_at: isMinor ? new Date().toISOString() : null,
                     }).eq('id', user.id);
                     await refreshProfile();
                 } catch (e) {
@@ -109,6 +143,7 @@ export const Onboarding: React.FC = () => {
     const isNextDisabled = () => {
         if (isProcessing) return true;
         if (step === 'profile') return (shouldAskName && !fullName) || !dob || !habitualCity;
+        if (step === 'parental') return !guardianName.trim() || !guardianEmail.includes('@') || !parentalConsent;
         if (step === 'habits') return !walkingAlone || !riskExposure;
         if (step === 'privacy') return !hasAcceptedPrivacy;
         return false;
@@ -118,7 +153,9 @@ export const Onboarding: React.FC = () => {
         <div className="flex flex-col h-full w-full bg-background-dark text-white overflow-hidden font-display relative p-8">
             {/* Progress Dots */}
             <div className="flex justify-center gap-2 mb-8 mt-4 shrink-0">
-                {(['welcome', 'profile', 'habits', 'permissions', 'privacy'] as Step[]).map((s) => (
+                {((isMinor
+                    ? ['welcome', 'profile', 'parental', 'habits', 'permissions', 'privacy']
+                    : ['welcome', 'profile', 'habits', 'permissions', 'privacy']) as Step[]).map((s) => (
                     <div 
                         key={s} 
                         className={clsx(
@@ -180,6 +217,46 @@ export const Onboarding: React.FC = () => {
                                 />
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {step === 'parental' && (
+                    <div className="space-y-5 flex flex-col w-full animate-fade-in">
+                        <div className="flex flex-col items-center text-center mb-2">
+                            <div className="size-16 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-4">
+                                <ShieldAlert size={30} />
+                            </div>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter">{t('parental.title')}</h2>
+                            <p className="text-white/50 text-sm leading-relaxed px-2 mt-2">{t('parental.desc')}</p>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t('parental.guardian_name')}</label>
+                            <input
+                                value={guardianName}
+                                onChange={(e) => setGuardianName(e.target.value)}
+                                className="w-full mt-2 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder-white/20 text-sm focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t('parental.guardian_email')}</label>
+                            <input
+                                type="email"
+                                value={guardianEmail}
+                                onChange={(e) => setGuardianEmail(e.target.value)}
+                                placeholder="email@ejemplo.com"
+                                className="w-full mt-2 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder-white/20 text-sm focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <button
+                            onClick={() => setParentalConsent(v => !v)}
+                            className="flex items-start gap-3 text-left bg-white/5 border border-white/10 rounded-2xl p-4"
+                        >
+                            <div className={clsx("size-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5", parentalConsent ? "bg-primary border-primary" : "border-white/30")}>
+                                {parentalConsent && <ChevronRight size={14} className="text-white rotate-90" />}
+                            </div>
+                            <span className="text-xs text-white/70 leading-relaxed">{t('parental.checkbox')}</span>
+                        </button>
+                        {parentalError && <p className="text-red-400 text-xs font-bold">{parentalError}</p>}
                     </div>
                 )}
 

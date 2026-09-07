@@ -39,6 +39,7 @@ interface UIMember {
     location: string;
     lat: number;
     lng: number;
+    phone: string | null;
     status: 'moving' | 'stationary' | 'home';
     speed: string | null;
     battery: number | null; // null = sin datos (no mostrar 0% falso)
@@ -56,19 +57,38 @@ export const Home: React.FC = () => {
     // Estados
     const [familyMembers, setFamilyMembers] = useState<UIMember[]>([]);
     const [familyGroup, setFamilyGroup] = useState<any | null>(null);
+    // IDs del círculo (yo + contactos aceptados) para FILTRAR la suscripción
+    // realtime: cada móvil recibe solo las ubicaciones de su círculo, no las de
+    // todos los usuarios (evita el fanout O(N²) que colapsaría a gran escala).
+    const [circleUserIds, setCircleUserIds] = useState<string[]>([]);
 
     const [activeTab, setActiveTab] = useState<'places' | 'alerts' | 'family'>('places');
     const [selectedMember, setSelectedMember] = useState<string | null>(null); // Changed to string
     // Punto al que centrar el mapa al pulsar una persona (ver ubicación, SIN ruta).
-    const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number; nonce: number } | null>(null);
+    const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number; nonce: number; zoom?: number } | null>(null);
+    // Cambiar este número reencuadra el mapa a TODOS los miembros (vista general).
+    const [overviewNonce, setOverviewNonce] = useState(0);
 
-    // Pulsar una persona = VER su ubicación en el mapa (centra/zoom) + su ficha.
+    // Pulsar una persona = VER su ubicación en el mapa (centra/zoom suave) + su ficha.
     // NO calcula ninguna ruta; la ruta es una acción aparte ("{t('home.go_here')}").
+    // Si NO tiene ubicación (permisos off), NO centra el mapa: solo abre la ficha
+    // con el estado vacío correspondiente.
     const viewMemberLocation = (memberId: string) => {
         setShowSuggestions(false);
         const m = familyMembers.find(x => x.id === memberId);
-        if (m && m.lat && m.lng) setMapFocus({ lat: m.lat, lng: m.lng, nonce: Date.now() });
+        if (m && m.lat && m.lng) {
+            // Zoom de calle si está quieto; algo más amplio si se mueve.
+            const zoom = m.status === 'moving' ? 15.5 : 16.5;
+            setMapFocus({ lat: m.lat, lng: m.lng, nonce: Date.now(), zoom });
+        }
         setSelectedMember(memberId);
+    };
+
+    // Cerrar la ficha → volver a la vista general del círculo (todos los marcadores).
+    const closeMemberSheet = () => {
+        setSelectedMember(null);
+        setMapFocus(null);
+        setOverviewNonce(n => n + 1);
     };
     // Ubicación GPS real del usuario, para priorizar por cercanía en el buscador
     const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -134,6 +154,7 @@ export const Home: React.FC = () => {
 
             const acceptedContacts = contacts.filter(c => c.status === 'accepted' && c.associated_user_id);
             const relevantUserIds = [user.id, ...acceptedContacts.map(c => c.associated_user_id as string)];
+            setCircleUserIds(relevantUserIds); // alimenta el filtro de la suscripción realtime
             
             // Now fetch dependent requests in parallel
             const alertsPromise = supabase
@@ -249,6 +270,7 @@ export const Home: React.FC = () => {
                             location: displayLocation,
                             lat: (!isLocationHidden && loc) ? loc.lat : 0,
                             lng: (!isLocationHidden && loc) ? loc.lng : 0,
+                            phone: (c as any).phone || null,
                             status: loc && loc.speed && loc.speed > 5 ? 'moving' : 'stationary',
                             speed: loc?.speed ? `${Math.round(loc.speed)} km/h` : null,
                             battery: (typeof loc?.battery_level === 'number') ? loc.battery_level : null,
@@ -410,20 +432,27 @@ export const Home: React.FC = () => {
 
     useEffect(() => {
         if (!user) return;
+        // Sin IDs de círculo aún no filtramos (evitamos suscribirnos a todo).
+        if (circleUserIds.length === 0) return;
+
+        // Filtro server-side: solo INSERTs de ubicación de MI círculo. Reduce el
+        // tráfico realtime de O(N²) a O(N) — clave para escalar a muchos usuarios.
+        const filter = `user_id=in.(${circleUserIds.join(',')})`;
 
         const subscription = supabase
-            .channel('location-updates')
-            .on('postgres_changes', { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'locations' 
+            .channel(`location-updates-${user.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'locations',
+                filter,
             }, (payload: any) => {
                 const newLoc = payload.new;
                 setFamilyMembers(prev => prev.map(m => {
                     if (m.id === newLoc.user_id) {
-                        return { 
-                            ...m, 
-                            lat: newLoc.lat, 
+                        return {
+                            ...m,
+                            lat: newLoc.lat,
                             lng: newLoc.lng,
                             battery: (typeof newLoc.battery_level === 'number') ? newLoc.battery_level : m.battery,
                             speed: newLoc.speed ? `${Math.round(newLoc.speed)} km/h` : m.speed,
@@ -439,7 +468,7 @@ export const Home: React.FC = () => {
         return () => {
             subscription.unsubscribe();
         };
-    }, [user]);
+    }, [user, circleUserIds]);
 
     // Lógica de búsqueda autocompletada
     useEffect(() => {
@@ -622,6 +651,8 @@ export const Home: React.FC = () => {
                     externalIncidenceZones={incidenceZones}
                     showPOIs={false}
                     focusPoint={mapFocus}
+                    selectedMemberId={selectedMember}
+                    overviewNonce={overviewNonce}
                     onPOIClick={(poi) => {
                         setShowSuggestions(false);
                         setSelectedPOI(poi);
@@ -1038,25 +1069,38 @@ export const Home: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-end justify-center">
                     <div
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setSelectedMember(null)}
+                        onClick={closeMemberSheet}
                     />
                     <div className="relative w-full max-w-lg bg-background-dark rounded-t-3xl p-6 pb-10 border-t border-white/10 animate-slide-up">
+                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-5 sm:hidden" />
                         {/* Close button */}
                         <button
-                            onClick={() => setSelectedMember(null)}
+                            onClick={closeMemberSheet}
                             className="absolute top-4 right-4 size-8 rounded-full bg-white/10 flex items-center justify-center"
                         >
                             <span className="material-symbols-outlined text-lg">close</span>
                         </button>
 
-                        {/* Member Header */}
                         {(() => {
                             const member = familyMembers.find(m => m.id === selectedMember);
                             if (!member) return null;
+                            const hasLoc = !!(member.lat && member.lng);
+                            const statusLabel = member.status === 'home'
+                                ? t('i18nfix.member_status_home')
+                                : member.status === 'moving'
+                                    ? t('i18nfix.member_status_moving')
+                                    : t('i18nfix.member_status_stationary');
+                            const statusColor = member.status === 'moving'
+                                ? 'text-primary'
+                                : member.status === 'home' ? 'text-emerald-400' : 'text-white/60';
+                            const statusIcon = member.status === 'moving'
+                                ? 'directions_walk'
+                                : member.status === 'home' ? 'home' : 'my_location';
 
                             return (
                                 <>
-                                    <div className="flex items-start gap-4 mb-6">
+                                    {/* Header */}
+                                    <div className="flex items-start gap-4 mb-5">
                                         <div className={clsx(
                                             "size-16 rounded-full border-4 flex items-center justify-center text-3xl shadow-lg shrink-0 overflow-hidden",
                                             member.avatarBg,
@@ -1064,26 +1108,38 @@ export const Home: React.FC = () => {
                                         )}>
                                             {member.avatarUrl ? (
                                                 <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                member.avatar
-                                            )}
+                                            ) : member.avatar}
                                         </div>
                                         <div className="flex-1 min-w-0 pt-1">
                                             <h3 className="text-2xl font-bold truncate">{member.name}</h3>
-                                            <p className="text-white/50 text-sm flex items-center gap-1">
+                                            <p className={clsx("text-sm font-bold flex items-center gap-1", statusColor)}>
+                                                <span className="material-symbols-outlined text-sm">{statusIcon}</span>
+                                                {statusLabel}
+                                            </p>
+                                            <p className="text-white/50 text-xs flex items-center gap-1 mt-0.5 truncate">
                                                 <span className="material-symbols-outlined text-sm">location_on</span>
                                                 {member.location}
                                             </p>
-                                            <div className="flex items-center gap-3 mt-2">
-                                                <div className="text-[10px] text-white/40">
-                                                    {t('common.updated')}: {member.lastUpdate}
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Actions */}
-                                    <div className="flex gap-2">
+                                    {/* Desde [hora] del último evento */}
+                                    <div className="bg-white/5 border border-white/10 rounded-2xl px-3 py-2.5 flex items-center gap-2 mb-5">
+                                        <span className="material-symbols-outlined text-lg text-white/60">schedule</span>
+                                        <span className="text-sm font-bold truncate">{t('i18nfix.member_since')} {member.lastUpdate}</span>
+                                    </div>
+
+                                    {/* Estado vacío si no hay ubicación (permisos off) */}
+                                    {!hasLoc && (
+                                        <div className="mb-5 p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                                            <span className="material-symbols-outlined text-3xl text-white/25">location_off</span>
+                                            <p className="text-sm font-bold text-white/70 mt-1">{t('i18nfix.no_location_title')}</p>
+                                            <p className="text-xs text-white/40 mt-1">{t('i18nfix.no_location_desc')}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Ir aquí (ruta) — solo con ubicación disponible */}
+                                    {hasLoc && (
                                         <button
                                             onClick={() => {
                                                 setSelectedMember(null);
@@ -1094,12 +1150,12 @@ export const Home: React.FC = () => {
                                                     }
                                                 });
                                             }}
-                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 transition-transform active:scale-95 text-sm"
+                                            className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 transition-transform active:scale-95 text-sm"
                                         >
                                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions</span>
                                             {t('home.go_here')}
                                         </button>
-                                    </div>
+                                    )}
                                 </>
                             );
                         })()}

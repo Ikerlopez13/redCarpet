@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
-import Map, { NavigationControl, GeolocateControl, Marker, Source, Layer } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, GeolocateControl, Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import clsx from 'clsx';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapMarker } from './map/MapMarker';
@@ -69,7 +69,11 @@ interface UnifiedMapProps {
     onZoneClick?: (zoneId: string) => void;
     // Centrar/zoom el mapa en un punto (p. ej. al pulsar una persona del círculo).
     // El `nonce` fuerza el recentrado aunque el punto sea el mismo que antes.
-    focusPoint?: { lat: number; lng: number; nonce: number } | null;
+    focusPoint?: { lat: number; lng: number; nonce: number; zoom?: number } | null;
+    // Id del miembro seleccionado → se resalta su marcador (sin duplicarlo).
+    selectedMemberId?: string | null;
+    // Cambiar este número reencuadra el mapa a TODOS los miembros (vista general).
+    overviewNonce?: number;
 }
 
 export const UnifiedMap: React.FC<UnifiedMapProps> = ({
@@ -90,9 +94,12 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     origin,
     destination,
     onZoneClick,
-    focusPoint
+    focusPoint,
+    selectedMemberId = null,
+    overviewNonce
 }) => {
     const { t } = useTranslation();
+    const mapRef = useRef<MapRef>(null);
     const [showTraffic, setShowTraffic] = useState(true);
     const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
     const [viewState, setViewState] = useState({ ...DEFAULT_VIEW, pitch: 0, bearing: 0 });
@@ -100,20 +107,57 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     const [metroStations, setMetroStations] = useState<MetroStation[]>([]);
 
     // Centrar/zoom el mapa sobre un punto cuando cambia focusPoint (ver ubicación
-    // de una persona del círculo). No calcula ninguna ruta.
+    // de una persona del círculo). Animación SUAVE (flyTo) en vez de salto.
     useEffect(() => {
-        if (focusPoint && focusPoint.lat && focusPoint.lng) {
+        if (!focusPoint || !focusPoint.lat || !focusPoint.lng) return;
+        setIsTrackingUser(false);
+        const map = mapRef.current;
+        if (map) {
+            map.flyTo({
+                center: [focusPoint.lng, focusPoint.lat],
+                zoom: focusPoint.zoom ?? 16,
+                pitch: 0,
+                bearing: 0,
+                duration: 1200,
+                essential: true,
+            });
+        } else {
+            // Fallback si el mapa aún no montó el ref.
             setViewState(prev => ({
                 ...prev,
                 latitude: focusPoint.lat,
                 longitude: focusPoint.lng,
-                zoom: Math.max(prev.zoom, 16),
+                zoom: focusPoint.zoom ?? Math.max(prev.zoom, 16),
                 pitch: 0,
                 bearing: 0,
             }));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [focusPoint?.nonce]);
+
+    // Reencuadrar a TODOS los miembros (vista general del círculo) al cerrar la
+    // ficha de una persona. Anima con fitBounds; deja hueco abajo para el sheet.
+    useEffect(() => {
+        if (!overviewNonce) return;
+        const map = mapRef.current;
+        if (!map) return;
+        const pts: [number, number][] = familyMembers
+            .filter(m => m.lat && m.lng)
+            .map(m => [m.lng, m.lat] as [number, number]);
+        if (userLocation) pts.push([userLocation.lng, userLocation.lat]);
+        if (pts.length === 0) return;
+        if (pts.length === 1) {
+            map.flyTo({ center: pts[0], zoom: 15, duration: 900, essential: true });
+            return;
+        }
+        const lngs = pts.map(p => p[0]);
+        const lats = pts.map(p => p[1]);
+        map.fitBounds(
+            [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+            { padding: { top: 90, bottom: 160, left: 60, right: 60 }, duration: 900, maxZoom: 16, essential: true }
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [overviewNonce]);
     const [pois, setPois] = useState<POI[]>([]);
     const [incidenceZones, setIncidenceZones] = useState<any[]>([]);
     const [selectedBusiness, setSelectedBusiness] = useState<BusinessListing | null>(null);
@@ -390,6 +434,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     return (
         <div className={clsx("relative w-full h-full overflow-hidden", className)}>
             <Map
+                ref={mapRef}
                 {...viewState}
                 reuseMaps
                 onLoad={() => trackMapboxSpend('map_load')}
@@ -425,14 +470,15 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
 
                 {/* Incidence Zones Component - Centered Info & Absolute Size */}
                 {showIncidenceZones && (
-                    <IncidenceZones 
+                    <IncidenceZones
+                        zoom={viewState.zoom}
                         zones={[
                             ...incidenceZones,
                             ...externalIncidenceZones
                         ].map(z => ({
                             ...z,
                             onClick: onZoneClick
-                        }))} 
+                        }))}
                     />
                 )}
 
@@ -477,7 +523,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 coordinates={routeGeometry.safe}
                                 color={ROUTE_COLORS.safe}
                                 isSelected={selectedRoute === 'safe'}
-                                offset={-5}
+                                offset={0}
                             />
                         )}
                         {/* Balanced route */}
@@ -497,7 +543,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                                 coordinates={routeGeometry.fast}
                                 color={ROUTE_COLORS.fast}
                                 isSelected={selectedRoute === 'fast'}
-                                offset={5}
+                                offset={0}
                             />
                         )}
                     </>
@@ -536,14 +582,18 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     <MapMarker
                         key={member.id}
                         member={member}
+                        highlighted={member.id === selectedMemberId}
                         onClick={() => handleMarkerClick(member.id)}
                     />
                 ))}
             </Map>
 
 
-            {/* Navigation & Location Controls */}
-            <div className="absolute bottom-[35%] right-4 z-30 pointer-events-auto flex flex-col gap-3">
+            {/* Navigation & Location Controls — alineado bajo el stack de botones
+                (campana/alerta/ajustes) con el mismo gap-3. El stack arranca en
+                top-[120px]; 3 botones size-14 (56px) + gap-3 (12px) dejan el
+                siguiente hueco en 120 + 3×(56+12) = 324px. */}
+            <div className="absolute top-[324px] right-4 z-30 pointer-events-auto flex flex-col gap-3">
                 <button
                     onClick={recenterToUser}
                     className={clsx(

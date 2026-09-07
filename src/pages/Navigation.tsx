@@ -34,11 +34,19 @@ const getManeuverIcon = (type: string, modifier?: string): string => {
     return 'straight';
 };
 
+interface PrecomputedRoute {
+    geometry?: [number, number][];
+    steps?: RouteStep[];
+    duration?: number;
+    distance?: number;
+}
+
 interface NavigationViewProps {
     origin: { lat: number; lng: number };
     destination: { lat: number; lng: number };
     destinationName: string;
     transportMode: 'walking' | 'cycling' | 'driving';
+    precomputed?: PrecomputedRoute;
     onClose: () => void;
 }
 
@@ -47,6 +55,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     destination,
     destinationName,
     transportMode,
+    precomputed,
     onClose
 }) => {
     const { t, i18n } = useTranslation();
@@ -86,30 +95,64 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
         pitch: 60
     });
     const [userLocation, setUserLocation] = useState({ lat: origin.lat, lng: origin.lng });
+    const [distanceToNext, setDistanceToNext] = useState<number | null>(null);
     const geoControlRef = useRef<any>(null);
+    const stepsRef = useRef<RouteStep[]>([]);
+    const stepIdxRef = useRef(0);
+    useEffect(() => { stepsRef.current = steps; }, [steps]);
+    useEffect(() => { stepIdxRef.current = currentStepIndex; }, [currentStepIndex]);
+
+    // Distancia en metros entre dos coordenadas (Haversine).
+    const metersBetween = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+        const R = 6371e3;
+        const p1 = (aLat * Math.PI) / 180, p2 = (bLat * Math.PI) / 180;
+        const dPhi = ((bLat - aLat) * Math.PI) / 180, dLam = ((bLng - aLng) * Math.PI) / 180;
+        const x = Math.sin(dPhi / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dLam / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    };
 
     // Fetch route on mount
     useEffect(() => {
+        const applyRoute = (r: { steps: RouteStep[]; coordinates: [number, number][]; duration: number; distance: number }) => {
+            setSteps(r.steps || []);
+            setRouteGeometry(r.coordinates || null);
+            setTotalDuration(r.duration || 0);
+            setTotalDistance(r.distance || 0);
+            const now = new Date();
+            now.setSeconds(now.getSeconds() + (r.duration || 0));
+            setEta(now.toLocaleTimeString(i18n.language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit' }));
+            setViewState(prev => ({ ...prev, latitude: origin.lat, longitude: origin.lng }));
+        };
+
         const fetchRoute = async () => {
             setIsLoading(true);
-            const route = await getRoute(origin, destination, transportMode);
-            if (route) {
-                setSteps(route.steps);
-                setRouteGeometry(route.geometry.coordinates as [number, number][]);
-                setTotalDuration(route.duration);
-                setTotalDistance(route.distance);
 
-                // Calculate ETA
-                const now = new Date();
-                now.setSeconds(now.getSeconds() + route.duration);
-                setEta(now.toLocaleTimeString(i18n.language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit' }));
-                
-                // Set initial view focusing on the first step
-                setViewState(prev => ({
-                    ...prev,
-                    latitude: origin.lat,
-                    longitude: origin.lng
-                }));
+            // 1) Ruta ya calculada en la selección → usarla directamente (sin
+            //    re-pedir Directions, sin fallo por rate-limit, tiempos idénticos).
+            if (precomputed?.geometry && precomputed.geometry.length > 1) {
+                applyRoute({
+                    steps: precomputed.steps || [],
+                    coordinates: precomputed.geometry,
+                    duration: precomputed.duration || 0,
+                    distance: precomputed.distance || 0,
+                });
+                setIsLoading(false);
+                return;
+            }
+
+            // 2) Fallback: pedir la ruta, con 1 reintento (no fallar en silencio).
+            let route = await getRoute(origin, destination, transportMode);
+            if (!route) {
+                await new Promise(r => setTimeout(r, 800));
+                route = await getRoute(origin, destination, transportMode);
+            }
+            if (route) {
+                applyRoute({
+                    steps: route.steps,
+                    coordinates: route.geometry.coordinates as [number, number][],
+                    duration: route.duration,
+                    distance: route.distance,
+                });
             }
             setIsLoading(false);
         };
@@ -119,7 +162,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
         setTimeout(() => {
             geoControlRef.current?.trigger();
         }, 500);
-    }, [origin, destination, transportMode]);
+    }, [origin, destination, transportMode, precomputed]);
 
     // Track position and heading for rotation
     useEffect(() => {
@@ -132,11 +175,31 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     timeout: 5000 
                 }, (position) => {
                     if (position) {
-                        setUserLocation({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        });
-                        // Removed forcing setViewState here so the map doesn't fight native GeolocateControl
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        setUserLocation({ lat, lng });
+
+                        // Turn-by-turn: avanzar al siguiente paso cuando llegamos
+                        // al punto de giro (~25 m), y actualizar la distancia en vivo.
+                        const arr = stepsRef.current;
+                        let idx = stepIdxRef.current;
+                        if (arr.length > 0) {
+                            const targetLoc = (s?: RouteStep) => s?.maneuver?.location;
+                            // El "siguiente giro" es el maniobra del paso idx+1 (fin del paso actual).
+                            let nextLoc = targetLoc(arr[idx + 1]) || targetLoc(arr[idx]);
+                            if (nextLoc) {
+                                let d = metersBetween(lat, lng, nextLoc[1], nextLoc[0]);
+                                // Si ya pasamos el giro, avanzar (puede saltar varios si vamos rápido).
+                                while (d < 25 && idx < arr.length - 1) {
+                                    idx++;
+                                    const nl = targetLoc(arr[idx + 1]) || targetLoc(arr[idx]);
+                                    if (!nl) break;
+                                    d = metersBetween(lat, lng, nl[1], nl[0]);
+                                }
+                                if (idx !== stepIdxRef.current) setCurrentStepIndex(idx);
+                                setDistanceToNext(d);
+                            }
+                        }
                     }
                 });
             } catch (e) {
@@ -165,6 +228,8 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 
     const currentStep = steps[currentStepIndex];
     const nextStep = steps[currentStepIndex + 1];
+    // Maniobra que viene (coincide con la distancia en vivo al siguiente giro).
+    const upcomingStep = steps[currentStepIndex + 1] || steps[currentStepIndex];
 
     // POIs cosméticos eliminados: hacían un Search Box (billable) por cada
     // cambio de origin buscando una etiqueta de UI. Solo pintaban pines grises
@@ -231,15 +296,17 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         <div className="flex items-center gap-3 bg-white p-3 rounded-2xl max-w-[280px] shadow-xl">
                             <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                                 <span className="material-symbols-outlined text-primary text-xl">
-                                    {currentStep ? getManeuverIcon(currentStep.maneuver.type, currentStep.maneuver.modifier) : 'straight'}
+                                    {upcomingStep ? getManeuverIcon(upcomingStep.maneuver.type, upcomingStep.maneuver.modifier) : 'straight'}
                                 </span>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-lg font-black text-zinc-900 leading-tight tracking-tight">
-                                    {currentStep ? formatDistance(currentStep.distance) : '--'}
+                                    {distanceToNext != null
+                                        ? formatDistance(distanceToNext)
+                                        : (upcomingStep ? formatDistance(upcomingStep.distance) : '--')}
                                 </p>
                                 <p className="text-xs font-semibold text-zinc-500 leading-tight">
-                                    {currentStep?.maneuver.instruction || t('navigation.continue_straight')}
+                                    {upcomingStep?.maneuver.instruction || t('navigation.continue_straight')}
                                 </p>
                             </div>
                         </div>
@@ -332,6 +399,7 @@ export const Navigation: React.FC = () => {
             destination={state.destination}
             destinationName={state.destinationName || t('navigation.destination')}
             transportMode={state.transportMode || 'walking'}
+            precomputed={state.precomputed}
             onClose={() => navigate('/')}
         />
     );

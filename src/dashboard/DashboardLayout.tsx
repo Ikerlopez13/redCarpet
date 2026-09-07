@@ -64,7 +64,7 @@ export default function DashboardLayout() {
     return (
         <Ctx.Provider value={{ profile, cityBounds }}>
             <div className="min-h-screen bg-[#050505] flex flex-col text-white">
-                <header className="bg-[#0a0a0a] border-b border-white/10 px-6 py-3 flex items-center justify-between">
+                <header className="bg-[#0a0a0a] border-b border-white/10 px-3 md:px-6 py-3 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="size-11 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-[0_4px_20px_rgba(220,38,38,0.4)] rotate-[-4deg]">
                             <ShieldAlert className="w-6 h-6 text-white" />
@@ -93,7 +93,8 @@ export default function DashboardLayout() {
                 </header>
 
                 <div className="flex flex-1 min-h-0">
-                    <nav className="w-56 bg-[#0a0a0a] border-r border-white/10 py-5 px-3 flex flex-col gap-1.5">
+                    {/* Sidebar — solo escritorio */}
+                    <nav className="hidden md:flex w-56 bg-[#0a0a0a] border-r border-white/10 py-5 px-3 flex-col gap-1.5">
                         {navItems.map(({ to, end, icon: Icon, label }) => (
                             <NavLink
                                 key={to}
@@ -127,10 +128,26 @@ export default function DashboardLayout() {
                             </button>
                         </div>
                     </nav>
-                    <main className="flex-1 min-w-0 overflow-auto bg-[#050505]">
+                    <main className="flex-1 min-w-0 overflow-auto bg-[#050505] pb-16 md:pb-0">
                         <Outlet />
                     </main>
                 </div>
+
+                {/* Nav inferior — solo móvil */}
+                <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0a0a0a] border-t border-white/10 flex items-stretch">
+                    {navItems.map(({ to, end, icon: Icon, label }) => (
+                        <NavLink key={to} to={to} end={end}
+                            className={({ isActive }) =>
+                                `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[9px] font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-red-500' : 'text-zinc-500'}`}>
+                            <Icon className="w-5 h-5" />
+                            {label}
+                        </NavLink>
+                    ))}
+                    <button onClick={async () => { await supabase.auth.signOut(); navigate('/dashboard/login'); }}
+                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
+                        <LogOut className="w-5 h-5" /> {dt('logout')}
+                    </button>
+                </nav>
             </div>
         </Ctx.Provider>
     );

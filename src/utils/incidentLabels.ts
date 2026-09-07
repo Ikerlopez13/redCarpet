@@ -22,6 +22,24 @@ const INCIDENT_SUB_KEYS: Record<string, string> = {
     'SEGURIDAD': 'report.sub.safety',
 };
 
+// Categorías POSITIVAS: son alertas "buenas" (mejoran la seguridad). La ruta
+// segura NO debe evitarlas — al contrario, puede preferirlas.
+export const POSITIVE_INCIDENT_LABELS = new Set<string>([
+    'Acceso seguro',         // acceso adaptado / seguro
+    'Zona inclusiva',        // espacio inclusivo
+    'Autoridades presentes', // presencia policial / seguridad
+]);
+
+/**
+ * ¿Es una incidencia "buena" (a preferir, no a evitar)? Clasifica por la
+ * etiqueta de la descripción canónica "Etiqueta - SUBTÍTULO".
+ */
+export function isPositiveIncident(desc: string | null | undefined): boolean {
+    if (!desc) return false;
+    const label = desc.split(' - ')[0].trim();
+    return POSITIVE_INCIDENT_LABELS.has(label);
+}
+
 /** Traduce solo la etiqueta (p.ej. "Acceso seguro"). Si no la reconoce, la devuelve igual. */
 export function translateIncidentLabel(label: string | null | undefined, t: TFunction): string {
     if (!label) return '';

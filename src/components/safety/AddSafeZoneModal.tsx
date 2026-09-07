@@ -227,8 +227,8 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                         />
                         <p className="text-[10px] text-zinc-500 font-medium">
                             {selectedLocation
-                                ? `Se creará la zona en: ${selectedLocation.name}`
-                                : "Se usará tu ubicación actual si no seleccionas una dirección."}
+                                ? t('i18nfix.safezone_will_create', { name: selectedLocation.name })
+                                : t('i18nfix.safezone_hint')}
                         </p>
                     </div>
                 </div>
@@ -238,7 +238,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                         onClick={onClose}
                         className="flex-1 py-4 rounded-2xl font-bold bg-white/5 text-white hover:bg-white/10 transition-all active:scale-95"
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={handleSave}
@@ -255,7 +255,7 @@ export function AddSafeZoneModal({ isOpen, onClose, familyId, onSuccess }: AddSa
                         ) : (
                             <>
                                 <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>add_location</span>
-                                Guardar Zona
+                                {t('i18nfix.safezone_save')}
                             </>
                         )}
                     </button>

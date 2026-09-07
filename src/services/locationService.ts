@@ -141,6 +141,17 @@ export async function startLocationTracking(
         console.error('Initial location error:', error);
     }
 
+    // iOS: subida HTTP NATIVA (Transistor) → sigue reportando con la app cerrada.
+    // Si la init falla por lo que sea, caemos al plugin community de abajo.
+    if (Capacitor.getPlatform() === 'ios') {
+        const { startIOSNativeTracking } = await import('./iosBackgroundLocation');
+        const handle = await startIOSNativeTracking(userId, onUpdate);
+        if (handle) {
+            return { stop: async () => { await handle.stop(); } };
+        }
+        console.warn('[Location] iOS nativo no disponible, usando plugin community.');
+    }
+
     if (Capacitor.isNativePlatform()) {
         // Use BackgroundGeolocation — continues firing when app is backgrounded with "Always" permission
         try {
@@ -148,7 +159,11 @@ export async function startLocationTracking(
                 {
                     backgroundMessage: 'RedCarpet está rastreando tu ubicación para tu seguridad.',
                     backgroundTitle: 'RedCarpet activo',
-                    requestPermissions: false,
+                    // requestPermissions:true + backgroundMessage → el plugin pide
+                    // la autorización "Siempre" (Always) en iOS, imprescindible para
+                    // que el 2º plano no se corte al bloquear el móvil. Antes estaba
+                    // en false y solo se tenía "Mientras se usa" → segundo plano muerto.
+                    requestPermissions: true,
                     stale: false,
                     distanceFilter: DISTANCE_THRESHOLD_M,
                 },

@@ -33,6 +33,9 @@ PODS:
     - Capacitor
   - CapacitorVoiceRecorder (6.0.3):
     - Capacitor
+  - CocoaLumberjack (3.7.4):
+    - CocoaLumberjack/Core (= 3.7.4)
+  - CocoaLumberjack/Core (3.7.4)
   - FirebaseCore (11.15.0):
     - FirebaseCoreInternal (~> 11.15.0)
     - GoogleUtilities/Environment (~> 8.1)
@@ -92,6 +95,11 @@ PODS:
   - RevenuecatPurchasesCapacitor (9.2.2):
     - Capacitor
     - PurchasesHybridCommon (= 13.26.0)
+  - TransistorsoftCapacitorBackgroundFetch (6.0.2):
+    - Capacitor
+  - TransistorsoftCapacitorBackgroundGeolocation (6.1.5):
+    - Capacitor
+    - CocoaLumberjack (~> 3.7.2)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
@@ -112,9 +120,12 @@ DEPENDENCIES:
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
   - CapacitorVoiceRecorder (from `../../node_modules/capacitor-voice-recorder`)
   - "RevenuecatPurchasesCapacitor (from `../../node_modules/@revenuecat/purchases-capacitor`)"
+  - "TransistorsoftCapacitorBackgroundFetch (from `../../node_modules/@transistorsoft/capacitor-background-fetch`)"
+  - "TransistorsoftCapacitorBackgroundGeolocation (from `../../node_modules/@transistorsoft/capacitor-background-geolocation`)"
 
 SPEC REPOS:
   trunk:
+    - CocoaLumberjack
     - FirebaseCore
     - FirebaseCoreInternal
     - FirebaseInstallations
@@ -163,6 +174,10 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/capacitor-voice-recorder"
   RevenuecatPurchasesCapacitor:
     :path: "../../node_modules/@revenuecat/purchases-capacitor"
+  TransistorsoftCapacitorBackgroundFetch:
+    :path: "../../node_modules/@transistorsoft/capacitor-background-fetch"
+  TransistorsoftCapacitorBackgroundGeolocation:
+    :path: "../../node_modules/@transistorsoft/capacitor-background-geolocation"
 
 SPEC CHECKSUMS:
   Capacitor: c95400d761e376be9da6be5a05f226c0e865cebf
@@ -182,6 +197,7 @@ SPEC CHECKSUMS:
   CapacitorSplashScreen: ef140a8b1ea7244e0c245ce2dd4ce5251e7ab86a
   CapacitorStatusBar: 149cde8f1328ec3aa6cbdd872a55137ae3f98b16
   CapacitorVoiceRecorder: 27c4c998c2280571d853579f319f6f53f884bdee
+  CocoaLumberjack: 543c79c114dadc3b1aba95641d8738b06b05b646
   FirebaseCore: efb3893e5b94f32b86e331e3bd6dadf18b66568e
   FirebaseCoreInternal: 9afa45b1159304c963da48addb78275ef701c6b4
   FirebaseInstallations: 317270fec08a5d418fdbc8429282238cab3ac843
@@ -193,7 +209,9 @@ SPEC CHECKSUMS:
   PurchasesHybridCommon: fa166fc8b385cf80f581f923c91d8ccffe5dd7f8
   RevenueCat: e47ff90dfd271fde155a4befe48e8fc02e8281e4
   RevenuecatPurchasesCapacitor: 6727a4dc1455bdf2374259420719ce5dfbe957fa
+  TransistorsoftCapacitorBackgroundFetch: 224e3bc0456d2a8f09fe283c540df00066645abb
+  TransistorsoftCapacitorBackgroundGeolocation: 719a473d930c8e459bd19c39238fd0be8090073f
 
-PODFILE CHECKSUM: c460e8fc07c5ab07b859a9eeb643bb9916e96c9d
+PODFILE CHECKSUM: 5710b2f7b0bdeece93784d55f5da320156876d51
 
 COCOAPODS: 1.16.2

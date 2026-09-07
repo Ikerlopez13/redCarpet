@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import Map, { Source, Layer, Marker, NavigationControl } from 'react-map-gl/mapbox';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Map, { Source, Layer, Marker, NavigationControl, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { supabase } from '../services/supabaseClient';
+import { getIncidentColor } from '../utils/incidentColors';
 import { useDashboard } from './DashboardLayout';
 import {
     getScoresGeojson, listAlerts, listUserIncidents, subscribeToAlerts,
     getScoreHistory, type CityAlert
 } from './dashboardService';
-import AlertFormModal from './AlertFormModal';
+import IncidencePicker from './IncidencePicker';
 import { dt } from './i18n';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Search, Loader2 } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -56,11 +58,45 @@ export default function OverviewMap() {
     const [scores, setScores] = useState<GeoJSON.FeatureCollection | null>(null);
     const [alerts, setAlerts] = useState<CityAlert[]>([]);
     const [incidents, setIncidents] = useState<any[]>([]);
-    const [layers, setLayers] = useState({ alerts: true, violeta: true, closures: true, incidents: false });
+    const [layers, setLayers] = useState({ alerts: true, violeta: true, closures: true, incidents: true });
     const [incidentDays, setIncidentDays] = useState<7 | 30>(7);
     const [creating, setCreating] = useState<{ lat: number; lng: number } | null>(null);
+    const [selectedIncident, setSelectedIncident] = useState<any>(null);
+    const [closingIncident, setClosingIncident] = useState(false);
     const [createMode, setCreateMode] = useState(false);
     const [barrio, setBarrio] = useState<BarrioSelection | null>(null);
+    // Buscador de sitios (vuela el mapa al resultado). Usa el proxy mapbox-search
+    // (con topes + rate limit) y SOLO busca al pulsar Enter → coste mínimo.
+    const mapRef = useRef<MapRef>(null);
+    const [searchQ, setSearchQ] = useState('');
+    const [searchResults, setSearchResults] = useState<{ name: string; addr: string; lat: number; lng: number }[]>([]);
+    const [searchBusy, setSearchBusy] = useState(false);
+
+    const doSearch = async () => {
+        const q = searchQ.trim();
+        if (q.length < 3) return;
+        setSearchBusy(true);
+        try {
+            const { data } = await supabase.functions.invoke('mapbox-search', { body: { q, language: 'es' } });
+            const feats: any[] = data?.features ?? [];
+            setSearchResults(feats
+                .filter(f => f?.geometry?.coordinates?.length === 2)
+                .slice(0, 6)
+                .map(f => ({
+                    name: f.properties?.name || 'Lugar',
+                    addr: f.properties?.full_address || f.properties?.place_formatted || '',
+                    lng: f.geometry.coordinates[0],
+                    lat: f.geometry.coordinates[1],
+                })));
+        } catch { setSearchResults([]); }
+        finally { setSearchBusy(false); }
+    };
+
+    const goToResult = (r: { lat: number; lng: number }) => {
+        mapRef.current?.flyTo({ center: [r.lng, r.lat], zoom: 16, duration: 1200 });
+        setSearchResults([]);
+        setSearchQ('');
+    };
 
     const cityId = profile.city_id!;
 
@@ -131,14 +167,73 @@ export default function OverviewMap() {
         })
     }), [visibleAlerts]);
 
-    const bounds = cityBounds ?? [-0.45, 39.27, -0.27, 39.57]; // València fallback
+    // Círculos de área de las incidencias, coloreados IGUAL que la app
+    // (getIncidentColor por la etiqueta de description). fill 0.2 / line 0.4.
+    const incidentCirclesGeojson = useMemo(() => ({
+        type: 'FeatureCollection' as const,
+        features: incidents.filter(i => i.lat != null && i.lng != null).map(i => {
+            const lat = i.lat, lng = i.lng;
+            const radius = i.radius ?? 100;
+            const km = radius / 1000;
+            const dx = km / (111.320 * Math.cos((lat * Math.PI) / 180));
+            const dy = km / 110.574;
+            const ring: number[][] = [];
+            for (let k = 0; k <= 64; k++) {
+                const t = (k / 64) * 2 * Math.PI;
+                ring.push([lng + dx * Math.cos(t), lat + dy * Math.sin(t)]);
+            }
+            const label = (i.description || '').split(' - ')[0];
+            return {
+                type: 'Feature' as const,
+                properties: { color: getIncidentColor(label) },
+                geometry: { type: 'Polygon' as const, coordinates: [ring] }
+            };
+        })
+    }), [incidents]);
+
+    // Superadmin global (ciudad "Global" o sin ciudad) → mapa MUNDIAL sin
+    // candado. Admin de ciudad concreta → vista y candado a su ciudad.
+    const isWorldwide = !cityBounds || profile?.city?.slug === 'global';
+    const bounds = cityBounds ?? [-0.45, 39.27, -0.27, 39.57]; // fallback València
+    const initialViewState = isWorldwide
+        ? { longitude: 2.0, latitude: 41.5, zoom: 5 } // arranca en España, pan libre
+        : { bounds: [[bounds[0], bounds[1]], [bounds[2], bounds[3]]] as [[number, number], [number, number]], fitBoundsOptions: { padding: 20 } };
 
     return (
-        <div className="relative h-full min-h-[calc(100vh-57px)]">
+        <div className="relative w-full h-[calc(100dvh-121px)] md:h-[calc(100vh-56px)]">
+            {/* Buscador de sitios — vuela el mapa al resultado */}
+            <div className="absolute top-3 left-3 z-20 w-[300px] max-w-[calc(100%-24px)]">
+                <div className="flex items-center gap-2 bg-[#0d0d0d]/95 backdrop-blur border border-white/15 rounded-xl px-3 py-2 shadow-xl">
+                    <Search className="w-4 h-4 text-zinc-400 shrink-0" />
+                    <input
+                        value={searchQ}
+                        onChange={(e) => setSearchQ(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } }}
+                        placeholder="Buscar sitio (pulsa Enter)…"
+                        className="flex-1 bg-transparent text-white text-sm placeholder-zinc-500 outline-none"
+                    />
+                    {searchBusy
+                        ? <Loader2 className="w-4 h-4 text-zinc-400 animate-spin shrink-0" />
+                        : searchQ && <button onClick={() => { setSearchQ(''); setSearchResults([]); }} className="text-zinc-500 hover:text-white shrink-0"><X className="w-4 h-4" /></button>}
+                </div>
+                {searchResults.length > 0 && (
+                    <div className="mt-1 bg-[#0d0d0d]/98 backdrop-blur border border-white/15 rounded-xl overflow-hidden shadow-2xl max-h-64 overflow-y-auto">
+                        {searchResults.map((r, i) => (
+                            <button key={i} onClick={() => goToResult(r)}
+                                className="w-full text-left px-3 py-2.5 hover:bg-white/5 border-b border-white/5 last:border-0">
+                                <p className="text-sm text-white font-semibold truncate">{r.name}</p>
+                                {r.addr && <p className="text-[11px] text-zinc-500 truncate">{r.addr}</p>}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             <Map
+                ref={mapRef}
                 mapboxAccessToken={MAPBOX_TOKEN}
-                initialViewState={{ bounds: [[bounds[0], bounds[1]], [bounds[2], bounds[3]]], fitBoundsOptions: { padding: 20 } }}
-                maxBounds={[[bounds[0] - 0.05, bounds[1] - 0.05], [bounds[2] + 0.05, bounds[3] + 0.05]]}
+                initialViewState={initialViewState}
+                maxBounds={isWorldwide ? undefined : [[bounds[0] - 0.05, bounds[1] - 0.05], [bounds[2] + 0.05, bounds[3] + 0.05]]}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
                 interactiveLayerIds={['choropleth']}
                 onClick={onMapClick}
@@ -177,16 +272,35 @@ export default function OverviewMap() {
                     </Marker>
                 ))}
 
-                {layers.incidents && incidents.map(i => (
-                    <Marker key={i.id} latitude={i.lat} longitude={i.lng} anchor="center">
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-800/60 border border-white"
-                            title={`${i.type} · ${new Date(i.created_at).toLocaleDateString()}`} />
-                    </Marker>
-                ))}
+                {/* Área de las incidencias (círculo con color, idéntico a la app) */}
+                {layers.incidents && (
+                    <Source id="incident-radius" type="geojson" data={incidentCirclesGeojson as any}>
+                        <Layer id="incident-radius-fill" type="fill"
+                            paint={{ 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 }} />
+                        <Layer id="incident-radius-line" type="line"
+                            paint={{ 'line-color': ['get', 'color'], 'line-width': 2, 'line-opacity': 0.4 }} />
+                    </Source>
+                )}
+                {layers.incidents && incidents.map(i => {
+                    const label = (i.description || '').split(' - ')[0];
+                    const color = getIncidentColor(label);
+                    return (
+                        <Marker key={i.id} latitude={i.lat} longitude={i.lng} anchor="center">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedIncident(i); }}
+                                className="relative size-7 rounded-full bg-zinc-900 border-2 flex items-center justify-center shadow-lg"
+                                style={{ borderColor: color, boxShadow: `0 0 12px ${color}66` }}
+                                title={label}
+                            >
+                                <span className="material-symbols-outlined text-[14px]" style={{ color }}>info</span>
+                            </button>
+                        </Marker>
+                    );
+                })}
             </Map>
 
-            {/* layer toggles */}
-            <div className="absolute top-4 left-4 bg-[#0d0d0d]/95 backdrop-blur border border-white/10 rounded-2xl shadow-xl p-4 text-sm space-y-2.5 w-60 text-zinc-200">
+            {/* layer toggles — debajo del buscador; compacto en móvil */}
+            <div className="absolute top-[68px] left-3 md:left-4 z-10 bg-[#0d0d0d]/95 backdrop-blur border border-white/10 rounded-2xl shadow-xl p-3 md:p-4 text-[13px] md:text-sm space-y-2 md:space-y-2.5 w-52 md:w-60 text-zinc-200">
                 {([
                     ['alerts', dt('layer_alerts')],
                     ['violeta', dt('layer_violeta')],
@@ -211,8 +325,8 @@ export default function OverviewMap() {
                 )}
             </div>
 
-            {/* legend — calibrated scale, baseline reads as normality */}
-            <div className="absolute bottom-6 left-4 bg-[#0d0d0d]/95 backdrop-blur border border-white/10 rounded-2xl px-4 py-3 text-zinc-300">
+            {/* legend — calibrated scale, baseline reads as normality (oculta en móvil) */}
+            <div className="hidden md:block absolute bottom-6 left-4 bg-[#0d0d0d]/95 backdrop-blur border border-white/10 rounded-2xl px-4 py-3 text-zinc-300">
                 <div className="h-2 w-48 rounded-full mb-1.5"
                     style={{ background: 'linear-gradient(to right, #16a34a, #84cc16, #facc15, #fb923c, #ef4444)' }} />
                 <div className="flex justify-between text-[9px] uppercase tracking-widest font-bold text-zinc-500 w-48">
@@ -220,26 +334,63 @@ export default function OverviewMap() {
                 </div>
             </div>
 
-            {/* create alert */}
+            {/* create alert — sube por encima de la nav inferior en móvil */}
             <button
                 onClick={() => setCreateMode(m => !m)}
-                className={`absolute bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg font-black uppercase tracking-wider text-sm
+                className={`absolute bottom-4 right-4 md:bottom-6 md:right-6 z-20 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg font-black uppercase tracking-wider text-sm
                     ${createMode ? 'bg-zinc-800 text-white border border-white/20' : 'bg-red-600 hover:bg-red-500 text-white shadow-[0_6px_25px_rgba(220,38,38,0.45)]'}`}
             >
                 <Plus className="w-5 h-5" /> {createMode ? dt('click_map_hint') : dt('alert_create')}
             </button>
 
+            {/* Cerrar (borrar) una incidencia existente */}
+            {selectedIncident && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedIncident(null)} />
+                    <div className="relative w-full max-w-xs bg-[#121216] rounded-3xl p-6 shadow-2xl border border-white/10 text-center">
+                        <div className="size-12 rounded-full flex items-center justify-center mx-auto mb-3"
+                            style={{ backgroundColor: `${getIncidentColor((selectedIncident.description || '').split(' - ')[0])}1f`, color: getIncidentColor((selectedIncident.description || '').split(' - ')[0]) }}>
+                            <span className="material-symbols-outlined">info</span>
+                        </div>
+                        <h3 className="text-white font-black italic uppercase tracking-tighter">{(selectedIncident.description || '').split(' - ')[0]}</h3>
+                        <p className="text-[11px] text-zinc-500 mt-1">{selectedIncident.lat?.toFixed(4)}, {selectedIncident.lng?.toFixed(4)}</p>
+                        <button
+                            disabled={closingIncident}
+                            onClick={async () => {
+                                setClosingIncident(true);
+                                const { error } = await supabase.from('danger_zones').delete().eq('id', selectedIncident.id);
+                                setClosingIncident(false);
+                                if (!error) {
+                                    setSelectedIncident(null);
+                                    if (cityId) listUserIncidents(cityId, incidentDays).then(setIncidents).catch(() => {});
+                                }
+                            }}
+                            className="w-full mt-5 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl font-black uppercase tracking-widest text-xs">
+                            {closingIncident ? '...' : 'Cerrar alerta'}
+                        </button>
+                        <button onClick={() => setSelectedIncident(null)} className="w-full mt-2 py-2 text-white/40 text-xs uppercase tracking-widest font-bold">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {creating && (
-                <AlertFormModal
+                <IncidencePicker
                     location={creating}
+                    cityId={profile?.city_id ?? null}
                     onClose={() => setCreating(null)}
-                    onSaved={() => { setCreating(null); refreshAlerts(); }}
+                    onSaved={() => {
+                        setCreating(null);
+                        refreshAlerts();
+                        if (cityId) listUserIncidents(cityId, incidentDays).then(setIncidents).catch(() => {});
+                    }}
                 />
             )}
 
             {/* barrio detail panel */}
             {barrio && (
-                <div className="absolute top-0 right-0 h-full w-80 bg-[#0d0d0d]/95 backdrop-blur border-l border-white/10 shadow-2xl p-5 overflow-y-auto text-zinc-200">
+                <div className="absolute top-0 right-0 h-full w-full sm:w-80 z-30 bg-[#0d0d0d]/97 backdrop-blur border-l border-white/10 shadow-2xl p-5 overflow-y-auto text-zinc-200">
                     <div className="flex justify-between items-start mb-3">
                         <div>
                             <h2 className="font-black italic uppercase text-white">{barrio.name}</h2>

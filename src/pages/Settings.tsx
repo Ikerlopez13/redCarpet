@@ -133,6 +133,13 @@ export const Settings: React.FC = () => {
                     iconColor: isPremium ? "text-yellow-400" : "text-primary",
                     isPremiumCTA: !isPremium
                 },
+                {
+                    icon: "diversity_1",
+                    label: t('familyplan.manage'),
+                    subLabel: t('familyplan.title'),
+                    path: "/family-plan",
+                    iconColor: "text-primary"
+                },
                 { 
                     icon: "settings_suggest",
                     label: t('settings.items.sos_config'),

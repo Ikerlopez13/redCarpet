@@ -23,6 +23,7 @@ const GreenCarpet = lazy(() => import('./pages/GreenCarpet').then(m => ({ defaul
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const TrustedContacts = lazy(() => import('./pages/TrustedContacts').then(m => ({ default: m.TrustedContacts })));
 const Subscription = lazy(() => import('./pages/Subscription').then(m => ({ default: m.Subscription })));
+const FamilyPlan = lazy(() => import('./pages/FamilyPlan').then(m => ({ default: m.FamilyPlan })));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import('./pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
 const AIChat = lazy(() => import('./pages/AIChat').then(m => ({ default: m.AIChat })));
@@ -188,6 +189,7 @@ function App() {
                                         <Route path="/settings" element={<Settings />} />
                                         <Route path="/contacts" element={<TrustedContacts />} />
                                         <Route path="/subscription" element={<Subscription />} />
+                                        <Route path="/family-plan" element={<FamilyPlan />} />
                                         <Route path="/chat" element={<AIChat />} />
                                         <Route path="/feedback" element={<Feedback />} />
                                         <Route path="/faq" element={<FAQ />} />

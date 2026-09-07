@@ -321,7 +321,7 @@ export const FamilyActionSheet: React.FC<FamilyActionSheetProps> = ({
                             }}
                             className="w-full py-3 rounded-xl bg-white/10 font-semibold hover:bg-white/20"
                         >
-                            Copiar Código
+                            {t('i18nfix.copy_code')}
                         </button>
 
                         <button
