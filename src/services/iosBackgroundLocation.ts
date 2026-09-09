@@ -26,8 +26,11 @@ export async function startIOSNativeTracking(
         const BG = mod.default ?? mod;
 
         // Token de dispositivo (lo crea si no existe). Sin él no podemos subir.
-        const { data: token } = await supabase.rpc('get_or_create_location_token');
-        if (!token) { console.warn('[iOS BG] sin token de dispositivo'); return null; }
+        const { data: token, error: tokenError } = await supabase.rpc('get_or_create_location_token');
+        if (tokenError || !token) {
+            console.warn('[iOS BG] no se pudo obtener el token de dispositivo:', tokenError?.message);
+            return null;
+        }
 
         const url = `${SUPABASE_URL}/functions/v1/ingest-location`;
 
@@ -62,6 +65,8 @@ export async function startIOSNativeTracking(
             autoSync: true,                   // sube en cuanto tiene una ubicación
             autoSyncThreshold: 0,
             batchSync: false,
+            maxDaysToPersist: 7,              // cola offline: reintenta al recuperar red
+            maxRecordsToPersist: 10_000,
             headers: {
                 Authorization: `Bearer ${ANON}`, // pasa el gateway (verify_jwt)
                 apikey: ANON,
@@ -70,6 +75,8 @@ export async function startIOSNativeTracking(
             // ---- Permisos ----
             locationAuthorizationRequest: 'Always',
             stopTimeout: 5,
+            pausesLocationUpdatesAutomatically: true,
+            activityType: BG.ACTIVITY_TYPE_OTHER_NAVIGATION,
             debug: false,
             logLevel: BG.LOG_LEVEL_OFF,
         });

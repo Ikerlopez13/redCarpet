@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { RevenueCatService } from '../services/revenueCatService';
-import { BackgroundGeofenceService } from '../services/backgroundGeofenceService';
 import { startLocationTracking } from '../services/locationService';
 import {
     signIn,
@@ -14,6 +13,35 @@ import {
 } from '../services/authService';
 
 let locationTrackingStop: (() => Promise<void>) | null = null;
+let locationTrackingUserId: string | null = null;
+let locationTrackingOperation: Promise<void> = Promise.resolve();
+
+function ensureLocationTracking(userId: string): Promise<void> {
+    locationTrackingOperation = locationTrackingOperation
+        .catch(() => {})
+        .then(async () => {
+            if (locationTrackingUserId === userId && locationTrackingStop) return;
+            if (locationTrackingStop) await locationTrackingStop().catch(() => {});
+            locationTrackingStop = null;
+            locationTrackingUserId = null;
+
+            const tracker = await startLocationTracking(userId);
+            locationTrackingStop = tracker.stop;
+            locationTrackingUserId = userId;
+        });
+    return locationTrackingOperation;
+}
+
+function stopLocationTracking(): Promise<void> {
+    locationTrackingOperation = locationTrackingOperation
+        .catch(() => {})
+        .then(async () => {
+            if (locationTrackingStop) await locationTrackingStop().catch(console.error);
+            locationTrackingStop = null;
+            locationTrackingUserId = null;
+        });
+    return locationTrackingOperation;
+}
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -125,12 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         const onDashboard = window.location.pathname.startsWith('/dashboard');
                         if (!onDashboard) {
                             // Start location tracking for all users so contacts always see fresh data
-                            startLocationTracking(loggedUser.id)
-                                .then(tracker => { locationTrackingStop = tracker.stop; })
+                            ensureLocationTracking(loggedUser.id)
                                 .catch(err => console.warn('[AuthContext] Location tracking start error (non-fatal):', err));
 
-                            // Rastreo en segundo plano para TODOS los usuarios (seguridad tipo Life360).
-                            BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
                         }
 
                         // Vincular invitaciones pendientes: si alguien te invitó antes de
@@ -164,7 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     // Rastreo en 2º plano también en login nuevo (idempotente), salvo en
                     // el panel de administración, que no rastrea al operador.
                     if (!window.location.pathname.startsWith('/dashboard')) {
-                        BackgroundGeofenceService.startTracking(loggedUser.id).catch(console.error);
+                        ensureLocationTracking(loggedUser.id)
+                            .catch(err => console.warn('[AuthContext] Location tracking start error (non-fatal):', err));
                     }
                 } else {
                     setUser(null);
@@ -241,10 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = async () => {
-        if (locationTrackingStop) {
-            await locationTrackingStop().catch(console.error);
-            locationTrackingStop = null;
-        }
+        await stopLocationTracking();
         await signOut();
         localStorage.removeItem('mock_user');
         localStorage.removeItem('redcarpet_demo_mode');
@@ -261,7 +284,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setUser(null);
         setIsPremium(false);
-        await BackgroundGeofenceService.stopTracking().catch(console.error);
     };
 
     const resetPassword = async (email: string) => {

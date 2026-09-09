@@ -20,6 +20,24 @@ export interface AuthUser {
     [key: string]: any;
 }
 
+/** Convierte mensajes técnicos del proveedor en indicaciones útiles para personas. */
+export function friendlyAuthError(error: unknown): string {
+    const raw = String((error as any)?.message || error || '').toLowerCase();
+    if (!raw) return 'No se ha podido completar la operación. Inténtalo de nuevo.';
+    if (raw.includes('1001') || raw.includes('canceled') || raw.includes('cancelled') || raw.includes('cancelado')) {
+        return 'Has cancelado el inicio de sesión con Apple.';
+    }
+    if (raw.includes('invalid login') || raw.includes('invalid credentials')) {
+        return 'El correo o la contraseña no son correctos.';
+    }
+    if (raw.includes('email not confirmed')) return 'Confirma tu correo antes de iniciar sesión.';
+    if (raw.includes('already registered') || raw.includes('already exists')) return 'Ya existe una cuenta con este correo.';
+    if (raw.includes('password') && raw.includes('least')) return 'La contraseña es demasiado corta.';
+    if (raw.includes('network') || raw.includes('fetch') || raw.includes('offline')) return 'No hay conexión. Comprueba Internet y vuelve a intentarlo.';
+    if (raw.includes('rate') || raw.includes('too many')) return 'Se han hecho demasiados intentos. Espera un momento y prueba otra vez.';
+    return 'No se ha podido completar la operación. Inténtalo de nuevo.';
+}
+
 /**
  * Sign in with email and password
  */
@@ -43,7 +61,7 @@ export async function signInWithPassword(
         if (error) {
             return {
                 success: false,
-                error: error.message,
+                error: friendlyAuthError(error),
             };
         }
 
@@ -54,7 +72,7 @@ export async function signInWithPassword(
     } catch (error: any) {
         return {
             success: false,
-            error: error.message || 'Error desconocido al iniciar sesión',
+            error: friendlyAuthError(error),
         };
     }
 }
@@ -151,7 +169,7 @@ export async function signUp(email: string, password: string, fullName: string):
         });
 
         if (error) {
-            return { user: null, error: error.message };
+            return { user: null, error: friendlyAuthError(error) };
         }
 
         // Crear el perfil explícitamente para evitar problemas de Foreign Key
@@ -173,7 +191,7 @@ export async function signUp(email: string, password: string, fullName: string):
     } catch (error: any) {
         return {
             user: null,
-            error: error.message || 'Error desconocido al registrarse',
+            error: friendlyAuthError(error),
         };
     }
 }
@@ -221,7 +239,7 @@ export async function signInWithGoogle(): Promise<{ error: string | null }> {
     });
 
     if (error) {
-        return { error: error.message };
+        return { error: friendlyAuthError(error) };
     }
 
     if (data?.url) {
@@ -278,7 +296,7 @@ export async function signInWithApple(): Promise<{ error: string | null }> {
                     token: result.response.identityToken,
                 });
 
-                if (error) return { error: error.message };
+                if (error) return { error: friendlyAuthError(error) };
 
                 if (result.response.givenName || result.response.familyName) {
                     const fullName = [result.response.givenName, result.response.familyName].filter(Boolean).join(' ');
@@ -296,10 +314,7 @@ export async function signInWithApple(): Promise<{ error: string | null }> {
             }
         } catch (error: any) {
             console.error('Apple Sign-In native error:', error);
-            if (error?.message?.includes('canceled') || error?.message?.includes('cancelado')) {
-                return { error: 'Inicio de sesión cancelado.' };
-            }
-            return { error: error.message || 'Error en Apple Sign-In.' };
+            return { error: friendlyAuthError(error) };
         }
     }
 
@@ -312,7 +327,7 @@ export async function signInWithApple(): Promise<{ error: string | null }> {
         }
     });
 
-    if (error) return { error: error.message };
+    if (error) return { error: friendlyAuthError(error) };
 
     if (data?.url) {
         await Browser.open({ url: data.url });

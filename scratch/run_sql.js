@@ -1,7 +1,8 @@
 const fetch = require('node-fetch');
 
 async function run() {
-  const token = 'sbp_27e38fe8edbf40a50395fc2cdb4b7b460a50a730';
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  if (!token) throw new Error('SUPABASE_ACCESS_TOKEN is required');
   const ref = 'mqlfptujypzofidvmjnb';
   
   const sql = `

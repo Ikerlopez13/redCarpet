@@ -41,6 +41,7 @@ export const TrustedContacts: React.FC = () => {
     const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
 
     // Picker state
     const [showContactPicker, setShowContactPicker] = useState(false);
@@ -496,7 +497,14 @@ export const TrustedContacts: React.FC = () => {
                 {/* List Header */}
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold">{t('contacts.my_contacts')} ({filteredAddedContacts.length})</h3>
-                    <button className="text-primary text-sm font-bold hover:text-primary/80">{t('contacts.edit')}</button>
+                    <button
+                        type="button"
+                        onClick={() => setIsEditing(value => !value)}
+                        aria-pressed={isEditing}
+                        className="min-w-14 text-right text-primary text-sm font-bold hover:text-primary/80"
+                    >
+                        {isEditing ? t('common.done', 'Listo') : t('contacts.edit')}
+                    </button>
                 </div>
 
                 {/* Contacts List */}
@@ -532,9 +540,16 @@ export const TrustedContacts: React.FC = () => {
                                             </button>
                                         )}
                                     </div>
-                                    <button onClick={() => handleDelete(contact.id, contact.name)} className="text-white/40 hover:text-red-500 transition-colors mt-1">
-                                        <span className="material-symbols-outlined text-sm">delete</span>
-                                    </button>
+                                    {isEditing && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(contact.id, contact.name)}
+                                            aria-label={t('contacts.delete_contact', { name: contact.name, defaultValue: `Eliminar ${contact.name}` })}
+                                            className="size-10 -mr-2 -mt-1 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 active:scale-95 transition-all flex items-center justify-center"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Toggles */}

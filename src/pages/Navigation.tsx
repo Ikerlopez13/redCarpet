@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Geolocation } from '@capacitor/geolocation';
 import { useTranslation } from 'react-i18next';
 
-import Map, { Marker, Popup, GeolocateControl } from 'react-map-gl/mapbox';
+import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { RouteLine, ROUTE_COLORS } from '../components/map/RouteLine';
 import { IncidenceZones } from '../components/map/IncidenceZone';
@@ -96,7 +96,6 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     });
     const [userLocation, setUserLocation] = useState({ lat: origin.lat, lng: origin.lng });
     const [distanceToNext, setDistanceToNext] = useState<number | null>(null);
-    const geoControlRef = useRef<any>(null);
     const stepsRef = useRef<RouteStep[]>([]);
     const stepIdxRef = useRef(0);
     useEffect(() => { stepsRef.current = steps; }, [steps]);
@@ -158,10 +157,6 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
         };
         fetchRoute();
         
-        // Trigger native mapbox tracking on mount
-        setTimeout(() => {
-            geoControlRef.current?.trigger();
-        }, 500);
     }, [origin, destination, transportMode, precomputed]);
 
     // Track position and heading for rotation
@@ -223,7 +218,6 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             pitch: 0,
             bearing: 0
         }));
-        geoControlRef.current?.trigger();
     };
 
     const currentStep = steps[currentStepIndex];
@@ -274,14 +268,14 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         </Marker>
                     ))}
 
-                    {/* Native Mapbox Geolocation & Tracking Control */}
-                    <GeolocateControl
-                        ref={geoControlRef}
-                        position="top-right"
-                        trackUserLocation={true}
-                        showUserLocation={true}
-                        showUserHeading={true}
-                    />
+                    {/* Marcador propio: nunca desaparece al recentrar y no depende
+                        del estado interno del GeolocateControl de Mapbox. */}
+                    <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
+                        <div className="relative size-7" aria-label={t('navigation.your_location', 'Tu ubicación')}>
+                            <div className="absolute inset-0 rounded-full bg-blue-500/35 animate-ping" />
+                            <div className="absolute inset-1 rounded-full bg-blue-500 border-[3px] border-white shadow-lg" />
+                        </div>
+                    </Marker>
 
                     {/* Default Mapbox Popup for Instructions */}
                     <Popup
@@ -324,12 +318,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     </Marker>
                 </Map>
 
-                <style>{`
-                    .mapboxgl-ctrl-geolocate { display: none !important; }
-                `}</style>
-
                 {/* Floating Map Controls */}
-                <div className="absolute right-4 top-4 flex flex-col gap-3">
+                <div
+                    className="absolute right-4 flex flex-col gap-3 z-20"
+                    style={{ top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))' }}
+                >
                     <button 
                         onClick={handleRecenter}
                         className="size-14 bg-zinc-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"

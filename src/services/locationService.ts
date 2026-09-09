@@ -131,12 +131,35 @@ export async function startLocationTracking(
     onUpdate?: (position: any) => void,
     intervalMs: number = 30000
 ) {
+    // Cargar las zonas una vez para que el mismo watcher que sube la ubicación
+    // gestione también geofences. Antes había dos watchers nativos simultáneos,
+    // lo que duplicaba escrituras y hacía que uno pudiera cancelar al otro.
+    let safeZones: SafeZone[] = [];
+    try {
+        const { data: membership } = await (supabase.from('family_members') as any)
+            .select('group_id')
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (membership?.group_id) safeZones = await getSafeZones(membership.group_id);
+    } catch (error) {
+        console.warn('[Location] No se pudieron cargar las zonas seguras:', error);
+    }
+
+    const processPosition = async (position: any) => {
+        _lastUpdateMs = Date.now();
+        const result = await updateLocation(userId, position);
+        if (result.error) console.warn('[Location] Error subiendo posición:', result.error);
+        if (safeZones.length > 0) {
+            await checkGeofence(userId, position.coords.latitude, position.coords.longitude, safeZones);
+        }
+        onUpdate?.(position);
+    };
+
     // Get initial position
     try {
         await Geolocation.requestPermissions();
         const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-        updateLocation(userId, position);
-        onUpdate?.(position);
+        await processPosition(position);
     } catch (error) {
         console.error('Initial location error:', error);
     }
@@ -145,7 +168,14 @@ export async function startLocationTracking(
     // Si la init falla por lo que sea, caemos al plugin community de abajo.
     if (Capacitor.getPlatform() === 'ios') {
         const { startIOSNativeTracking } = await import('./iosBackgroundLocation');
-        const handle = await startIOSNativeTracking(userId, onUpdate);
+        const handle = await startIOSNativeTracking(userId, (position) => {
+            _lastUpdateMs = Date.now();
+            onUpdate?.(position);
+            if (safeZones.length > 0) {
+                checkGeofence(userId, position.coords.latitude, position.coords.longitude, safeZones)
+                    .catch(console.error);
+            }
+        });
         if (handle) {
             return { stop: async () => { await handle.stop(); } };
         }
@@ -186,9 +216,7 @@ export async function startLocationTracking(
                             },
                             timestamp: position.time ?? Date.now(),
                         };
-                        _lastUpdateMs = Date.now();
-                        updateLocation(userId, capacitorPosition);
-                        onUpdate?.(capacitorPosition);
+                        processPosition(capacitorPosition).catch(console.error);
                     }
                 }
             );
@@ -203,9 +231,7 @@ export async function startLocationTracking(
                             timeout: 5_000,
                             maximumAge: TIME_THRESHOLD_MS,
                         });
-                        _lastUpdateMs = Date.now();
-                        updateLocation(userId, pos);
-                        onUpdate?.(pos);
+                        await processPosition(pos);
                     } catch { /* ignore — next tick will retry */ }
                 }
             }, TIME_THRESHOLD_MS);
@@ -216,7 +242,7 @@ export async function startLocationTracking(
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: intervalMs },
                 (position, error) => {
                     if (error) { console.error('Location watch error:', error); return; }
-                    if (position) { updateLocation(userId, position); onUpdate?.(position); }
+                    if (position) processPosition(position).catch(console.error);
                 }
             );
         }
@@ -226,7 +252,7 @@ export async function startLocationTracking(
             { enableHighAccuracy: true, timeout: 10000, maximumAge: intervalMs },
             (position, error) => {
                 if (error) { console.error('Location watch error:', error); return; }
-                if (position) { updateLocation(userId, position); onUpdate?.(position); }
+                if (position) processPosition(position).catch(console.error);
             }
         );
     }

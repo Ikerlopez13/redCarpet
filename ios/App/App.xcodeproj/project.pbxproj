@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		1150CE29E1FD8E974EF066A1 /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3EBBCB9A32556612E6603AEC /* Pods_App.framework */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
-		3C2835F0695D30D2D0C98330 /* GoogleService-Info.plist in Sources */ = {isa = PBXBuildFile; fileRef = 9984AFEC37F28FE903742370 /* GoogleService-Info.plist */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
@@ -404,7 +403,6 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				A1B2C3D40000000000000002 /* LocationAuthPlugin.swift in Sources */,
-				3C2835F0695D30D2D0C98330 /* GoogleService-Info.plist in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

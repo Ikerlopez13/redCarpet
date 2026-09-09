@@ -193,26 +193,26 @@ export const RouteSelection: React.FC = () => {
                 const aiAnalysis = analyzeRouteSecurity();
                 const isNightMode = isPremium && aiAnalysis.isNightModeActive;
 
-                const safeBase = routesResult.safe || routesResult.fast;
-                const balancedBase = routesResult.balanced || routesResult.fast;
+                const safeBase = routesResult.safe;
+                const balancedBase = routesResult.balanced;
                 const fastBase = routesResult.fast;
 
-                const safeRoute: RouteData = {
+                const safeRoute: RouteData | null = safeBase ? {
                     time: formatDuration(safeBase.duration),
                     distance: formatDistance(safeBase.distance),
                     distanceMeters: safeBase.distance,
                     description: isNightMode ? aiAnalysis.description : 'Evita callejones. Vías principales.',
                     extra: safeBase.dangerCount > 0 ? `⚠️ Atraviesa ${safeBase.dangerCount} zona(s) del Ministerio` : 'Fuentes Oficiales / Zonas Seguras',
                     geometry: safeBase.geometry.coordinates as [number, number][]
-                };
+                } : null;
 
-                const balancedRoute: RouteData = {
+                const balancedRoute: RouteData | null = balancedBase ? {
                     time: formatDuration(balancedBase.duration),
                     distance: formatDistance(balancedBase.distance),
                     distanceMeters: balancedBase.distance,
                     description: balancedBase.dangerCount > 0 ? `⚠️ Atraviesa ${balancedBase.dangerCount} zona(s) de conflicto` : t('route.balanced_desc'),
                     geometry: balancedBase.geometry.coordinates as [number, number][]
-                };
+                } : null;
 
                 const fastRoute: RouteData = {
                     time: formatDuration(fastBase.duration),
@@ -225,9 +225,10 @@ export const RouteSelection: React.FC = () => {
                 // Guardamos los objetos completos (con steps) para la navegación.
                 rawRoutesRef.current = { safe: safeBase, balanced: balancedBase, fast: fastBase };
                 setRoutes({ safe: safeRoute, balanced: balancedRoute, fast: fastRoute });
+                setSelectedRoute(safeRoute ? 'safe' : 'fast');
                 setRouteGeometry({
-                    safe: safeRoute.geometry || null,
-                    balanced: balancedRoute.geometry || null,
+                    safe: safeRoute?.geometry || null,
+                    balanced: balancedRoute?.geometry || null,
                     fast: fastRoute.geometry || null
                 });
             }
