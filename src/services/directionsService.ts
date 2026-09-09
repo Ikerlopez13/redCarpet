@@ -528,7 +528,9 @@ export async function getAlternativeRoutes(
         });
         const safeRoute = byDanger[0];
 
-        // FASTEST = shortest duration among passable routes.
+        // FASTEST = shortest duration among passable routes (may equal Safe —
+        // that's the ideal case: the safest route is also the quickest, and both
+        // cards honestly show it; RouteSelection already dedupes client-side).
         const byDuration = [...candidates].sort((a, b) => a.duration - b.duration);
         const fastestRoute = byDuration[0];
 
@@ -540,13 +542,13 @@ export async function getAlternativeRoutes(
             ? balancedPool.sort((a, b) => compositeDanger(a) - compositeDanger(b))[0]
             : null;
 
-        // Never market the same geometry under two different labels. If the
-        // fastest route is also the safest, it is shown once as the fast/recommended
-        // route. A "Safe" card is only offered when it is a real alternative.
+        // Contract: when a route exists the caller always gets 3 routes. If no
+        // meaningful alternative survived validation (typical on very short
+        // hops) the routes collapse to the same geometry — handled downstream.
         return {
             fast: fastestRoute,
-            balanced: balancedRoute,
-            safe: safeRoute === fastestRoute ? null : safeRoute
+            balanced: balancedRoute || fastestRoute,
+            safe: safeRoute
         };
 
     } catch (error) {
