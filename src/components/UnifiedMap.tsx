@@ -467,7 +467,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
             
                 {/* Custom Native User Location Marker */}
                 {userLocation && (
-                    <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
+                    <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center" style={{ zIndex: 50 }}>
                         <div className="relative flex items-center justify-center transition-transform duration-300">
                             <div className="absolute w-12 h-12 bg-primary/20 rounded-full animate-ping" />
                             <div

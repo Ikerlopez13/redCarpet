@@ -43,6 +43,7 @@ interface NavigationViewProps {
     destination: { lat: number; lng: number };
     destinationName: string;
     transportMode: 'walking' | 'cycling' | 'driving';
+    routeType: 'safe' | 'balanced' | 'fast';
     precomputed?: PrecomputedRoute;
     onClose: () => void;
 }
@@ -52,6 +53,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     destination,
     destinationName,
     transportMode,
+    routeType,
     precomputed,
     onClose
 }) => {
@@ -239,6 +241,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     // Maniobra que viene (coincide con la distancia en vivo al siguiente giro).
     const upcomingStep = steps[currentStepIndex + 1] || steps[currentStepIndex];
     const followingStep = steps[currentStepIndex + 2];
+    const routeColor = routeType === 'safe'
+        ? '#22C55E'
+        : routeType === 'balanced'
+            ? '#F59E0B'
+            : '#FF3131';
 
     if (isLoading) {
         return (
@@ -263,7 +270,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     style={{ width: '100%', height: '100%' }}
                     attributionControl={false}
                 >
-                    <RouteLine id="navigation-route" coordinates={routeGeometry || []} color="#FF3131" isSelected={true} />
+                    <RouteLine id="navigation-route" coordinates={routeGeometry || []} color={routeColor} isSelected={true} />
 
                     {/* Marcador propio: nunca desaparece al recentrar y no depende
                         del estado interno del GeolocateControl de Mapbox. */}
@@ -410,6 +417,7 @@ export const Navigation: React.FC = () => {
             destination={state.destination}
             destinationName={state.destinationName || t('navigation.destination')}
             transportMode={state.transportMode || 'walking'}
+            routeType={state.routeType || 'safe'}
             precomputed={state.precomputed}
             onClose={() => navigate('/')}
         />

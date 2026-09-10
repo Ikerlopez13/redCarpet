@@ -749,6 +749,7 @@ export const RouteSelection: React.FC = () => {
                                                         destination: destinationCoords,
                                                         destinationName: selectedDestination,
                                                         transportMode,
+                                                        routeType: selectedRoute,
                                                         precomputed: sel ? {
                                                             geometry: sel.geometry?.coordinates,
                                                             steps: sel.steps,
