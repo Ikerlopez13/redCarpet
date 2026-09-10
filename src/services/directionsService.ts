@@ -365,18 +365,35 @@ function lateralWaypointVariants(origin: Coordinate, destination: Coordinate): C
         [point(0.5, -outer)],
         [point(0.33, inner), point(0.67, inner)],
         [point(0.33, -inner), point(0.67, -inner)],
+        [point(0.30, outer), point(0.70, outer)],
+        [point(0.30, -outer), point(0.70, -outer)],
     ];
 }
 
 function routesAreEquivalent(a: RouteResult, b: RouteResult): boolean {
-    if (Math.abs(a.distance - b.distance) / Math.max(a.distance, b.distance, 1) > 0.025) return false;
-    const fractions = [0.2, 0.4, 0.6, 0.8];
-    const distances = fractions.map(f => {
-        const ac = a.geometry.coordinates[Math.floor((a.geometry.coordinates.length - 1) * f)];
-        const bc = b.geometry.coordinates[Math.floor((b.geometry.coordinates.length - 1) * f)];
-        return getHaversineDistance(ac[1], ac[0], bc[1], bc[0]);
-    });
-    return distances.reduce((sum, d) => sum + d, 0) / distances.length < 35;
+    const ac: number[][] = a.geometry.coordinates;
+    const bc: number[][] = b.geometry.coordinates;
+    if (ac.length < 2 || bc.length < 2) return false;
+
+    // Comparing the same array indexes is unreliable because Mapbox inserts a
+    // different number of geometry points in otherwise identical roads. Measure
+    // instead how much of each polyline lies within one street-width of the other.
+    const overlapRatio = (source: number[][], target: number[][]) => {
+        const sampleCount = Math.min(18, source.length);
+        let overlapping = 0;
+        for (let i = 0; i < sampleCount; i++) {
+            const index = Math.round((source.length - 1) * i / Math.max(sampleCount - 1, 1));
+            const point = source[index];
+            let nearest = Infinity;
+            for (let j = 0; j < target.length - 1; j++) {
+                nearest = Math.min(nearest, pointToSegmentMeters(point, target[j], target[j + 1]));
+            }
+            if (nearest < 35) overlapping++;
+        }
+        return overlapping / sampleCount;
+    };
+
+    return overlapRatio(ac, bc) >= 0.8 && overlapRatio(bc, ac) >= 0.8;
 }
 
 export async function getAlternativeRoutes(
@@ -548,6 +565,9 @@ export async function getAlternativeRoutes(
         // when the fastest route was the one dodging a danger zone, it got
         // excluded and the safe slot was handed a longer route going STRAIGHT
         // THROUGH the zone. Safety correctness beats that cosmetic guarantee.
+        const byDuration = [...candidates].sort((a, b) => a.duration - b.duration);
+        const fastestRoute = byDuration[0];
+
         const byDanger = [...candidates].sort((a, b) => {
             // Crossing one reported danger can never be compensated by a nicer
             // neighbourhood score: avoiding explicit alerts is the first rule.
@@ -556,13 +576,22 @@ export async function getAlternativeRoutes(
             if (Math.abs(d) > 0.01) return d;
             return a.duration - b.duration; // tie on danger → prefer the quicker
         });
-        const safeRoute = byDanger[0];
+        const safestCandidate = byDanger[0];
 
-        // FASTEST = shortest duration among passable routes (may equal Safe —
-        // that's the ideal case: the safest route is also the quickest, and both
-        // cards honestly show it; RouteSelection already dedupes client-side).
-        const byDuration = [...candidates].sort((a, b) => a.duration - b.duration);
-        const fastestRoute = byDuration[0];
+        // If several routes have equivalent safety, reserve a genuinely different
+        // one for “Segura” instead of painting the quickest path twice. We never
+        // trade an avoided reported danger for cosmetic variety: alternatives must
+        // cross the same minimum number of explicit danger zones and have a very
+        // similar composite safety score.
+        const distinctSafe = byDanger.find(r =>
+            r !== fastestRoute
+            && r.dangerCount === safestCandidate.dangerCount
+            && compositeDanger(r) <= compositeDanger(safestCandidate) + 1.5
+            && !routesAreEquivalent(r, fastestRoute)
+        );
+        const safeRoute = safestCandidate === fastestRoute && distinctSafe
+            ? distinctSafe
+            : safestCandidate;
 
         // BALANCED = best-by-danger among whatever routes are left, so it always
         // sits between Safe and Fast (never safer than Safe, never faster than

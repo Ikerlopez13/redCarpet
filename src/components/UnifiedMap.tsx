@@ -74,6 +74,9 @@ interface UnifiedMapProps {
     selectedMemberId?: string | null;
     // Cambiar este número reencuadra el mapa a TODOS los miembros (vista general).
     overviewNonce?: number;
+    // En pantallas con controles propios, usa una versión compacta dentro de la
+    // esquina visible del mapa (evita que quede bajo barras o bottom sheets).
+    compactLocationControl?: boolean;
 }
 
 export const UnifiedMap: React.FC<UnifiedMapProps> = ({
@@ -96,7 +99,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     onZoneClick,
     focusPoint,
     selectedMemberId = null,
-    overviewNonce
+    overviewNonce,
+    compactLocationControl = false
 }) => {
     const { t } = useTranslation();
     const mapRef = useRef<MapRef>(null);
@@ -105,6 +109,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
     const [viewState, setViewState] = useState({ ...DEFAULT_VIEW, pitch: 0, bearing: 0 });
     const [busStops, setBusStops] = useState<BusStop[]>([]);
     const [metroStations, setMetroStations] = useState<MetroStation[]>([]);
+    const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
 
     // Centrar/zoom el mapa sobre un punto cuando cambia focusPoint (ver ubicación
     // de una persona del círculo). Animación SUAVE (flyTo) en vez de salto.
@@ -288,9 +293,13 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
 
         const handleHeading = (e: DeviceOrientationEvent) => {
             if ((e as any).webkitCompassHeading !== undefined) {
-                setViewState(prev => ({ ...prev, bearing: (e as any).webkitCompassHeading }));
+                const heading = (e as any).webkitCompassHeading as number;
+                setDeviceHeading(heading);
+                setViewState(prev => ({ ...prev, bearing: heading }));
             } else if (e.alpha !== null) {
-                setViewState(prev => ({ ...prev, bearing: 360 - e.alpha! }));
+                const heading = 360 - e.alpha!;
+                setDeviceHeading(heading);
+                setViewState(prev => ({ ...prev, bearing: heading }));
             }
         };
 
@@ -461,8 +470,15 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                     <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
                         <div className="relative flex items-center justify-center transition-transform duration-300">
                             <div className="absolute w-12 h-12 bg-blue-500/20 rounded-full animate-ping" />
-                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.3)] z-10">
-                                <div className="w-3.5 h-3.5 bg-blue-500 rounded-full" />
+                            <div
+                                className="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.3)] z-10"
+                                style={{ transform: `rotate(${deviceHeading === null ? 0 : deviceHeading - viewState.bearing}deg)` }}
+                            >
+                                {deviceHeading === null ? (
+                                    <div className="w-4 h-4 bg-blue-500 rounded-full" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-blue-500 text-[22px] leading-none">navigation</span>
+                                )}
                             </div>
                         </div>
                     </Marker>
@@ -552,7 +568,7 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 {/* Removed Custom User Location Marker because Mapbox Handles it via GeolocateControl */}
 
                 {/* Origin Marker */}
-                {showRoutes && origin && origin.lat && origin.lng && (
+                {showRoutes && origin && origin.lat && origin.lng && !userLocation && (
                     <Marker latitude={origin.lat} longitude={origin.lng} anchor="center">
                         <div className="relative">
                             <div className="size-4 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
@@ -593,11 +609,15 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 (campana/alerta/ajustes) con el mismo gap-3. El stack arranca en
                 top-[120px]; 3 botones size-14 (56px) + gap-3 (12px) dejan el
                 siguiente hueco en 120 + 3×(56+12) = 324px. */}
-            <div className="absolute top-[324px] right-4 z-30 pointer-events-auto flex flex-col gap-3">
+            <div className={clsx(
+                "absolute z-30 pointer-events-auto flex flex-col gap-3",
+                compactLocationControl ? "top-3 right-3" : "top-[324px] right-4"
+            )}>
                 <button
                     onClick={recenterToUser}
                     className={clsx(
-                        "size-14 rounded-2xl border shadow-xl backdrop-blur-md flex items-center justify-center transition-all",
+                        compactLocationControl ? "size-10 rounded-full" : "size-14 rounded-2xl",
+                        "border shadow-xl backdrop-blur-md flex items-center justify-center transition-all",
                         isTrackingUser 
                             ? "bg-blue-600/90 text-white border-blue-500 shadow-blue-500/20" 
                             : "bg-zinc-900/90 text-white border-white/10 hover:bg-zinc-800"

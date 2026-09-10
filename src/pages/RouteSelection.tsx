@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { UnifiedMap, LOCATIONS, type RouteGeometry } from '../components/UnifiedMap';
+import { UnifiedMap, type RouteGeometry } from '../components/UnifiedMap';
 import {
     getAlternativeRoutes,
     formatDuration,
@@ -14,16 +14,15 @@ import { useSOS } from '../contexts/SOSContext.base';
 import { canStartRoute, recordRouteStart, getRemainingRoutes } from '../services/routeLimiterService';
 import { recordRoute as recordGreenRoute } from '../services/greenService';
 import { isNightTime, analyzeRouteSecurity } from '../services/aiRoutingService';
+import { supabase } from '../services/supabaseClient';
+import type { SavedPlace } from '../services/database.types';
 
 // Datos de ejemplo de trayectos de familiares (Placeholder for real data)
 const familyRoutes: any[] = [];
 
-// Destinos guardados con coordenadas reales de Barcelona
-const savedDestinations = [
-    { id: 1, name: 'Parc del Clot', address: 'Carrer dels Escultors Claperós', icon: 'park', coords: LOCATIONS.CENTRAL_PARK },
-    { id: 2, name: 'Trabajo', address: 'Oficina Sant Martí', icon: 'work', coords: LOCATIONS.WORK },
-    { id: 3, name: 'Gimnasio', address: 'C/ Aragó', icon: 'fitness_center', coords: LOCATIONS.GYM },
-];
+type SavedDestination = Pick<SavedPlace, 'id' | 'name' | 'address' | 'icon'> & {
+    coords: { lat: number; lng: number };
+};
 
 interface RouteData {
     time: string;
@@ -44,7 +43,7 @@ export const RouteSelection: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
-    const { isPremium } = useAuth();
+    const { user, isPremium } = useAuth();
     const { openPaywall, openSOSModal } = useSOS();
 
     // Correctly parse state
@@ -80,11 +79,55 @@ export const RouteSelection: React.FC = () => {
     const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(initialDestinationCoords);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [savedDestinations, setSavedDestinations] = useState<SavedDestination[]>([]);
+    const [savedDestinationsLoading, setSavedDestinationsLoading] = useState(true);
 
     // Autocomplete state
     const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
+
+    // Los destinos guardados pertenecen al usuario autenticado. Nunca mostramos
+    // ejemplos locales como si fueran datos reales de su cuenta.
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadSavedDestinations = async () => {
+            if (!user?.id) {
+                if (!cancelled) {
+                    setSavedDestinations([]);
+                    setSavedDestinationsLoading(false);
+                }
+                return;
+            }
+
+            setSavedDestinationsLoading(true);
+            const { data, error } = await supabase
+                .from('saved_places')
+                .select('id, name, address, lat, lng, icon')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (cancelled) return;
+
+            if (error) {
+                console.error('Error loading saved destinations:', error);
+                setSavedDestinations([]);
+            } else {
+                setSavedDestinations((data ?? []).map(place => ({
+                    id: place.id,
+                    name: place.name,
+                    address: place.address,
+                    icon: place.icon || 'place',
+                    coords: { lat: place.lat, lng: place.lng },
+                })));
+            }
+            setSavedDestinationsLoading(false);
+        };
+
+        void loadSavedDestinations();
+        return () => { cancelled = true; };
+    }, [user?.id]);
 
     // Get user location — load cached immediately, then refresh with GPS
     useEffect(() => {
@@ -289,7 +332,7 @@ export const RouteSelection: React.FC = () => {
     };
 
     // Handle saved destination selection
-    const handleSelectSavedDestination = (dest: typeof savedDestinations[0]) => {
+    const handleSelectSavedDestination = (dest: SavedDestination) => {
         setSelectedDestination(dest.name);
         setDestinationCoords(dest.coords);
     };
@@ -406,6 +449,7 @@ export const RouteSelection: React.FC = () => {
                         routeGeometry={routeGeometry}
                         origin={selectedDestination ? (userLocation || undefined) : undefined}
                         destination={destinationCoords || undefined}
+                        compactLocationControl
                     />
                 </div>
 
@@ -425,13 +469,6 @@ export const RouteSelection: React.FC = () => {
                         </div>
                     </div>
                 )}
-
-                {/* Map Floating Controls */}
-                <div className="absolute right-3 top-3 flex flex-col gap-2 z-10">
-                    <button className="size-10 rounded-full bg-[#0d0d0d] shadow-lg flex items-center justify-center text-white">
-                        <span className="material-symbols-outlined text-xl">my_location</span>
-                    </button>
-                </div>
 
                 {/* Transport Mode Switcher */}
                 <div className="absolute bottom-4 left-3 right-3 z-10">
@@ -520,7 +557,15 @@ export const RouteSelection: React.FC = () => {
                                     {t('route.saved_destinations')}
                                 </h3>
                                 <div className="flex flex-col gap-1.5">
-                                    {savedDestinations.map((dest) => (
+                                    {savedDestinationsLoading ? (
+                                        <div className="flex justify-center py-4" aria-label={t('route.calculating')}>
+                                            <div className="size-5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    ) : savedDestinations.length === 0 ? (
+                                        <p className="text-gray-500 text-sm text-center py-4">
+                                            {t('home.no_saved_places')}
+                                        </p>
+                                    ) : savedDestinations.map((dest) => (
                                         <div
                                             key={dest.id}
                                             onClick={() => handleSelectSavedDestination(dest)}
@@ -531,7 +576,7 @@ export const RouteSelection: React.FC = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-white text-sm font-semibold truncate">{dest.name}</p>
-                                                <p className="text-gray-500 text-xs truncate">{dest.address}</p>
+                                                {dest.address && <p className="text-gray-500 text-xs truncate">{dest.address}</p>}
                                             </div>
                                             <span className="material-symbols-outlined text-gray-600 text-lg">chevron_right</span>
                                         </div>
