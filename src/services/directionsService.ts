@@ -299,11 +299,11 @@ export function computeRouteSafetyMetrics(
  * edge, on the far side from where the zone leans, so Mapbox routes around it.
  * Capped to the 2 worst blockers to bound the number of proxy calls.
  */
-function avoidanceWaypoints(
+function avoidanceWaypointVariants(
     origin: Coordinate,
     destination: Coordinate,
     zones: Array<{ lat: number; lng: number; radius: number }>
-): Coordinate[] {
+): Coordinate[][] {
     const mPerDegLat = 111320;
     const latRef = (origin.lat + destination.lat) / 2;
     const mPerDegLng = 111320 * Math.cos((latRef * Math.PI) / 180);
@@ -317,22 +317,66 @@ function avoidanceWaypoints(
     const ux = dx / segLen, uy = dy / segLen;   // unit vector along the route
     const nx = -uy, ny = ux;                     // unit perpendicular (left of travel)
 
-    const blocking: Array<{ wp: Coordinate; block: number }> = [];
+    const blocking: Array<{ left: Coordinate; right: Coordinate; block: number }> = [];
     for (const z of zones) {
         const Z = toXY({ lat: z.lat, lng: z.lng });
         const t = (Z.x - O.x) * ux + (Z.y - O.y) * uy;   // projection along the route
         if (t < 0 || t > segLen) continue;                // zone is not between O and D
         const perp = (Z.x - O.x) * nx + (Z.y - O.y) * ny; // signed perpendicular distance
-        const clearance = (z.radius || 100) + 70;         // clear the edge + margin
+        const clearance = Math.max((z.radius || 100) + 120, 250);
         if (Math.abs(perp) > clearance) continue;          // corridor already skirts it
-        // Steer to the opposite side of where the zone sits (default left if on the line).
-        const dir = perp > 0 ? -1 : 1;
         blocking.push({
-            wp: toLatLng(Z.x + nx * dir * clearance, Z.y + ny * dir * clearance),
+            // We do not guess which side is walkable (coast, railway, river...).
+            // Ask Mapbox for both and let the safety score choose the valid one.
+            left: toLatLng(Z.x + nx * clearance, Z.y + ny * clearance),
+            right: toLatLng(Z.x - nx * clearance, Z.y - ny * clearance),
             block: clearance - Math.abs(perp)   // deeper intrusion → higher priority
         });
     }
-    return blocking.sort((a, b) => b.block - a.block).slice(0, 2).map(b => b.wp);
+    return blocking
+        .sort((a, b) => b.block - a.block)
+        .slice(0, 2)
+        .flatMap(b => [[b.left], [b.right]]);
+}
+
+function lateralWaypointVariants(origin: Coordinate, destination: Coordinate): Coordinate[][] {
+    const mPerDegLat = 111320;
+    const latRef = (origin.lat + destination.lat) / 2;
+    const mPerDegLng = 111320 * Math.cos((latRef * Math.PI) / 180);
+    const ox = origin.lng * mPerDegLng, oy = origin.lat * mPerDegLat;
+    const dx = destination.lng * mPerDegLng - ox;
+    const dy = destination.lat * mPerDegLat - oy;
+    const length = Math.hypot(dx, dy);
+    if (length < 1) return [];
+    const nx = -dy / length, ny = dx / length;
+    const point = (fraction: number, offset: number): Coordinate => ({
+        lng: (ox + dx * fraction + nx * offset) / mPerDegLng,
+        lat: (oy + dy * fraction + ny * offset) / mPerDegLat,
+    });
+
+    // Long journeys need kilometre-scale alternatives. The old fixed 150–260m
+    // offset was snapped straight back onto the same road by Mapbox.
+    const inner = Math.max(120, Math.min(1800, length * 0.10));
+    const outer = Math.max(220, Math.min(3000, length * 0.18));
+    return [
+        [point(0.5, inner)],
+        [point(0.5, -inner)],
+        [point(0.5, outer)],
+        [point(0.5, -outer)],
+        [point(0.33, inner), point(0.67, inner)],
+        [point(0.33, -inner), point(0.67, -inner)],
+    ];
+}
+
+function routesAreEquivalent(a: RouteResult, b: RouteResult): boolean {
+    if (Math.abs(a.distance - b.distance) / Math.max(a.distance, b.distance, 1) > 0.025) return false;
+    const fractions = [0.2, 0.4, 0.6, 0.8];
+    const distances = fractions.map(f => {
+        const ac = a.geometry.coordinates[Math.floor((a.geometry.coordinates.length - 1) * f)];
+        const bc = b.geometry.coordinates[Math.floor((b.geometry.coordinates.length - 1) * f)];
+        return getHaversineDistance(ac[1], ac[0], bc[1], bc[0]);
+    });
+    return distances.reduce((sum, d) => sum + d, 0) / distances.length < 35;
 }
 
 export async function getAlternativeRoutes(
@@ -346,11 +390,11 @@ export async function getAlternativeRoutes(
 }> {
     const profile = PROFILE_MAP[baseMode] || 'walking';
 
-    const fetchWithWaypoint = async (waypoint: Coordinate | null): Promise<RouteResult[]> => {
+    const fetchWithWaypoints = async (waypoints: Coordinate[]): Promise<RouteResult[]> => {
         if (isBlocked() || !allow('directions', 15)) return [];
-        const coords = waypoint
-            ? `${origin.lng},${origin.lat};${waypoint.lng},${waypoint.lat};${destination.lng},${destination.lat}`
-            : `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+        const coords = [origin, ...waypoints, destination]
+            .map(p => `${p.lng},${p.lat}`)
+            .join(';');
 
         try {
             track('directions');
@@ -376,21 +420,7 @@ export async function getAlternativeRoutes(
     try {
         const isWalking = baseMode === 'walking';
 
-        // Waypoints laterales SUAVES para pedir alternativas. Offsets grandes
-        // forzaban rodeos artificiales (la ruta salía y volvía cruzando pasos de
-        // peatones sin ganar nada). Con offsets menores las alternativas se
-        // parecen a las nativas de Mapbox (siguen la calle) y el trazado es
-        // fluido. Las alternativas limpias de `directRoutes` (alternatives:true)
-        // siguen siendo la fuente principal.
-        const midLat = (origin.lat + destination.lat) / 2;
-        const midLng = (origin.lng + destination.lng) / 2;
-        const directDeg = Math.hypot(destination.lat - origin.lat, destination.lng - origin.lng);
-        const scale = Math.max(0.15, Math.min(1, directDeg / 0.02));
-        const offsets = [0.0014 * scale, 0.0024 * scale];
-        const genericWaypoints: Coordinate[] = [
-            ...offsets.map(d => ({ lat: midLat + d, lng: midLng - d })),
-            ...offsets.map(d => ({ lat: midLat - d, lng: midLng + d })),
-        ];
+        const genericWaypointVariants = lateralWaypointVariants(origin, destination);
 
         // bbox around the trip, padded ~1km, to fetch authority alerts once
         const pad = 0.01;
@@ -419,8 +449,8 @@ export async function getAlternativeRoutes(
         // STEP 2 — targeted detours around blocking danger zones (walking only).
         // Solo rodeamos alertas MALAS; las buenas (acceso seguro, zona inclusiva,
         // autoridades) no se esquivan.
-        const avoidanceWps = (isWalking && dangerZones)
-            ? avoidanceWaypoints(
+        const avoidanceVariants = (isWalking && dangerZones)
+            ? avoidanceWaypointVariants(
                 origin,
                 destination,
                 (dangerZones as any[])
@@ -428,12 +458,12 @@ export async function getAlternativeRoutes(
                     .map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius || 100 }))
             )
             : [];
-        const waypoints = [...genericWaypoints, ...avoidanceWps];
+        const waypointVariants = [...genericWaypointVariants, ...avoidanceVariants];
 
         // STEP 3 — fetch the direct route + every waypoint variant in parallel.
         const [directRoutes, ...waypointRouteSets] = await Promise.all([
-            fetchWithWaypoint(null),
-            ...waypoints.map(wp => fetchWithWaypoint(wp))
+            fetchWithWaypoints([]),
+            ...waypointVariants.map(wps => fetchWithWaypoints(wps))
         ]);
 
         const allRawRoutes = [directRoutes, ...waypointRouteSets].flat();
@@ -467,15 +497,12 @@ export async function getAlternativeRoutes(
             return result;
         };
 
-        // Deduplicate: two routes are "same" if their midpoint is within 20m
+        // Deduplicate using several points along the geometry. Comparing only
+        // the midpoint collapsed genuinely different long routes.
         type ScoredRoute = RouteResult & { dangerCount: number; goodCount: number; safety: RouteSafetyMetrics };
         const uniqueRoutes: ScoredRoute[] = [];
         for (const route of allRoutes) {
-            const mid = route.geometry.coordinates[Math.floor(route.geometry.coordinates.length / 2)];
-            const isDuplicate = uniqueRoutes.some(u => {
-                const uMid = u.geometry.coordinates[Math.floor(u.geometry.coordinates.length / 2)];
-                return getHaversineDistance(mid[1], mid[0], uMid[1], uMid[0]) < 20;
-            });
+            const isDuplicate = uniqueRoutes.some(u => routesAreEquivalent(route, u));
             if (!isDuplicate) {
                 const zc = countZoneIntersections(route);
                 uniqueRoutes.push({
@@ -522,6 +549,9 @@ export async function getAlternativeRoutes(
         // excluded and the safe slot was handed a longer route going STRAIGHT
         // THROUGH the zone. Safety correctness beats that cosmetic guarantee.
         const byDanger = [...candidates].sort((a, b) => {
+            // Crossing one reported danger can never be compensated by a nicer
+            // neighbourhood score: avoiding explicit alerts is the first rule.
+            if (a.dangerCount !== b.dangerCount) return a.dangerCount - b.dangerCount;
             const d = compositeDanger(a) - compositeDanger(b);
             if (Math.abs(d) > 0.01) return d;
             return a.duration - b.duration; // tie on danger → prefer the quicker
