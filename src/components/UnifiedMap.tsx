@@ -469,15 +469,15 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 {userLocation && (
                     <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
                         <div className="relative flex items-center justify-center transition-transform duration-300">
-                            <div className="absolute w-12 h-12 bg-blue-500/20 rounded-full animate-ping" />
+                            <div className="absolute w-12 h-12 bg-primary/20 rounded-full animate-ping" />
                             <div
                                 className="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.3)] z-10"
                                 style={{ transform: `rotate(${deviceHeading === null ? 0 : deviceHeading - viewState.bearing}deg)` }}
                             >
                                 {deviceHeading === null ? (
-                                    <div className="w-4 h-4 bg-blue-500 rounded-full" />
+                                    <div className="w-4 h-4 bg-primary rounded-full" />
                                 ) : (
-                                    <span className="material-symbols-outlined text-blue-500 text-[22px] leading-none">navigation</span>
+                                    <span className="material-symbols-outlined text-primary text-[22px] leading-none">navigation</span>
                                 )}
                             </div>
                         </div>
@@ -571,8 +571,8 @@ export const UnifiedMap: React.FC<UnifiedMapProps> = ({
                 {showRoutes && origin && origin.lat && origin.lng && !userLocation && (
                     <Marker latitude={origin.lat} longitude={origin.lng} anchor="center">
                         <div className="relative">
-                            <div className="size-4 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
-                            <div className="absolute inset-0 size-4 bg-blue-500 rounded-full animate-ping opacity-50" />
+                            <div className="size-4 bg-primary rounded-full border-2 border-white shadow-lg" />
+                            <div className="absolute inset-0 size-4 bg-primary rounded-full animate-ping opacity-50" />
                         </div>
                     </Marker>
                 )}
