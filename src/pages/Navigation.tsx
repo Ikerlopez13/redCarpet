@@ -3,14 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Geolocation } from '@capacitor/geolocation';
 import { useTranslation } from 'react-i18next';
 
-import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { RouteLine, ROUTE_COLORS } from '../components/map/RouteLine';
-import { IncidenceZones } from '../components/map/IncidenceZone';
+import { RouteLine } from '../components/map/RouteLine';
 import { getRoute, formatDuration, formatDistance, type RouteStep } from '../services/directionsService';
-import { searchPlaces } from '../services/geocodingService';
 import { ReportDangerModal } from '../components/safety/ReportDangerModal';
-import { useSOS } from '../contexts/SOSContext.base';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -60,25 +57,6 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const { openSOSModal } = useSOS();
-
-    // Barcelona danger zones - same as UnifiedMap
-    const barcelonaIncidenceZones = [
-        {
-            id: 'zone-bcn-1',
-            lat: 41.4070,
-            lng: 2.1850,
-            radius: 80,
-            label: t('navigation.incidence_alert')
-        },
-        {
-            id: 'zone-bcn-2',
-            lat: 41.4100,
-            lng: 2.1920,
-            radius: 60,
-            label: t('navigation.attention_zone')
-        }
-    ];
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [routeGeometry, setRouteGeometry] = useState<[number, number][] | null>(null);
@@ -96,10 +74,14 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     });
     const [userLocation, setUserLocation] = useState({ lat: origin.lat, lng: origin.lng });
     const [distanceToNext, setDistanceToNext] = useState<number | null>(null);
+    const [heading, setHeading] = useState(0);
+    const [isFollowing, setIsFollowing] = useState(true);
     const stepsRef = useRef<RouteStep[]>([]);
     const stepIdxRef = useRef(0);
+    const followingRef = useRef(true);
     useEffect(() => { stepsRef.current = steps; }, [steps]);
     useEffect(() => { stepIdxRef.current = currentStepIndex; }, [currentStepIndex]);
+    useEffect(() => { followingRef.current = isFollowing; }, [isFollowing]);
 
     // Distancia en metros entre dos coordenadas (Haversine).
     const metersBetween = (aLat: number, aLng: number, bLat: number, bLng: number) => {
@@ -172,7 +154,22 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                     if (position) {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
+                        const gpsHeading = position.coords.heading;
+                        const nextHeading = gpsHeading != null && Number.isFinite(gpsHeading) && gpsHeading >= 0
+                            ? gpsHeading
+                            : null;
                         setUserLocation({ lat, lng });
+                        if (nextHeading !== null) setHeading(nextHeading);
+                        if (followingRef.current) {
+                            setViewState(prev => ({
+                                ...prev,
+                                latitude: lat,
+                                longitude: lng,
+                                zoom: Math.max(prev.zoom, 17.5),
+                                pitch: 55,
+                                bearing: nextHeading ?? prev.bearing,
+                            }));
+                        }
 
                         // Turn-by-turn: avanzar al siguiente paso cuando llegamos
                         // al punto de giro (~25 m), y actualizar la distancia en vivo.
@@ -209,26 +206,39 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
         };
     }, []);
 
+    // Brújula como apoyo cuando el usuario camina despacio y el GPS todavía no
+    // proporciona rumbo. El marcador rota respecto al mapa, no respecto a la UI.
+    useEffect(() => {
+        const handleOrientation = (event: DeviceOrientationEvent) => {
+            const compass = (event as any).webkitCompassHeading;
+            const nextHeading = typeof compass === 'number'
+                ? compass
+                : (event.alpha == null ? null : 360 - event.alpha);
+            if (nextHeading == null || !Number.isFinite(nextHeading)) return;
+            setHeading(nextHeading);
+            if (followingRef.current) {
+                setViewState(prev => ({ ...prev, bearing: nextHeading }));
+            }
+        };
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        return () => window.removeEventListener('deviceorientation', handleOrientation, true);
+    }, []);
+
     const handleRecenter = () => {
+        setIsFollowing(true);
         setViewState(prev => ({
             ...prev,
             latitude: userLocation.lat,
             longitude: userLocation.lng,
             zoom: 17,
-            pitch: 0,
-            bearing: 0
+            pitch: 55,
+            bearing: heading
         }));
     };
 
-    const currentStep = steps[currentStepIndex];
-    const nextStep = steps[currentStepIndex + 1];
     // Maniobra que viene (coincide con la distancia en vivo al siguiente giro).
     const upcomingStep = steps[currentStepIndex + 1] || steps[currentStepIndex];
-
-    // POIs cosméticos eliminados: hacían un Search Box (billable) por cada
-    // cambio de origin buscando una etiqueta de UI. Solo pintaban pines grises
-    // genéricos, sin valor real, y disparaban coste en cada navegación.
-    const nearbyPOIs: any[] = [];
+    const followingStep = steps[currentStepIndex + 2];
 
     if (isLoading) {
         return (
@@ -242,69 +252,33 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     }
 
     return (
-        <div className="h-full w-full bg-background-dark flex flex-col font-display overflow-hidden relative">
-
-            {/* Removed ugly top header per request */}
-
-            {/* Map Area */}
-            <div className="flex-1 relative">
+        <div className="h-full w-full bg-[#080808] font-display overflow-hidden relative">
+            <div className="absolute inset-0">
                 <Map
                     {...viewState}
                     onMove={evt => setViewState(evt.viewState)}
+                    onMoveStart={evt => { if (evt.originalEvent) setIsFollowing(false); }}
                     mapStyle="mapbox://styles/mapbox/navigation-night-v1"
                     mapboxAccessToken={MAPBOX_TOKEN}
                     style={{ width: '100%', height: '100%' }}
                     attributionControl={false}
                 >
-                    <RouteLine id="navigation-route" coordinates={routeGeometry || []} color={ROUTE_COLORS.safe} isSelected={true} />
-                    <IncidenceZones zones={barcelonaIncidenceZones} />
-
-                    {/* POI Icons on Map */}
-                    {nearbyPOIs.map(poi => (
-                        <Marker key={poi.id} latitude={poi.lat} longitude={poi.lng} anchor="center">
-                            <div className="size-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/50 shadow-lg">
-                                <span className="material-symbols-outlined text-base">place</span>
-                            </div>
-                        </Marker>
-                    ))}
+                    <RouteLine id="navigation-route" coordinates={routeGeometry || []} color="#FF3131" isSelected={true} />
 
                     {/* Marcador propio: nunca desaparece al recentrar y no depende
                         del estado interno del GeolocateControl de Mapbox. */}
                     <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
-                        <div className="relative size-7" aria-label={t('navigation.your_location', 'Tu ubicación')}>
-                            <div className="absolute inset-0 rounded-full bg-blue-500/35 animate-ping" />
-                            <div className="absolute inset-1 rounded-full bg-blue-500 border-[3px] border-white shadow-lg" />
+                        <div
+                            className="relative size-10 flex items-center justify-center"
+                            aria-label={t('navigation.your_location', 'Tu ubicación')}
+                            style={{ transform: `rotate(${heading - viewState.bearing}deg)` }}
+                        >
+                            <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" />
+                            <div className="relative size-8 rounded-full bg-white border-[3px] border-primary shadow-[0_4px_18px_rgba(255,49,49,0.45)] flex items-center justify-center">
+                                <span className="material-symbols-outlined text-primary text-[23px] leading-none">navigation</span>
+                            </div>
                         </div>
                     </Marker>
-
-                    {/* Default Mapbox Popup for Instructions */}
-                    <Popup
-                        latitude={userLocation.lat}
-                        longitude={userLocation.lng}
-                        anchor="bottom"
-                        offset={30}
-                        closeButton={false}
-                        closeOnClick={false}
-                        style={{ padding: 0, borderRadius: '1rem', overflow: 'hidden' }}
-                    >
-                        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl max-w-[280px] shadow-xl">
-                            <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-primary text-xl">
-                                    {upcomingStep ? getManeuverIcon(upcomingStep.maneuver.type, upcomingStep.maneuver.modifier) : 'straight'}
-                                </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-lg font-black text-zinc-900 leading-tight tracking-tight">
-                                    {distanceToNext != null
-                                        ? formatDistance(distanceToNext)
-                                        : (upcomingStep ? formatDistance(upcomingStep.distance) : '--')}
-                                </p>
-                                <p className="text-xs font-semibold text-zinc-500 leading-tight">
-                                    {upcomingStep?.maneuver.instruction || t('navigation.continue_straight')}
-                                </p>
-                            </div>
-                        </div>
-                    </Popup>
 
                     <Marker latitude={destination.lat} longitude={destination.lng} anchor="bottom">
                         <div className="flex flex-col items-center">
@@ -317,47 +291,91 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                         </div>
                     </Marker>
                 </Map>
+            </div>
 
-                {/* Floating Map Controls */}
-                <div
-                    className="absolute right-4 flex flex-col gap-3 z-20"
-                    style={{ top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))' }}
-                >
+            {/* Maniobra principal: una sola tarjeta, legible de un vistazo. */}
+            <div
+                className="absolute left-3 right-3 z-30"
+                style={{ top: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
+            >
+                <div className="overflow-hidden rounded-[1.65rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-2xl">
+                    <div className="flex items-center gap-4 px-5 py-4 min-h-[108px]">
+                        <span className="material-symbols-outlined text-white text-[58px] leading-none shrink-0">
+                            {upcomingStep ? getManeuverIcon(upcomingStep.maneuver.type, upcomingStep.maneuver.modifier) : 'straight'}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-white text-[34px] font-black leading-none tracking-tight">
+                                {distanceToNext != null
+                                    ? formatDistance(distanceToNext)
+                                    : (upcomingStep ? formatDistance(upcomingStep.distance) : '--')}
+                            </p>
+                            <p className="mt-2 text-zinc-300 text-xl font-semibold leading-tight line-clamp-2">
+                                {upcomingStep?.maneuver.instruction || t('navigation.continue_straight')}
+                            </p>
+                        </div>
+                    </div>
+                    {followingStep && (
+                        <div className="flex items-center gap-3 border-t border-white/10 bg-white/[0.045] px-5 py-3">
+                            <span className="material-symbols-outlined text-zinc-300 text-3xl">
+                                {getManeuverIcon(followingStep.maneuver.type, followingStep.maneuver.modifier)}
+                            </span>
+                            <p className="text-zinc-300 text-base font-semibold truncate">
+                                {followingStep.maneuver.instruction}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Solo los dos controles necesarios, separados de la instrucción. */}
+            <div className="absolute right-3 top-[190px] flex flex-col gap-3 z-20">
                     <button 
                         onClick={handleRecenter}
-                        className="size-14 bg-zinc-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
+                        className={`size-12 backdrop-blur-xl rounded-full border shadow-2xl flex items-center justify-center active:scale-95 transition-all ${isFollowing ? 'bg-primary text-white border-primary' : 'bg-zinc-950/90 text-white border-white/10'}`}
                     >
                         <span className="material-symbols-outlined text-2xl">my_location</span>
                     </button>
 
                     <button 
                         onClick={() => setShowReportDangerModal(true)}
-                        className="size-14 bg-safety-orange rounded-2xl shadow-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
+                        className="size-12 bg-zinc-950/90 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl flex items-center justify-center text-primary active:scale-95 transition-transform"
                     >
-                        <span className="material-symbols-outlined text-2xl font-black">shield</span>
+                        <span className="material-symbols-outlined text-2xl">report</span>
                     </button>
-
-                </div>
             </div>
 
-            {/* Bottom Info & Action Bar - FLOATING ABOVE NAV */}
-            <div className="absolute bottom-[20px] left-4 right-4 z-30 space-y-3">
-                <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-2xl flex items-center justify-between">
-                    <div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-white">{formatDuration(totalDuration)}</span>
-                            <span className="text-sm text-white/40 font-medium">({formatDistance(totalDistance)})</span>
+            {/* Resumen inferior inspirado en navegación nativa, con branding oscuro. */}
+            <div
+                className="absolute left-3 right-3 z-30"
+                style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+            >
+                <div className="bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-[1.75rem] px-5 pt-4 pb-3 shadow-2xl">
+                    <div className="grid grid-cols-3 items-start text-center">
+                        <div>
+                            <p className="text-white text-2xl font-black leading-tight">{eta}</p>
+                            <p className="text-zinc-500 text-xs font-semibold">Llegada</p>
                         </div>
-                        <p className="text-xs text-white/40 font-bold uppercase tracking-wider mt-1">{t('navigation.arrival', { time: eta })}</p>
+                        <div>
+                            <p className="text-white text-2xl font-black leading-tight">{formatDuration(totalDuration)}</p>
+                            <p className="text-zinc-500 text-xs font-semibold">Tiempo</p>
+                        </div>
+                        <div>
+                            <p className="text-white text-2xl font-black leading-tight">{formatDistance(totalDistance)}</p>
+                            <p className="text-zinc-500 text-xs font-semibold">Distancia</p>
+                        </div>
                     </div>
-                    
-                    <button
-                        onClick={onClose}
-                        className="h-14 px-6 bg-red-600/20 hover:bg-red-600/30 text-red-500 rounded-2xl flex items-center justify-center gap-2 border border-red-500/30 transition-all active:scale-95 shadow-lg"
-                    >
-                        <span className="material-symbols-outlined font-black">cancel</span>
-                        <span className="font-black uppercase text-sm tracking-tighter">{t('navigation.finish')}</span>
-                    </button>
+                    <div className="mt-3 flex items-center gap-3 border-t border-white/10 pt-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-zinc-300">{destinationName}</p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="h-10 px-4 bg-primary/15 text-primary rounded-full flex items-center justify-center gap-1.5 border border-primary/30 active:scale-95 transition-transform"
+                        >
+                            <span className="material-symbols-outlined text-lg">close</span>
+                            <span className="font-bold text-sm">{t('navigation.finish')}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

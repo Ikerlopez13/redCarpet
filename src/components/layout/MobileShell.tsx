@@ -48,6 +48,7 @@ export const MobileShell: React.FC = () => {
     const { isLoading: isAuthLoading } = useAuth();
     const location = useLocation();
     const isNative = Capacitor.isNativePlatform();
+    const isFullScreenRoute = ['/emergency-live', '/navigate', '/transit-navigate'].includes(location.pathname);
 
     // If native (iOS/Android), disable the mock shell and render full screen
     if (isNative) {
@@ -61,9 +62,10 @@ export const MobileShell: React.FC = () => {
                 <DeepLinkHandler />
                 {/* Content Area */}
                 <div className={clsx(
-                    "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-safe-top",
+                    "flex-1 overflow-y-auto no-scrollbar relative flex flex-col",
+                    !isFullScreenRoute && "pt-safe-top",
                     isEmergencyLive ? "bg-transparent" : "bg-background-dark",
-                    !['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && "pb-[84px] pb-safe-bottom"
+                    !['/login', '/onboarding'].includes(location.pathname) && !isFullScreenRoute && "pb-[84px] pb-safe-bottom"
                 )}>
                     <ErrorBoundary t={t}>
                         <Outlet />
@@ -71,7 +73,7 @@ export const MobileShell: React.FC = () => {
                 </div>
 
                 {/* Bottom Navigation */}
-                {!['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && <BottomNav />}
+                {!['/login', '/onboarding'].includes(location.pathname) && !isFullScreenRoute && <BottomNav />}
             </div>
         );
     }
@@ -127,8 +129,9 @@ export const MobileShell: React.FC = () => {
 
                         {/* Content Area */}
                         <div className={clsx(
-                            "flex-1 overflow-y-auto no-scrollbar relative flex flex-col pt-8 bg-background-dark",
-                            !['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && "pb-[84px]"
+                            "flex-1 overflow-y-auto no-scrollbar relative flex flex-col bg-background-dark",
+                            !isFullScreenRoute && "pt-8",
+                            !['/login', '/onboarding'].includes(location.pathname) && !isFullScreenRoute && "pb-[84px]"
                         )}>
                             <ErrorBoundary t={t}>
                                 <Outlet />
@@ -136,7 +139,7 @@ export const MobileShell: React.FC = () => {
                         </div>
 
                         {/* Bottom Navigation */}
-                        {!['/login', '/onboarding', '/emergency-live'].includes(location.pathname) && <BottomNav />}
+                        {!['/login', '/onboarding'].includes(location.pathname) && !isFullScreenRoute && <BottomNav />}
                     </div>
 
                     {/* Hardware Buttons */}
