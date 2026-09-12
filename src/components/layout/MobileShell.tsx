@@ -7,7 +7,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSOS } from '../../contexts/SOSContext';
 
 import { Capacitor } from '@capacitor/core';
-import { DeepLinkHandler } from '../auth/DeepLinkHandler';
 
 // Simple Error Boundary for Native Debugging
 class ErrorBoundary extends React.Component<{ children: React.ReactNode, t?: any }, { hasError: boolean, error: any }> {
@@ -48,7 +47,7 @@ export const MobileShell: React.FC = () => {
     const { isLoading: isAuthLoading } = useAuth();
     const location = useLocation();
     const isNative = Capacitor.isNativePlatform();
-    const isFullScreenRoute = ['/emergency-live', '/navigate', '/transit-navigate'].includes(location.pathname);
+    const isFullScreenRoute = ['/navigate', '/transit-navigate'].includes(location.pathname);
 
     // If native (iOS/Android), disable the mock shell and render full screen
     if (isNative) {
@@ -59,7 +58,6 @@ export const MobileShell: React.FC = () => {
                 "h-[100dvh] w-screen overflow-hidden flex flex-col relative",
                 isEmergencyLive ? "bg-transparent" : "bg-background-dark"
             )}>
-                <DeepLinkHandler />
                 {/* Content Area */}
                 <div className={clsx(
                     "flex-1 overflow-y-auto no-scrollbar relative flex flex-col",
@@ -81,8 +79,6 @@ export const MobileShell: React.FC = () => {
     return (
         // Main Container - Black Background
         <div className="h-[100dvh] w-full bg-[#050505] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden relative selection:bg-primary selection:text-white">
-            <DeepLinkHandler />
-
             {/* Ambient Background Effects - Cleaned for Production */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-slate-900/20 rounded-full blur-[100px]"></div>
@@ -184,13 +180,25 @@ const BottomNav = () => {
     return (
         <div className="h-[84px] w-full bg-background-dark/80 backdrop-blur-xl border-t border-white/5 grid grid-cols-5 items-center px-2 pb-4 pt-2 z-40 absolute bottom-0 shadow-[0_-10px_20px_rgba(0,0,0,0.4)]">
             {tabs.map((tab) => {
-                const isActive = location.pathname === tab.path;
                 const isSOS = tab.path === '/emergency';
+                const isActive = location.pathname === tab.path || (isSOS && location.pathname === '/emergency-live');
 
                 return (
                     <button
                         key={tab.path}
-                        onClick={() => navigate(tab.path)}
+                        onClick={() => {
+                            if (isSOS) {
+                                try {
+                                    const raw = localStorage.getItem('redcarpet_active_sos');
+                                    const active = raw ? JSON.parse(raw) : null;
+                                    if (active?.alertId) {
+                                        navigate('/emergency-live', { state: active });
+                                        return;
+                                    }
+                                } catch {}
+                            }
+                            navigate(tab.path);
+                        }}
                         className={clsx(
                             "flex flex-col items-center gap-1 transition-all relative",
                             isActive ? "text-primary" : (isSOS ? "text-red-500" : "text-slate-500 hover:text-slate-300"),

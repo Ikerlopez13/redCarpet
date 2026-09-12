@@ -44,6 +44,34 @@ const _loop: ChunkLoop = {
 const CHUNK_MS = 15_000;  // 15-second chunks (subida rápida + aparecen antes en Notificaciones)
 const VIDEO_BUCKET = 'sos-videos';
 const THUMB_BUCKET = 'sos-thumbnails';
+const ACTIVE_SOS_KEY = 'redcarpet_active_sos';
+
+export interface ActiveSOSSession {
+    alertId: string;
+    reason: string;
+    mode: 'visible' | 'discrete';
+}
+
+export function saveActiveSOSSession(session: ActiveSOSSession): void {
+    localStorage.setItem(ACTIVE_SOS_KEY, JSON.stringify(session));
+}
+
+export function getActiveSOSSession(): ActiveSOSSession | null {
+    try {
+        const raw = localStorage.getItem(ACTIVE_SOS_KEY);
+        return raw ? JSON.parse(raw) as ActiveSOSSession : null;
+    } catch {
+        return null;
+    }
+}
+
+export function clearActiveSOSSession(): void {
+    localStorage.removeItem(ACTIVE_SOS_KEY);
+}
+
+export function isChunkedRecordingActive(alertId?: string | null): boolean {
+    return _loop.running && (!alertId || _loop.alertId === alertId);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -58,6 +86,11 @@ function b64ToBlob(b64: string, mime: string): Blob {
 
 export async function startSOSPreview(options: { position?: 'front' | 'rear' } = {}): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) return false;
+    try {
+        const { CameraPreview } = await import('@capacitor-community/camera-preview');
+        const { value: isStarted } = await CameraPreview.isCameraStarted();
+        if (isStarted) return true;
+    } catch {}
     const positions = [options.position || 'rear', 'front'];
     for (const position of positions) {
         try {
@@ -337,6 +370,9 @@ async function _loopIteration() {
     const ok = await _startRecordingSegment(_loop.isPremium);
     if (!ok) {
         console.error('[SOS] Chunk recording failed to start');
+        // A transient camera/microphone failure must not terminate the whole
+        // SOS recording session. Retry while the alert remains active.
+        _loop.timer = setTimeout(() => void _loopIteration(), 1500);
         return;
     }
 
@@ -368,12 +404,17 @@ async function _finishChunk(userId: string, alertId: string, idx: number) {
 
     // Persist chunk metadata (una fila por medio: vídeo y/o audio)
     for (const storagePath of storagePaths) {
+        const mediaType = storagePath.endsWith('.m4a')
+            ? 'audio/mp4'
+            : storagePath.endsWith('.webm')
+                ? 'video/webm'
+                : 'video/mp4';
         const { error: dbErr } = await (supabase.from('sos_recordings') as any).insert({
             sos_alert_id: alertId,
             user_id: userId,
             storage_path: storagePath,
             chunk_index: idx,
-            media_type: storagePath.endsWith('.m4a') ? 'audio/m4a' : 'video/mp4',
+            media_type: mediaType,
         });
         if (dbErr) console.error('[SOS] sos_recordings insert error:', dbErr);
     }
@@ -397,6 +438,10 @@ async function _finishChunk(userId: string, alertId: string, idx: number) {
 }
 
 export async function startChunkedRecording(userId: string, alertId: string, isPremium: boolean) {
+    if (_loop.running && _loop.alertId === alertId && _loop.userId === userId) return;
+    if (_loop.running && _loop.userId && _loop.alertId) {
+        await stopChunkedRecording(_loop.userId, _loop.alertId);
+    }
     _loop.running = true;
     _loop.index = 0;
     _loop.alertId = alertId;
@@ -407,6 +452,7 @@ export async function startChunkedRecording(userId: string, alertId: string, isP
 }
 
 export async function stopChunkedRecording(userId: string, alertId: string): Promise<void> {
+    if (!_loop.running || _loop.userId !== userId || _loop.alertId !== alertId) return;
     _loop.running = false;
     if (_loop.timer) { clearTimeout(_loop.timer); _loop.timer = null; }
 
@@ -417,6 +463,10 @@ export async function stopChunkedRecording(userId: string, alertId: string): Pro
     // Release web stream
     activeStream?.getTracks().forEach(t => t.stop());
     activeStream = null;
+    _loop.alertId = null;
+    _loop.userId = null;
+    _loop.index = 0;
+    _loop.thumbnailCaptured = false;
 }
 
 // ─── Legacy one-shot API (kept for backwards compat / non-premium fallback) ──

@@ -11,7 +11,11 @@ import {
     stopSOSPreview,
     startChunkedRecording,
     stopChunkedRecording,
-    resolveSOS
+    resolveSOS,
+    saveActiveSOSSession,
+    getActiveSOSSession,
+    clearActiveSOSSession,
+    isChunkedRecordingActive,
 } from '../services/sosService';
 import { useAuth } from '../contexts/AuthContext';
 import { ReviewPromptModal } from '../components/ReviewPromptModal';
@@ -28,8 +32,9 @@ export const SOSActivePage: React.FC = () => {
         mode?: 'visible' | 'discrete';
     } | null;
 
-    const alertId = sosState?.alertId || null;
-    const sosMode = sosState?.mode || 'visible';
+    const persistedSOS = getActiveSOSSession();
+    const alertId = sosState?.alertId || persistedSOS?.alertId || null;
+    const sosMode = sosState?.mode || persistedSOS?.mode || 'visible';
 
     const [isCameraStarted, setIsCameraStarted] = useState(false);
     const isCameraStartingRef = useRef(false);
@@ -121,6 +126,14 @@ export const SOSActivePage: React.FC = () => {
     useEffect(() => {
         console.log('[SOS-Active-Page] Mounted. AlertID:', alertId);
 
+        if (alertId) {
+            saveActiveSOSSession({
+                alertId,
+                reason: sosState?.reason || persistedSOS?.reason || 'security',
+                mode: sosMode,
+            });
+        }
+
         const initSOS = async () => {
             // Load all preferences at once to avoid race conditions
             const [{ value: decoyVal }, { value: localConfig }] = await Promise.all([
@@ -136,10 +149,9 @@ export const SOSActivePage: React.FC = () => {
             }
             setAutoCall112(call112);
 
-            // 1. Initial delay to ensure the route Transition is smooth
-            await new Promise(r => setTimeout(r, 500));
-
-            // 2. Start Native Preview (Mirroring handled in Plugin.swift now)
+            // 1. Start Native Preview immediately. Delaying this left a short
+            // window where navigating away could create an alert without ever
+            // starting its recording.
             if (Capacitor.isNativePlatform()) {
                 isCameraStartingRef.current = true;
                 let previewOk = false;
@@ -159,13 +171,13 @@ export const SOSActivePage: React.FC = () => {
                 }
             }
 
-            // 3. Start Recording por segmentos (vídeo .mp4 + audio .m4a cada chunk,
+            // 2. Start Recording por segmentos (vídeo .mp4 + audio .m4a cada chunk,
             //    subidos al bucket privado según se graban)
             if (user && alertId) {
                 startChunkedRecording(user.id, alertId, isPremium).catch(console.error);
             }
 
-            // 4. Llamada al 112.
+            // 3. Llamada al 112.
             // Android: NO se marca automáticamente. Se muestra un diálogo in-app
             // "¿Quieres llamar al 112?" (Sí/No). El protocolo SOS ya está corriendo
             // (contactos + grabación); el diálogo solo decide si además se llama.
@@ -240,11 +252,14 @@ export const SOSActivePage: React.FC = () => {
                 clearTimeout(cameraRestartTimerRef.current);
                 cameraRestartTimerRef.current = null;
             }
-            cleanAll();
+            // Navigating through the app must not interrupt an active SOS.
+            // The recorder and native preview are module-level and continue in
+            // the background; opaque app pages keep the preview out of sight.
+            cleanAll(!isChunkedRecordingActive(alertId));
         };
     }, []);
 
-    const cleanAll = async () => {
+    const cleanAll = async (stopPreview = true) => {
         if ((window as any)._sos112Timer) {
             clearTimeout((window as any)._sos112Timer);
             delete (window as any)._sos112Timer;
@@ -254,7 +269,7 @@ export const SOSActivePage: React.FC = () => {
             cameraRestartTimerRef.current = null;
         }
         document.body.classList.remove('sos-mode-active');
-        if (Capacitor.isNativePlatform()) {
+        if (Capacitor.isNativePlatform() && stopPreview) {
             // Wait for any in-progress operations
             let attempts = 0;
             while ((isCameraStartingRef.current || isCameraStoppingRef.current) && attempts < 50) {
@@ -319,7 +334,8 @@ export const SOSActivePage: React.FC = () => {
             await Promise.race([uploadPromise, new Promise(r => setTimeout(r, 2500))]);
         }
 
-        await cleanAll();
+        clearActiveSOSSession();
+        await cleanAll(true);
         
         const { value } = await Preferences.get({ key: 'HAS_RATED_APP' });
         if (!value) {

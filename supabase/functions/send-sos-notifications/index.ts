@@ -8,9 +8,12 @@ console.log("Starting send-sos-notifications edge function...")
 serve(async (req) => {
     try {
         const body = await req.json()
-        const { alertId, userId, groupId, config, notificationType, targetUserId, senderName: senderNameOverride } = body
+        const {
+            alertId, userId, groupId, config, notificationType, targetUserId,
+            senderName: senderNameOverride, action, mediaUrl, thumbnailUrl, chunkIndex,
+        } = body
 
-        console.log('[SOS] Request received:', { notificationType, userId, targetUserId, alertId });
+        console.log('[SOS] Request received:', { notificationType, action, userId, targetUserId, alertId, chunkIndex });
 
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
@@ -74,30 +77,42 @@ serve(async (req) => {
         }
 
         // ── SOS / Danger Zone notification (group) ───────────────────────────
+        let sosUserId = userId;
+        let sosGroupId = groupId;
+        if (alertId && (!sosUserId || !sosGroupId)) {
+            const { data: alert } = await supabaseClient
+                .from('sos_alerts')
+                .select('user_id, group_id')
+                .eq('id', alertId)
+                .single();
+            sosUserId ||= alert?.user_id;
+            sosGroupId ||= alert?.group_id;
+        }
+
         let userIds: string[] = [];
 
-        if (groupId) {
+        if (sosGroupId) {
             const { data: members } = await supabaseClient
                 .from('family_members')
                 .select('user_id')
-                .eq('group_id', groupId)
-                .neq('user_id', userId);
+                .eq('group_id', sosGroupId)
+                .neq('user_id', sosUserId);
             if (members) userIds = [...userIds, ...members.map((m: any) => m.user_id)];
         }
 
-        if (userId) {
+        if (sosUserId) {
             const [{ data: outbound }, { data: inbound }] = await Promise.all([
-                supabaseClient.from('trusted_contacts').select('associated_user_id').eq('user_id', userId).eq('status', 'accepted'),
-                supabaseClient.from('trusted_contacts').select('user_id').eq('associated_user_id', userId).eq('status', 'accepted'),
+                supabaseClient.from('trusted_contacts').select('associated_user_id').eq('user_id', sosUserId).eq('status', 'accepted'),
+                supabaseClient.from('trusted_contacts').select('user_id').eq('associated_user_id', sosUserId).eq('status', 'accepted'),
             ]);
 
             if (outbound) userIds = [...userIds, ...outbound.filter((c: any) => c.associated_user_id).map((c: any) => c.associated_user_id)];
             if (inbound) userIds = [...userIds, ...inbound.map((c: any) => c.user_id)];
         }
 
-        userIds = Array.from(new Set(userIds)).filter(id => id && id !== userId);
+        userIds = Array.from(new Set(userIds)).filter(id => id && id !== sosUserId);
 
-        console.log(`[SOS] userId=${userId}, notifying ${userIds.length} users:`, userIds);
+        console.log(`[SOS] userId=${sosUserId}, notifying ${userIds.length} users:`, userIds);
 
         if (userIds.length === 0) {
             return new Response(JSON.stringify({ message: "No members to notify" }), {
@@ -119,11 +134,11 @@ serve(async (req) => {
         console.log('[SOS] Tokens fetched:', tokens.map((t: any) => ({ platform: t.platform, user_id: t.user_id })));
 
         let senderName = 'Un contacto';
-        if (userId) {
+        if (sosUserId) {
             const { data: profile } = await supabaseClient
                 .from('profiles')
                 .select('full_name')
-                .eq('id', userId)
+                .eq('id', sosUserId)
                 .single();
             if (profile?.full_name) senderName = profile.full_name.split(' ')[0];
         }
@@ -137,17 +152,35 @@ serve(async (req) => {
         const tokenPlatforms = tokens.map((t: any) => t.platform);
         console.log('[SOS] Token platforms:', tokenPlatforms);
 
+        const mediaReady = action === 'chunk_uploaded' || action === 'media_uploaded';
+        const thumbnailReady = action === 'thumbnail_ready';
+        const notificationTitle = isDangerZone
+            ? '⚠️ Peligro Reportado'
+            : mediaReady
+                ? '🎥 Vídeo SOS disponible'
+                : '🚨 Alerta SOS';
+        const notificationBody = mediaReady
+            ? `Ya puedes ver la grabación de ${senderName}.`
+            : thumbnailReady
+                ? `La transmisión SOS de ${senderName} está activa.`
+                : config?.message || (isDangerZone
+                    ? `${senderName} ha avisado de un peligro cercano.`
+                    : `¡SOS de ${senderName}! Necesita ayuda.`);
+
         const response = await messaging.sendEachForMulticast({
             tokens: fcmTokens,
             notification: {
-                title: isDangerZone ? '⚠️ Peligro Reportado' : '🚨 Alerta SOS',
-                body: config?.message || (isDangerZone
-                    ? `${senderName} ha avisado de un peligro cercano.`
-                    : `¡SOS de ${senderName}! Necesita ayuda.`)
+                title: notificationTitle,
+                body: notificationBody,
             },
             data: {
                 type: isDangerZone ? 'danger_zone' : 'sos',
-                alertId: alertId || ''
+                alertId: alertId || '',
+                action: action || 'activated',
+                mediaReady: mediaReady ? 'true' : 'false',
+                mediaUrl: mediaUrl || '',
+                thumbnailUrl: thumbnailUrl || '',
+                chunkIndex: chunkIndex === undefined ? '' : String(chunkIndex),
             },
             apns: {
                 headers: {

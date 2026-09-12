@@ -13,8 +13,10 @@ export const DeepLinkHandler = () => {
         // 1. Handle SOS Widget Trigger (Must run even if session exists)
         if (url.includes('sos/activate') || url.includes('sos')) {
             console.log('🚨 SOS WIDGET TRIGGERED!');
-            window.dispatchEvent(new CustomEvent('sos:activate_trigger', { detail: { type: 'widget' } }));
-            navigate('/emergency');
+            // Persist the intent before navigating: on a cold launch the
+            // Emergency page may mount after this event has already fired.
+            sessionStorage.setItem('redcarpet_widget_sos_pending', 'true');
+            navigate('/emergency', { state: { autoStartSOS: true, source: 'widget' }, replace: true });
             return;
         }
 

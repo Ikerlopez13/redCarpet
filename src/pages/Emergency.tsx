@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
     ShieldAlert, 
     ChevronLeft, 
@@ -20,11 +20,13 @@ import { useTranslation } from 'react-i18next';
 
 export const Emergency: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { t } = useTranslation();
     const { user } = useAuth();
     const { familyGroup } = useSOS();
     const [isActivating, setIsActivating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const widgetAutoStartedRef = useRef(false);
 
     const handleStartSOS = async () => {
         if (!user || isActivating) return;
@@ -88,6 +90,18 @@ export const Emergency: React.FC = () => {
             setIsActivating(false);
         }
     };
+
+    useEffect(() => {
+        const routeState = location.state as { autoStartSOS?: boolean; source?: string } | null;
+        const pending = sessionStorage.getItem('redcarpet_widget_sos_pending') === 'true';
+        if (!user || widgetAutoStartedRef.current || (!routeState?.autoStartSOS && !pending)) return;
+
+        widgetAutoStartedRef.current = true;
+        sessionStorage.removeItem('redcarpet_widget_sos_pending');
+        void handleStartSOS();
+        // The activation is deliberately one-shot per mounted widget launch.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, location.key]);
 
     return (
         <div className="flex flex-col h-full w-full bg-[#0d0d0d] text-white overflow-hidden font-display relative">
